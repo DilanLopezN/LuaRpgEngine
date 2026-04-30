@@ -9,15 +9,36 @@ import (
 )
 
 const (
-	tickRate     = 30
-	mapSize      = 20
-	stepDuration = 250 * time.Millisecond
-	diagFactor   = 1.41421356
-	attackDur    = 350 * time.Millisecond
-	attackCD     = 600 * time.Millisecond
-	attackRange  = 1.5
-	attackDamage = 10
+	tickRate          = 30
+	mapSize           = 20
+	stepDuration      = 250 * time.Millisecond
+	diagFactor        = 1.41421356
+	attackDur         = 350 * time.Millisecond
+	attackCD          = 600 * time.Millisecond
+	attackRange       = 1.5
+	attackDamage      = 10
+	manaRegenInterval = 200 * time.Millisecond
+	manaRegenAmount   = 1
+	maxManaDefault    = 100
 )
+
+type Spell struct {
+	ID       string
+	Kind     string
+	Range    int
+	Radius   int
+	Damage   int
+	ManaCost int
+	Cooldown time.Duration
+}
+
+var spellRegistry = map[string]*Spell{
+	"fireball":  {ID: "fireball", Kind: "line", Range: 6, Damage: 15, ManaCost: 15, Cooldown: 700 * time.Millisecond},
+	"frostbolt": {ID: "frostbolt", Kind: "line", Range: 5, Damage: 10, ManaCost: 10, Cooldown: 500 * time.Millisecond},
+	"lightning": {ID: "lightning", Kind: "line", Range: 8, Damage: 20, ManaCost: 25, Cooldown: 1000 * time.Millisecond},
+	"explosion": {ID: "explosion", Kind: "area", Radius: 2, Damage: 25, ManaCost: 30, Cooldown: 1500 * time.Millisecond},
+	"icenova":   {ID: "icenova", Kind: "area", Radius: 1, Damage: 15, ManaCost: 20, Cooldown: 800 * time.Millisecond},
+}
 
 type Player struct {
 	ID   int
@@ -39,10 +60,14 @@ type Player struct {
 	FaceX, FaceY int
 
 	HP, MaxHP int
+	MP, MaxMP int
 	Kills     int
 
 	AttackUntil time.Time
 	NextAttack  time.Time
+
+	LastManaTick time.Time
+	SpellCDs     map[string]time.Time
 
 	Out chan<- string
 }
@@ -111,7 +136,10 @@ func (g *Game) addPlayer(out chan<- string) *Player {
 		FromX: mapSize / 2, FromY: mapSize / 2,
 		FaceX: 0, FaceY: 1,
 		HP: 100, MaxHP: 100,
-		Out: out,
+		MP: maxManaDefault, MaxMP: maxManaDefault,
+		LastManaTick: time.Now(),
+		SpellCDs:     make(map[string]time.Time),
+		Out:          out,
 	}
 	g.players[p.ID] = p
 	return p
@@ -210,6 +238,104 @@ func (g *Game) handleLine(p *Player, line string) {
 		g.mu.Unlock()
 	case "ATTACK":
 		g.handleAttack(p)
+	case "CAST":
+		if len(parts) < 2 {
+			return
+		}
+		g.handleCast(p, parts[1])
+	}
+}
+
+func absInt(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
+
+func (g *Game) handleCast(p *Player, spellID string) {
+	sp, ok := spellRegistry[spellID]
+	if !ok {
+		return
+	}
+	now := time.Now()
+	g.mu.Lock()
+	if p.Name == "" || p.HP <= 0 {
+		g.mu.Unlock()
+		return
+	}
+	if cd, has := p.SpellCDs[spellID]; has && now.Before(cd) {
+		g.mu.Unlock()
+		return
+	}
+	if p.MP < sp.ManaCost {
+		g.mu.Unlock()
+		return
+	}
+	p.MP -= sp.ManaCost
+	if p.SpellCDs == nil {
+		p.SpellCDs = make(map[string]time.Time)
+	}
+	p.SpellCDs[spellID] = now.Add(sp.Cooldown)
+
+	fx, fy := p.FaceX, p.FaceY
+	if fx == 0 && fy == 0 {
+		fy = 1
+	}
+	ox, oy := p.TileX, p.TileY
+
+	var hits []int
+	var killed []*Enemy
+	if sp.Kind == "line" {
+		for step := 1; step <= sp.Range; step++ {
+			tx := ox + fx*step
+			ty := oy + fy*step
+			for _, e := range g.enemies {
+				if e.X == tx && e.Y == ty {
+					e.HP -= sp.Damage
+					hits = append(hits, e.ID)
+					if e.HP <= 0 {
+						killed = append(killed, e)
+					}
+				}
+			}
+		}
+	} else if sp.Kind == "area" {
+		cx := ox + fx
+		cy := oy + fy
+		for _, e := range g.enemies {
+			if absInt(e.X-cx) <= sp.Radius && absInt(e.Y-cy) <= sp.Radius {
+				e.HP -= sp.Damage
+				hits = append(hits, e.ID)
+				if e.HP <= 0 {
+					killed = append(killed, e)
+				}
+			}
+		}
+	}
+
+	spellMsg := fmt.Sprintf("SPELL %d %s %d %d %d %d\n", p.ID, spellID, fx, fy, ox, oy)
+	outs := make([]chan<- string, 0, len(g.players))
+	for _, op := range g.players {
+		outs = append(outs, op.Out)
+	}
+
+	for _, e := range killed {
+		delete(g.enemies, e.ID)
+		p.Kills++
+	}
+	playerName := p.Name
+	g.mu.Unlock()
+
+	g.broadcast(outs, spellMsg)
+	for _, id := range hits {
+		g.broadcast(outs, fmt.Sprintf("HIT %d\n", id))
+	}
+	for _, e := range killed {
+		g.broadcast(outs, fmt.Sprintf("EDIE %d\n", e.ID))
+		if g.cache != nil {
+			g.cache.RecordKill(playerName)
+		}
 	}
 }
 
@@ -305,6 +431,13 @@ func (g *Game) tick(now time.Time) {
 			p.FromX, p.FromY = p.TileX, p.TileY
 			p.Stepping = false
 		}
+		if p.MaxMP > 0 && p.MP < p.MaxMP && now.Sub(p.LastManaTick) >= manaRegenInterval {
+			p.MP += manaRegenAmount
+			if p.MP > p.MaxMP {
+				p.MP = p.MaxMP
+			}
+			p.LastManaTick = now
+		}
 	}
 
 	for _, p := range g.players {
@@ -342,8 +475,8 @@ func (g *Game) tick(now time.Time) {
 		if now.Before(p.AttackUntil) {
 			atk = 1
 		}
-		fmt.Fprintf(&sb, "P %d %.3f %.3f %d %d %d %d %s\n",
-			p.ID, x, y, p.FaceX, p.FaceY, p.HP, atk, p.Name)
+		fmt.Fprintf(&sb, "P %d %.3f %.3f %d %d %d %d %d %d %d %s\n",
+			p.ID, x, y, p.FaceX, p.FaceY, p.HP, p.MaxHP, p.MP, p.MaxMP, atk, p.Name)
 	}
 	for _, e := range g.enemies {
 		fmt.Fprintf(&sb, "E %d %s %d %d %d %d\n", e.ID, e.Kind, e.X, e.Y, e.HP, e.MaxHP)
