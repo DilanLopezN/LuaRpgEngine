@@ -1,7 +1,11 @@
 local Network = require("src.network")
 local World = require("src.world")
+local Spells = require("src.spells")
 
 local TILE_W, TILE_H = World.TILE_W, World.TILE_H
+
+local SPELL_LINE_DURATION = 0.45
+local SPELL_AREA_DURATION = 0.55
 
 local SCENE_NAME       = "name"
 local SCENE_CONNECTING = "connecting"
@@ -20,7 +24,17 @@ local state = {
     enemies = {},
     camera = { x = 0, y = 0 },
     lastSent = { dx = 0, dy = 0 },
+    skillbar = { nil, nil, nil, nil, nil },
+    activeSpells = {},
+    drag = nil,
+    mouse = { x = 0, y = 0 },
 }
+
+-- Pre-fill the skillbar with the first spells so new players can experiment
+-- without having to drag everything in. Slots beyond the spell count stay nil.
+for i = 1, math.min(5, #Spells.list) do
+    state.skillbar[i] = Spells.list[i].id
+end
 
 local fonts = {}
 
@@ -34,8 +48,8 @@ end
 local function handleSnapshot(line)
     local kind, rest = line:match("^(%S+)%s*(.*)$")
     if kind == "P" then
-        local id, x, y, fx, fy, hp, atk, name = rest:match(
-            "^(%-?%d+)%s+(%-?[%d%.]+)%s+(%-?[%d%.]+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(.+)$")
+        local id, x, y, fx, fy, hp, maxHp, mp, maxMp, atk, name = rest:match(
+            "^(%-?%d+)%s+(%-?[%d%.]+)%s+(%-?[%d%.]+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(.+)$")
         if id then
             id = tonumber(id)
             local p = state.players[id]
@@ -46,6 +60,9 @@ local function handleSnapshot(line)
             p.x, p.y = tonumber(x), tonumber(y)
             p.fx, p.fy = tonumber(fx), tonumber(fy)
             p.hp = tonumber(hp)
+            p.maxHp = tonumber(maxHp)
+            p.mp = tonumber(mp)
+            p.maxMp = tonumber(maxMp)
             p.atk = tonumber(atk) == 1
             p.name = name
         end
@@ -93,6 +110,22 @@ local function handleEvent(line)
     elseif cmd == "EDIE" then
         local id = tonumber(rest)
         if id then state.enemies[id] = nil end
+    elseif cmd == "SPELL" then
+        local casterId, spellId, fx, fy, ox, oy = rest:match(
+            "^(%-?%d+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)$")
+        local def = spellId and Spells.byId[spellId]
+        if def then
+            local kind = def.kind
+            local duration = (kind == "line") and SPELL_LINE_DURATION or SPELL_AREA_DURATION
+            state.activeSpells[#state.activeSpells + 1] = {
+                spellId = spellId,
+                casterId = tonumber(casterId),
+                fx = tonumber(fx), fy = tonumber(fy),
+                ox = tonumber(ox), oy = tonumber(oy),
+                start = love.timer.getTime(),
+                duration = duration,
+            }
+        end
     elseif cmd == "P" or cmd == "E" then
         handleSnapshot(line)
     end
@@ -156,12 +189,116 @@ function love.keypressed(key)
             Network.send("ATTACK")
         elseif key == "escape" then
             love.event.quit()
+        elseif key == "1" or key == "2" or key == "3" or key == "4" or key == "5" then
+            local slot = tonumber(key)
+            local spellId = state.skillbar[slot]
+            if spellId then
+                Network.send("CAST " .. spellId)
+            end
         end
     end
 end
 
+local SKILLBAR_SLOT = 56
+local SKILLBAR_GAP = 8
+local SPELLBOOK_SLOT = 44
+local SPELLBOOK_GAP = 6
+
+local function skillbarOrigin()
+    local W, H = love.graphics.getDimensions()
+    local total = 5 * SKILLBAR_SLOT + 4 * SKILLBAR_GAP
+    local x = (W - total) / 2
+    local y = H - SKILLBAR_SLOT - 24
+    return x, y
+end
+
+local function skillbarSlotRect(i)
+    local ox, oy = skillbarOrigin()
+    return ox + (i - 1) * (SKILLBAR_SLOT + SKILLBAR_GAP), oy,
+        SKILLBAR_SLOT, SKILLBAR_SLOT
+end
+
+local function spellbookOrigin()
+    local _, H = love.graphics.getDimensions()
+    return 16, H - SPELLBOOK_SLOT - 16
+end
+
+local function spellbookSlotRect(i)
+    local ox, oy = spellbookOrigin()
+    return ox + (i - 1) * (SPELLBOOK_SLOT + SPELLBOOK_GAP), oy,
+        SPELLBOOK_SLOT, SPELLBOOK_SLOT
+end
+
+local function pointInRect(px, py, x, y, w, h)
+    return px >= x and py >= y and px < x + w and py < y + h
+end
+
+local function spellbookHit(mx, my)
+    for i, sp in ipairs(Spells.list) do
+        local x, y, w, h = spellbookSlotRect(i)
+        if pointInRect(mx, my, x, y, w, h) then
+            return sp.id
+        end
+    end
+    return nil
+end
+
+local function skillbarHit(mx, my)
+    for i = 1, 5 do
+        local x, y, w, h = skillbarSlotRect(i)
+        if pointInRect(mx, my, x, y, w, h) then
+            return i
+        end
+    end
+    return nil
+end
+
+function love.mousepressed(x, y, button)
+    if state.scene ~= SCENE_PLAYING or button ~= 1 then return end
+    state.mouse.x, state.mouse.y = x, y
+    local fromBook = spellbookHit(x, y)
+    if fromBook then
+        state.drag = { spellId = fromBook, source = "book" }
+        return
+    end
+    local fromSlot = skillbarHit(x, y)
+    if fromSlot and state.skillbar[fromSlot] then
+        state.drag = { spellId = state.skillbar[fromSlot], source = "slot", fromSlot = fromSlot }
+    end
+end
+
+function love.mousemoved(x, y)
+    state.mouse.x, state.mouse.y = x, y
+end
+
+function love.mousereleased(x, y, button)
+    if button ~= 1 or not state.drag then return end
+    local target = skillbarHit(x, y)
+    if target then
+        local existing = state.skillbar[target]
+        state.skillbar[target] = state.drag.spellId
+        if state.drag.source == "slot" and state.drag.fromSlot ~= target then
+            state.skillbar[state.drag.fromSlot] = existing
+        end
+    elseif state.drag.source == "slot" then
+        state.skillbar[state.drag.fromSlot] = nil
+    end
+    state.drag = nil
+end
+
 function love.update(dt)
     Network.poll(handleEvent)
+
+    if #state.activeSpells > 0 then
+        local now = love.timer.getTime()
+        local kept = {}
+        for _, sp in ipairs(state.activeSpells) do
+            if now - sp.start < sp.duration then
+                kept[#kept + 1] = sp
+            end
+        end
+        state.activeSpells = kept
+    end
 
     if state.scene == SCENE_PLAYING then
         local dx, dy = readInput()
@@ -283,7 +420,7 @@ local function drawPlayer(id, p)
     end
 
     local headTop = sy - 36 - 7
-    drawHpBar(sx, headTop - 6, p.hp or 0, 100, 32)
+    drawHpBar(sx, headTop - 6, p.hp or 0, p.maxHp or 100, 32)
     drawNameTag(p.name or ("?" .. id), sx, headTop - 12, id == state.myId)
 end
 
@@ -320,6 +457,55 @@ local function drawEnemy(id, e)
     love.graphics.print(label, sx - w / 2, headTop - 23)
 end
 
+local function drawSpellEffect(eff)
+    local def = Spells.byId[eff.spellId]
+    if not def then return end
+    local now = love.timer.getTime()
+    local t = (now - eff.start) / eff.duration
+    if t < 0 then t = 0 end
+    if t > 1 then t = 1 end
+
+    local r, g, b = def.color[1], def.color[2], def.color[3]
+
+    if def.kind == "line" then
+        local fx, fy = eff.fx, eff.fy
+        if fx == 0 and fy == 0 then fy = 1 end
+        local headTile = t * def.range
+        local cx = (eff.ox + 0.5 + fx * headTile) * TILE_W
+        local cy = (eff.oy + 0.5 + fy * headTile) * TILE_H
+        local size = TILE_H * 0.85
+        local trailSteps = 4
+        for i = 0, trailSteps - 1 do
+            local back = i / trailSteps
+            local tx = (eff.ox + 0.5 + fx * (headTile - back * 0.9)) * TILE_W
+            local ty = (eff.oy + 0.5 + fy * (headTile - back * 0.9)) * TILE_H
+            local alpha = (1 - back) * (1 - t * 0.4)
+            love.graphics.setColor(r, g, b, alpha)
+            love.graphics.rectangle("fill", tx - size / 2, ty - size / 2, size, size)
+        end
+        love.graphics.setColor(1, 1, 1, 0.85 * (1 - t))
+        love.graphics.setLineWidth(2)
+        love.graphics.rectangle("line", cx - size / 2, cy - size / 2, size, size)
+        love.graphics.setLineWidth(1)
+    else
+        local cxTile = eff.ox + eff.fx
+        local cyTile = eff.oy + eff.fy
+        local diameter = (def.radius * 2 + 1)
+        local grow = t
+        local w = diameter * TILE_W * grow
+        local h = diameter * TILE_H * grow
+        local cx = (cxTile + 0.5) * TILE_W
+        local cy = (cyTile + 0.5) * TILE_H
+        local alpha = 0.55 * (1 - t)
+        love.graphics.setColor(r, g, b, alpha + 0.2)
+        love.graphics.rectangle("fill", cx - w / 2, cy - h / 2, w, h)
+        love.graphics.setColor(1, 1, 1, 0.9 * (1 - t))
+        love.graphics.setLineWidth(3)
+        love.graphics.rectangle("line", cx - w / 2, cy - h / 2, w, h)
+        love.graphics.setLineWidth(1)
+    end
+end
+
 local function drawWorld()
     drawFloor()
 
@@ -341,6 +527,10 @@ local function drawWorld()
         else
             drawEnemy(item.id, item.ent)
         end
+    end
+
+    for _, eff in ipairs(state.activeSpells) do
+        drawSpellEffect(eff)
     end
 end
 
@@ -379,6 +569,95 @@ local function drawNameScene()
     end
 end
 
+local function drawStatBar(x, y, w, h, frac, fillColor, label)
+    if frac < 0 then frac = 0 elseif frac > 1 then frac = 1 end
+    love.graphics.setColor(0, 0, 0, 0.75)
+    love.graphics.rectangle("fill", x - 2, y - 2, w + 4, h + 4, 4, 4)
+    love.graphics.setColor(0.18, 0.18, 0.22)
+    love.graphics.rectangle("fill", x, y, w, h, 3, 3)
+    love.graphics.setColor(fillColor[1], fillColor[2], fillColor[3])
+    love.graphics.rectangle("fill", x, y, w * frac, h, 3, 3)
+    love.graphics.setColor(1, 1, 1, 0.15)
+    love.graphics.rectangle("line", x, y, w, h, 3, 3)
+    if label then
+        love.graphics.setFont(fonts.name)
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.print(label, x + 6, y + (h - fonts.name:getHeight()) / 2)
+    end
+end
+
+local function drawSpellIcon(spellId, x, y, w, h)
+    local def = Spells.byId[spellId]
+    if not def then return end
+    love.graphics.setColor(def.color[1] * 0.6, def.color[2] * 0.6, def.color[3] * 0.6)
+    love.graphics.rectangle("fill", x + 4, y + 4, w - 8, h - 8, 4, 4)
+    love.graphics.setColor(def.color[1], def.color[2], def.color[3])
+    if def.kind == "line" then
+        love.graphics.rectangle("fill", x + w * 0.2, y + h * 0.42, w * 0.6, h * 0.16)
+    else
+        love.graphics.rectangle("fill", x + w * 0.28, y + h * 0.28, w * 0.44, h * 0.44)
+    end
+    love.graphics.setColor(0, 0, 0, 0.8)
+    love.graphics.setFont(fonts.name)
+    local label = def.label or def.id
+    love.graphics.print(label, x + 5, y + h - fonts.name:getHeight() - 3)
+end
+
+local function drawSkillbar()
+    love.graphics.setFont(fonts.name)
+    for i = 1, 5 do
+        local x, y, w, h = skillbarSlotRect(i)
+        love.graphics.setColor(0, 0, 0, 0.7)
+        love.graphics.rectangle("fill", x - 2, y - 2, w + 4, h + 4, 5, 5)
+        love.graphics.setColor(0.16, 0.18, 0.22)
+        love.graphics.rectangle("fill", x, y, w, h, 4, 4)
+        local spellId = state.skillbar[i]
+        if spellId and not (state.drag and state.drag.source == "slot" and state.drag.fromSlot == i) then
+            drawSpellIcon(spellId, x, y, w, h)
+        end
+        love.graphics.setColor(0.65, 0.7, 0.8)
+        love.graphics.rectangle("line", x, y, w, h, 4, 4)
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.print(tostring(i), x + 4, y + 2)
+    end
+end
+
+local function drawSpellbook()
+    love.graphics.setFont(fonts.name)
+    local ox, oy = spellbookOrigin()
+    love.graphics.setColor(1, 1, 1, 0.8)
+    love.graphics.print("Spellbook (drag to skillbar)", ox, oy - 18)
+    for i, sp in ipairs(Spells.list) do
+        local x, y, w, h = spellbookSlotRect(i)
+        love.graphics.setColor(0, 0, 0, 0.7)
+        love.graphics.rectangle("fill", x - 2, y - 2, w + 4, h + 4, 5, 5)
+        love.graphics.setColor(0.13, 0.15, 0.19)
+        love.graphics.rectangle("fill", x, y, w, h, 4, 4)
+        drawSpellIcon(sp.id, x, y, w, h)
+        love.graphics.setColor(0.5, 0.55, 0.65)
+        love.graphics.rectangle("line", x, y, w, h, 4, 4)
+    end
+end
+
+local function drawHud()
+    local me = state.players[state.myId]
+    local hp = me and me.hp or 0
+    local maxHp = me and me.maxHp or 100
+    local mp = me and me.mp or 0
+    local maxMp = me and me.maxMp or 100
+
+    local barX, barY, barW = 14, 14, 220
+    drawStatBar(barX, barY, barW, 18, hp / math.max(1, maxHp),
+        { 0.85, 0.20, 0.20 }, string.format("HP %d / %d", hp, maxHp))
+    drawStatBar(barX, barY + 24, barW, 14, mp / math.max(1, maxMp),
+        { 0.25, 0.50, 1.00 }, string.format("MP %d / %d", mp, maxMp))
+
+    love.graphics.setFont(fonts.ui)
+    love.graphics.setColor(1, 1, 1, 0.7)
+    love.graphics.print(string.format("FPS %d  %s", love.timer.getFPS(), state.status or ""),
+        barX, barY + 46)
+end
+
 function love.draw()
     ensureFonts()
 
@@ -393,15 +672,19 @@ function love.draw()
     drawWorld()
     love.graphics.pop()
 
-    love.graphics.setFont(fonts.ui)
-    love.graphics.setColor(1, 1, 1)
-    local count = 0
-    for _ in pairs(state.players) do count = count + 1 end
-    local me = state.players[state.myId]
-    local hp = me and me.hp or 0
-    love.graphics.print(string.format(
-        "FPS: %d | %s | %s | hp=%d | players=%d | WASD move, Space attack",
-        love.timer.getFPS(), state.status, tostring(state.myName), hp, count), 10, 10)
+    drawHud()
+    drawSpellbook()
+    drawSkillbar()
+
+    if state.drag then
+        local mx, my = state.mouse.x, state.mouse.y
+        local size = SKILLBAR_SLOT
+        love.graphics.setColor(0, 0, 0, 0.5)
+        love.graphics.rectangle("fill", mx - size / 2, my - size / 2, size, size, 4, 4)
+        drawSpellIcon(state.drag.spellId, mx - size / 2, my - size / 2, size, size)
+        love.graphics.setColor(1, 1, 1, 0.9)
+        love.graphics.rectangle("line", mx - size / 2, my - size / 2, size, size, 4, 4)
+    end
 end
 
 function love.quit()
