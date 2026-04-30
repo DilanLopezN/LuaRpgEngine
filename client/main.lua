@@ -13,7 +13,7 @@ local state = {
     status = "Enter your name",
     serverHost = "127.0.0.1",
     serverPort = 7777,
-    mapSize = 20,
+    mapSize = 8,
     myId = nil,
     myName = nil,
     players = {},
@@ -90,6 +90,14 @@ local function handleEvent(line)
         local id = tonumber(rest)
         local e = state.enemies[id]
         if e then e.hitTime = love.timer.getTime() end
+    elseif cmd == "PHIT" then
+        local id = tonumber(rest)
+        local p = state.players[id]
+        if p then p.hitTime = love.timer.getTime() end
+    elseif cmd == "PDIE" then
+        local id = tonumber(rest)
+        local p = state.players[id]
+        if p then p.dieTime = love.timer.getTime() end
     elseif cmd == "EDIE" then
         local id = tonumber(rest)
         if id then state.enemies[id] = nil end
@@ -180,22 +188,35 @@ function love.update(dt)
 end
 
 local function drawFloor()
-    for ty = 0, state.mapSize - 1 do
-        for tx = 0, state.mapSize - 1 do
+    local size = state.mapSize
+    local boardW = size * TILE_W
+    local boardH = size * TILE_H
+
+    love.graphics.setColor(0.18, 0.10, 0.05)
+    love.graphics.rectangle("fill", -12, -12, boardW + 24, boardH + 24)
+
+    for ty = 0, size - 1 do
+        for tx = 0, size - 1 do
             if (tx + ty) % 2 == 0 then
-                love.graphics.setColor(0.32, 0.66, 0.28)
+                love.graphics.setColor(0.93, 0.85, 0.66)
             else
-                love.graphics.setColor(0.26, 0.56, 0.22)
+                love.graphics.setColor(0.42, 0.26, 0.15)
             end
             World.fillTile(tx, ty)
         end
     end
-    love.graphics.setColor(0, 0, 0, 0.18)
-    for ty = 0, state.mapSize - 1 do
-        for tx = 0, state.mapSize - 1 do
-            World.outlineTile(tx, ty)
-        end
+
+    love.graphics.setColor(0.10, 0.06, 0.03, 0.85)
+    love.graphics.setLineWidth(2)
+    for i = 0, size do
+        love.graphics.line(i * TILE_W, 0, i * TILE_W, boardH)
+        love.graphics.line(0, i * TILE_H, boardW, i * TILE_H)
     end
+
+    love.graphics.setColor(0.08, 0.04, 0.02)
+    love.graphics.setLineWidth(6)
+    love.graphics.rectangle("line", 0, 0, boardW, boardH)
+    love.graphics.setLineWidth(1)
 end
 
 local function drawShadow(sx, sy)
@@ -263,11 +284,20 @@ local function drawPlayer(id, p)
     local sx, sy = p.x * TILE_W + TILE_W / 2, p.y * TILE_H + TILE_H / 2
     drawShadow(sx, sy)
 
+    local r, g, b
     if id == state.myId then
-        love.graphics.setColor(0.92, 0.30, 0.30)
+        r, g, b = 0.92, 0.30, 0.30
     else
-        love.graphics.setColor(0.30, 0.50, 0.95)
+        r, g, b = 0.30, 0.50, 0.95
     end
+    local since = love.timer.getTime() - (p.hitTime or -1)
+    if since >= 0 and since < 0.18 then
+        local f = 1 - since / 0.18
+        r = r + (1 - r) * f
+        g = g + (0.15 - g) * f
+        b = b + (0.15 - b) * f
+    end
+    love.graphics.setColor(r, g, b)
     love.graphics.rectangle("fill", sx - 9, sy - 30, 18, 26)
     love.graphics.setColor(0.96, 0.85, 0.72)
     love.graphics.circle("fill", sx, sy - 36, 7)

@@ -10,7 +10,7 @@ import (
 
 const (
 	tickRate     = 30
-	mapSize      = 20
+	mapSize      = 8
 	stepDuration = 250 * time.Millisecond
 	diagFactor   = 1.41421356
 	attackDur    = 350 * time.Millisecond
@@ -84,10 +84,61 @@ func NewGame(db *DB, cache *Cache) *Game {
 		db:      db,
 		cache:   cache,
 	}
+	g.spawnEnemy("orc", 1, 1)
 	g.spawnEnemy("orc", 6, 6)
-	g.spawnEnemy("orc", 14, 6)
-	g.spawnEnemy("orc", 10, 14)
 	return g
+}
+
+// tileOccupied reports whether tile (x, y) is currently held by another named
+// player or any enemy. The caller must hold g.mu.
+func (g *Game) tileOccupied(x, y, excludeID int) bool {
+	for _, p := range g.players {
+		if p.ID == excludeID || p.Name == "" || p.HP <= 0 {
+			continue
+		}
+		if p.TileX == x && p.TileY == y {
+			return true
+		}
+		if p.Stepping && p.FromX == x && p.FromY == y {
+			return true
+		}
+	}
+	for _, e := range g.enemies {
+		if e.X == x && e.Y == y {
+			return true
+		}
+	}
+	return false
+}
+
+func absInt(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
+
+// findSpawn searches outward from the board centre for a free tile. The caller
+// must hold g.mu.
+func (g *Game) findSpawn(excludeID int) (int, int) {
+	cx, cy := mapSize/2, mapSize/2
+	for r := 0; r < mapSize; r++ {
+		for dy := -r; dy <= r; dy++ {
+			for dx := -r; dx <= r; dx++ {
+				if absInt(dx) != r && absInt(dy) != r {
+					continue
+				}
+				x, y := cx+dx, cy+dy
+				if x < 0 || x >= mapSize || y < 0 || y >= mapSize {
+					continue
+				}
+				if !g.tileOccupied(x, y, excludeID) {
+					return x, y
+				}
+			}
+		}
+	}
+	return cx, cy
 }
 
 func (g *Game) spawnEnemy(kind string, x, y int) *Enemy {
@@ -131,11 +182,21 @@ func (g *Game) bindName(id int, name string) *Player {
 		if p.HP <= 0 {
 			p.HP = p.MaxHP
 		}
-		if rec.X >= 0 && rec.X < mapSize && rec.Y >= 0 && rec.Y < mapSize {
+		if rec.X >= 0 && rec.X < mapSize && rec.Y >= 0 && rec.Y < mapSize &&
+			!g.tileOccupied(rec.X, rec.Y, p.ID) {
 			p.TileX, p.TileY = rec.X, rec.Y
 			p.FromX, p.FromY = rec.X, rec.Y
+		} else {
+			sx, sy := g.findSpawn(p.ID)
+			p.TileX, p.TileY = sx, sy
+			p.FromX, p.FromY = sx, sy
 		}
+	} else {
+		sx, sy := g.findSpawn(p.ID)
+		p.TileX, p.TileY = sx, sy
+		p.FromX, p.FromY = sx, sy
 	}
+	p.Stepping = false
 	if g.cache != nil {
 		g.cache.SetOnline(name)
 	}
@@ -263,6 +324,29 @@ func (g *Game) handleAttack(p *Player) {
 		}
 	}
 
+	var pHits []int
+	var pKilled []int
+	for _, op := range g.players {
+		if op.ID == p.ID || op.Name == "" || op.HP <= 0 {
+			continue
+		}
+		dx := float64(op.TileX) - tx
+		dy := float64(op.TileY) - ty
+		if math.Hypot(dx, dy) <= attackRange {
+			op.HP -= attackDamage
+			pHits = append(pHits, op.ID)
+			if op.HP <= 0 {
+				op.HP = op.MaxHP
+				op.Stepping = false
+				op.DirX, op.DirY = 0, 0
+				sx, sy := g.findSpawn(op.ID)
+				op.TileX, op.TileY = sx, sy
+				op.FromX, op.FromY = sx, sy
+				pKilled = append(pKilled, op.ID)
+			}
+		}
+	}
+
 	atkMsg := fmt.Sprintf("ATK %d %d %d\n", p.ID, p.FaceX, p.FaceY)
 	outs := make([]chan<- string, 0, len(g.players))
 	for _, op := range g.players {
@@ -279,6 +363,12 @@ func (g *Game) handleAttack(p *Player) {
 	g.broadcast(outs, atkMsg)
 	for _, id := range hits {
 		g.broadcast(outs, fmt.Sprintf("HIT %d\n", id))
+	}
+	for _, id := range pHits {
+		g.broadcast(outs, fmt.Sprintf("PHIT %d\n", id))
+	}
+	for _, id := range pKilled {
+		g.broadcast(outs, fmt.Sprintf("PDIE %d\n", id))
 	}
 	for _, e := range killed {
 		g.broadcast(outs, fmt.Sprintf("EDIE %d\n", e.ID))
@@ -317,6 +407,10 @@ func (g *Game) tick(now time.Time) {
 		}
 		nx, ny := p.TileX+dx, p.TileY+dy
 		if nx < 0 || nx >= mapSize || ny < 0 || ny >= mapSize {
+			p.FaceX, p.FaceY = dx, dy
+			continue
+		}
+		if g.tileOccupied(nx, ny, p.ID) {
 			p.FaceX, p.FaceY = dx, dy
 			continue
 		}
