@@ -4,20 +4,32 @@ import (
 	"flag"
 	"log"
 	"net"
+	"os"
 )
 
 func main() {
-	addr := flag.String("addr", ":7777", "tcp listen address")
+	addr := flag.String("addr", "", "tcp listen address")
 	flag.Parse()
 
-	ln, err := net.Listen("tcp", *addr)
+	listenAddr := *addr
+	if listenAddr == "" {
+		listenAddr = os.Getenv("LISTEN_ADDR")
+	}
+	if listenAddr == "" {
+		listenAddr = ":7777"
+	}
+
+	db := NewDB()
+	cache := NewCache()
+
+	ln, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		log.Fatalf("listen: %v", err)
 	}
 	defer ln.Close()
-	log.Printf("LuaRpgEngine server listening on %s", *addr)
+	log.Printf("LuaRpgEngine server listening on %s", listenAddr)
 
-	game := NewGame()
+	game := NewGame(db, cache)
 	go game.Loop()
 
 	for {

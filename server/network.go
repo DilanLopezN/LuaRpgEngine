@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"net"
 )
@@ -31,8 +30,6 @@ func (g *Game) HandleConn(conn net.Conn) {
 			}
 		}
 	}()
-
-	out <- fmt.Sprintf("WELCOME %d %d\n", p.ID, mapSize)
 
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
