@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
+	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -120,6 +123,15 @@ type Player struct {
 	SpellCDs     map[string]time.Time
 	Spells       map[string]*Spell
 
+	// Phase 2.5 — global, data-driven skills learned via the skill tree.
+	// Cooldowns are tracked separately from per-player Spells so the two
+	// systems do not interfere.
+	Learned     map[string]bool
+	SkillPoints int
+	SkillCDs    map[string]time.Time
+
+	Statuses []Status
+
 	Out chan<- string
 }
 
@@ -141,6 +153,7 @@ type Enemy struct {
 	Kind      string
 	X, Y      int
 	HP, MaxHP int
+	Statuses  []Status
 }
 
 type Game struct {
@@ -152,6 +165,7 @@ type Game struct {
 	db          *DB
 	cache       *Cache
 	world       *Map
+	scripts     *ScriptEngine
 }
 
 func NewGame(db *DB, cache *Cache) *Game {
@@ -170,9 +184,23 @@ func NewGame(db *DB, cache *Cache) *Game {
 			m.Name, m.Width, m.Height, len(m.Entities))
 	}
 	g.world = m
+
+	g.scripts = NewScriptEngine(scriptsRoot())
+	g.scripts.SetHost(g)
+	g.scripts.LoadAll()
+
 	g.spawnEnemy("orc", 1, 1)
 	g.spawnEnemy("orc", 6, 6)
 	return g
+}
+
+// scriptsRoot returns the directory tree for data-driven content. The
+// override is useful in tests; production sticks with data/scripts.
+func scriptsRoot() string {
+	if d := os.Getenv("SCRIPTS_DIR"); d != "" {
+		return d
+	}
+	return filepath.Join("data", "scripts")
 }
 
 // mapWidth/mapHeight return the active map dimensions. Caller must hold g.mu
@@ -234,11 +262,17 @@ func (g *Game) findSpawn(excludeID int) (int, int) {
 }
 
 func (g *Game) spawnEnemy(kind string, x, y int) *Enemy {
+	hp := 30
+	if g.scripts != nil {
+		if def, ok := g.scripts.Enemy(kind); ok && def.HP > 0 {
+			hp = def.HP
+		}
+	}
 	g.nextEnemyID++
 	e := &Enemy{
 		ID: g.nextEnemyID, Kind: kind,
 		X: x, Y: y,
-		HP: 30, MaxHP: 30,
+		HP: hp, MaxHP: hp,
 	}
 	g.enemies[e.ID] = e
 	return e
@@ -259,6 +293,8 @@ func (g *Game) addPlayer(out chan<- string) *Player {
 		LastManaTick: time.Now(),
 		SpellCDs:     make(map[string]time.Time),
 		Spells:       make(map[string]*Spell),
+		Learned:      make(map[string]bool),
+		SkillCDs:     make(map[string]time.Time),
 		Out:          out,
 	}
 	g.players[p.ID] = p
@@ -293,6 +329,10 @@ func (g *Game) bindName(id int, name string) *Player {
 		for _, sr := range g.db.LoadSpells(name) {
 			p.Spells[sr.ID] = spellFromRecord(sr)
 		}
+		p.SkillPoints = rec.SkillPoints
+		for _, id := range g.db.LoadLearnedSkills(name) {
+			p.Learned[id] = true
+		}
 		if g.world.InBounds(rec.X, rec.Y) && g.world.IsWalkable(rec.X, rec.Y) &&
 			!g.tileOccupied(rec.X, rec.Y, p.ID) {
 			p.TileX, p.TileY = rec.X, rec.Y
@@ -310,6 +350,14 @@ func (g *Game) bindName(id int, name string) *Player {
 	p.Stepping = false
 	if g.cache != nil {
 		g.cache.SetOnline(name)
+	}
+	hookName := name
+	hookID := p.ID
+	if g.scripts != nil {
+		go g.scripts.FireHook("player_join", map[string]interface{}{
+			"name": hookName,
+			"id":   hookID,
+		})
 	}
 	return p
 }
@@ -372,12 +420,6 @@ func (g *Game) handleLine(p *Player, line string) {
 		bound := g.bindName(p.ID, name)
 		if bound != nil {
 			g.sendMapTo(bound)
-			welcome := fmt.Sprintf("WELCOME %d %d %d %s\n",
-				bound.ID, g.mapWidth(), g.mapHeight(), bound.Name)
-			select {
-			case bound.Out <- welcome:
-			default:
-			}
 			g.sendCharacterState(bound)
 		}
 	case "MOVE":
@@ -403,12 +445,31 @@ func (g *Game) handleLine(p *Player, line string) {
 			return
 		}
 		g.handleCast(p, parts[1])
+	case "CASTSKILL":
+		if len(parts) < 2 {
+			return
+		}
+		g.handleCastSkill(p, parts[1])
+	case "LEARN":
+		if len(parts) < 2 {
+			return
+		}
+		g.handleLearn(p, parts[1])
+	case "RESETTREE":
+		g.handleResetTree(p)
+	case "RELOAD":
+		domain := "all"
+		if len(parts) >= 2 {
+			domain = parts[1]
+		}
+		g.handleReload(p, domain)
 	}
 }
 
-// sendCharacterState pushes the freshly-bound character's WELCOME, STATS, and
-// every persisted SPELL_DEF down the wire so the client can rebuild the HUD,
-// spell registry, and skillbar before the first P snapshot lands.
+// sendCharacterState pushes the freshly-bound character's WELCOME, STATS,
+// every persisted SPELL_DEF, and the data-driven SKILL_DEF / SKILL_LEARNED /
+// SKILL_POINTS bundle so the client can rebuild every UI surface before the
+// first P snapshot lands.
 func (g *Game) sendCharacterState(p *Player) {
 	g.mu.Lock()
 	welcome := fmt.Sprintf("WELCOME %d %d %d %s\n",
@@ -418,13 +479,23 @@ func (g *Game) sendCharacterState(p *Player) {
 	for _, sp := range p.Spells {
 		defs = append(defs, formatSpellDef(sp))
 	}
+	learned := make([]string, 0, len(p.Learned))
+	for id := range p.Learned {
+		learned = append(learned, id)
+	}
+	sort.Strings(learned)
+	sp := p.SkillPoints
 	out := p.Out
 	g.mu.Unlock()
 
+	// Block (with a short safety timeout) instead of dropping. These are
+	// one-shot state messages — losing one means the client never learns
+	// what skills it owns, which is far worse than a few ms of latency.
 	send := func(msg string) {
 		select {
 		case out <- msg:
-		default:
+		case <-time.After(250 * time.Millisecond):
+			log.Printf("character state send timed out: %q", strings.TrimSpace(msg))
 		}
 	}
 	send(welcome)
@@ -432,6 +503,15 @@ func (g *Game) sendCharacterState(p *Player) {
 	for _, def := range defs {
 		send(def)
 	}
+	if g.scripts != nil {
+		for _, sk := range g.scripts.Skills() {
+			send(formatSkillDef(sk))
+		}
+	}
+	for _, id := range learned {
+		send(fmt.Sprintf("SKILL_LEARNED %s\n", id))
+	}
+	send(fmt.Sprintf("SKILL_POINTS %d\n", sp))
 }
 
 func absInt(v int) int {
@@ -834,6 +914,8 @@ func (g *Game) tick(now time.Time) {
 		}
 	}
 
+	deadEnemies, deadPlayers := g.tickStatuses(now)
+
 	for _, p := range g.players {
 		if p.Stepping || p.Name == "" {
 			continue
@@ -891,6 +973,12 @@ func (g *Game) tick(now time.Time) {
 	g.mu.Unlock()
 
 	g.broadcast(outs, msg)
+	for _, e := range deadEnemies {
+		g.broadcast(outs, fmt.Sprintf("EDIE %d\n", e.ID))
+	}
+	for _, id := range deadPlayers {
+		g.broadcast(outs, fmt.Sprintf("PDIE %d\n", id))
+	}
 }
 
 func (g *Game) Loop() {

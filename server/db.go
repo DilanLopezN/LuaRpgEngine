@@ -53,6 +53,13 @@ func initSchema(conn *sql.DB) error {
 		`ALTER TABLE players ADD COLUMN IF NOT EXISTS max_hp INTEGER NOT NULL DEFAULT 100`,
 		`ALTER TABLE players ADD COLUMN IF NOT EXISTS mp     INTEGER NOT NULL DEFAULT 100`,
 		`ALTER TABLE players ADD COLUMN IF NOT EXISTS max_mp INTEGER NOT NULL DEFAULT 100`,
+		`ALTER TABLE players ADD COLUMN IF NOT EXISTS skill_points INTEGER NOT NULL DEFAULT 3`,
+		`CREATE TABLE IF NOT EXISTS character_learned_skills (
+			character_name TEXT NOT NULL,
+			skill_id       TEXT NOT NULL,
+			learned_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			PRIMARY KEY (character_name, skill_id)
+		)`,
 		`CREATE TABLE IF NOT EXISTS character_spells (
 			character_name TEXT    NOT NULL,
 			spell_id       TEXT    NOT NULL,
@@ -80,10 +87,11 @@ func initSchema(conn *sql.DB) error {
 }
 
 type PlayerRecord struct {
-	HP, MaxHP int
-	MP, MaxMP int
-	Kills     int
-	X, Y      int
+	HP, MaxHP   int
+	MP, MaxMP   int
+	Kills       int
+	X, Y        int
+	SkillPoints int
 }
 
 func (d *DB) LoadOrCreate(name string) PlayerRecord {
@@ -91,14 +99,15 @@ func (d *DB) LoadOrCreate(name string) PlayerRecord {
 		HP: 100, MaxHP: 100,
 		MP: 100, MaxMP: 100,
 		Kills: 0, X: 10, Y: 10,
+		SkillPoints: 3,
 	}
 	if d.conn == nil {
 		return rec
 	}
 	err := d.conn.QueryRow(
-		`SELECT hp, max_hp, mp, max_mp, kills, last_x, last_y
+		`SELECT hp, max_hp, mp, max_mp, kills, last_x, last_y, skill_points
 		   FROM players WHERE name=$1`, name,
-	).Scan(&rec.HP, &rec.MaxHP, &rec.MP, &rec.MaxMP, &rec.Kills, &rec.X, &rec.Y)
+	).Scan(&rec.HP, &rec.MaxHP, &rec.MP, &rec.MaxMP, &rec.Kills, &rec.X, &rec.Y, &rec.SkillPoints)
 	if err == sql.ErrNoRows {
 		_, _ = d.conn.Exec(`INSERT INTO players(name) VALUES($1)`, name)
 		return rec
@@ -107,6 +116,66 @@ func (d *DB) LoadOrCreate(name string) PlayerRecord {
 		log.Printf("postgres load %s: %v", name, err)
 	}
 	return rec
+}
+
+func (d *DB) LoadLearnedSkills(character string) []string {
+	if d.conn == nil {
+		return nil
+	}
+	rows, err := d.conn.Query(
+		`SELECT skill_id FROM character_learned_skills WHERE character_name=$1`,
+		character)
+	if err != nil {
+		log.Printf("postgres load learned %s: %v", character, err)
+		return nil
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err == nil {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+func (d *DB) LearnSkill(character, skillID string) {
+	if d.conn == nil {
+		return
+	}
+	_, err := d.conn.Exec(
+		`INSERT INTO character_learned_skills (character_name, skill_id)
+		 VALUES ($1, $2)
+		 ON CONFLICT DO NOTHING`,
+		character, skillID)
+	if err != nil {
+		log.Printf("postgres learn %s/%s: %v", character, skillID, err)
+	}
+}
+
+func (d *DB) ResetLearnedSkills(character string) {
+	if d.conn == nil {
+		return
+	}
+	_, err := d.conn.Exec(
+		`DELETE FROM character_learned_skills WHERE character_name=$1`,
+		character)
+	if err != nil {
+		log.Printf("postgres reset learned %s: %v", character, err)
+	}
+}
+
+func (d *DB) SaveSkillPoints(character string, pts int) {
+	if d.conn == nil {
+		return
+	}
+	_, err := d.conn.Exec(
+		`UPDATE players SET skill_points=$2, updated_at=NOW() WHERE name=$1`,
+		character, pts)
+	if err != nil {
+		log.Printf("postgres save skill_points %s: %v", character, err)
+	}
 }
 
 func (d *DB) Save(name string, hp, maxHp, mp, maxMp, kills, x, y int) {

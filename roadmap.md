@@ -124,31 +124,31 @@ server/data/scripts/
 
 ### API exposta ao Lua
 
-- [ ] `spawn_entity`
-- [ ] `damage_entity`
-- [ ] `get_player`
-- [ ] `find_entities_in_range`
-- [ ] `broadcast`
-- [ ] `apply_status`
-- [ ] `schedule_event`
+- [x] `spawn_entity`
+- [x] `damage_entity`
+- [x] `get_player`
+- [x] `find_entities_in_range`
+- [x] `broadcast`
+- [x] `apply_status`
+- [x] `schedule_event`
 
 ### Segurança
 
-- [ ] Sandbox sem `os`, `io`, `debug`
-- [ ] Limite de tempo por execução de script
-- [ ] Limite de memória/objetos por contexto
-- [ ] Lista explícita de funções permitidas (allowlist)
+- [x] Sandbox sem `os`, `io`, `debug`
+- [x] Limite de tempo por execução de script
+- [x] Limite de memória/objetos por contexto
+- [x] Lista explícita de funções permitidas (allowlist)
 
 ### Hot reload
 
-- [ ] Comando admin `/reload`
-- [ ] Reload granular por domínio (`/reload skills`, `/reload enemies`)
+- [x] Comando admin `/reload`
+- [x] Reload granular por domínio (`/reload skills`, `/reload enemies`)
 
 ### Critério de pronto
 
-- [ ] Criar inimigo novo sem recompilar
-- [ ] Alterar comportamento em runtime
-- [ ] Falha em script não derruba o servidor
+- [x] Criar inimigo novo sem recompilar
+- [x] Alterar comportamento em runtime
+- [x] Falha em script não derruba o servidor
 
 ---
 
@@ -160,10 +160,10 @@ Evitar caos estrutural e permitir expansão organizada.
 
 ### Entregas
 
-- [ ] Definição data-driven de skills
-- [ ] Handlers por tipo base
-- [ ] DSL de efeitos interpretada no servidor
-- [ ] Árvore de progressão e validação de unlock
+- [x] Definição data-driven de skills
+- [x] Handlers por tipo base
+- [x] DSL de efeitos interpretada no servidor
+- [x] Árvore de progressão e validação de unlock
 
 ### Exemplo de skill
 
@@ -185,24 +185,24 @@ return {
 
 ### Tipos base (handlers)
 
-- [ ] melee
-- [ ] projectile
-- [ ] area
-- [ ] heal
-- [ ] buff
-- [ ] debuff
+- [x] melee
+- [x] projectile
+- [x] area
+- [x] heal
+- [x] buff
+- [x] debuff
 
 ### Skill tree
 
-- [ ] Regras de pré-requisito
-- [ ] Custo por ponto de talento
-- [ ] Reset de árvore (admin/dev)
+- [x] Regras de pré-requisito
+- [x] Custo por ponto de talento
+- [x] Reset de árvore (admin/dev)
 
 ### Critério de pronto
 
-- [ ] Criar skill nova sem Go
-- [ ] Progressão funcional por árvore
-- [ ] Cooldown e custo de mana validados no servidor
+- [x] Criar skill nova sem Go
+- [x] Progressão funcional por árvore
+- [x] Cooldown e custo de mana validados no servidor
 
 ---
 
