@@ -5,7 +5,7 @@ local M = {}
 
 function M.tryConnect()
     if #State.nameInput:gsub("%s", "") == 0 then
-        State.status = "Type a name first"
+        State.status = "Digite um nome primeiro"
         return false
     end
     local ok, err = Network.connect(State.serverHost, State.serverPort)
@@ -16,7 +16,7 @@ function M.tryConnect()
     end
     Network.send("NAME " .. State.nameInput)
     State.scene  = State.SCENE_CONNECTING
-    State.status = "connecting..."
+    State.status = "conectando..."
     return true
 end
 
@@ -30,7 +30,7 @@ function M.drawNameScene()
     love.graphics.print(title, (W - State.fonts.title:getWidth(title)) / 2, H / 2 - 140)
 
     love.graphics.setFont(State.fonts.ui)
-    local prompt = "Name your character:"
+    local prompt = "Nomeie seu personagem:"
     love.graphics.print(prompt, (W - State.fonts.ui:getWidth(prompt)) / 2, H / 2 - 60)
 
     local boxW, boxH = 360, 44
@@ -48,7 +48,7 @@ function M.drawNameScene()
     love.graphics.print(text, boxX + 10, boxY + (boxH - State.fonts.ui:getHeight()) / 2)
 
     love.graphics.setColor(0.7, 0.7, 0.75)
-    local hint = "Enter to join. WASD to move, Space to attack, F1 to open the engine editor."
+    local hint = "Enter para entrar. WASD para mover, Espaço para atacar, F1 abre o editor da engine, F11 alterna tela cheia."
     love.graphics.print(hint, (W - State.fonts.ui:getWidth(hint)) / 2, boxY + boxH + 18)
 
     if State.status and State.status ~= "" then

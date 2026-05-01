@@ -29,9 +29,16 @@ function M.keypressed(key)
 
     if State.scene ~= State.SCENE_PLAYING then return end
 
+    if key == "f11" then
+        local fs = love.window.getFullscreen()
+        love.window.setFullscreen(not fs, "desktop")
+        return
+    end
+
     if key == "f1" then
         State.editorOpen = not State.editorOpen
         State.editorFocus = nil
+        if State.editorOpen and Editor.opened then Editor.opened() end
         return
     end
 

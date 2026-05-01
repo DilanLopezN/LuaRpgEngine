@@ -287,14 +287,13 @@ func (g *Game) bindName(id int, name string) *Player {
 		if p.HP <= 0 {
 			p.HP = p.MaxHP
 		}
-		if g.world.InBounds(rec.X, rec.Y) && g.world.IsWalkable(rec.X, rec.Y) &&
 		if p.MP > p.MaxMP {
 			p.MP = p.MaxMP
 		}
 		for _, sr := range g.db.LoadSpells(name) {
 			p.Spells[sr.ID] = spellFromRecord(sr)
 		}
-		if rec.X >= 0 && rec.X < mapSize && rec.Y >= 0 && rec.Y < mapSize &&
+		if g.world.InBounds(rec.X, rec.Y) && g.world.IsWalkable(rec.X, rec.Y) &&
 			!g.tileOccupied(rec.X, rec.Y, p.ID) {
 			p.TileX, p.TileY = rec.X, rec.Y
 			p.FromX, p.FromY = rec.X, rec.Y
@@ -412,7 +411,8 @@ func (g *Game) handleLine(p *Player, line string) {
 // spell registry, and skillbar before the first P snapshot lands.
 func (g *Game) sendCharacterState(p *Player) {
 	g.mu.Lock()
-	welcome := fmt.Sprintf("WELCOME %d %d %s\n", p.ID, mapSize, p.Name)
+	welcome := fmt.Sprintf("WELCOME %d %d %d %s\n",
+		p.ID, g.mapWidth(), g.mapHeight(), p.Name)
 	stats := fmt.Sprintf("STATS %d %d %d %d\n", p.HP, p.MaxHP, p.MP, p.MaxMP)
 	defs := make([]string, 0, len(p.Spells))
 	for _, sp := range p.Spells {

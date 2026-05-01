@@ -206,6 +206,7 @@ return {
 
 ---
 
+
 ## 🧍 Fase 3 — Sistema de Entidades (ECS Simplificado)
 
 ### Objetivo

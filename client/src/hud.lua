@@ -37,7 +37,7 @@ function M.draw()
     love.graphics.print(string.format("FPS %d  %s", love.timer.getFPS(), State.status or ""),
         barX, barY + 46)
     love.graphics.setColor(1, 1, 1, 0.55)
-    love.graphics.print("F1 - Engine Editor", barX, barY + 66)
+    love.graphics.print("F1 - Editor da Engine   F11 - Tela cheia", barX, barY + 66)
 end
 
 return M

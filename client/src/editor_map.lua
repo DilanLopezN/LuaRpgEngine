@@ -10,6 +10,8 @@ local Map      = require("src.map")
 local Tilesets = require("src.tilesets")
 local Network  = require("src.network")
 local JSON     = require("src.json")
+local Layout   = require("src.editor_layout")
+local Tooltip  = require("src.tooltip")
 
 local M = {}
 
@@ -20,6 +22,48 @@ local TOOLS  = { "paint", "fill", "erase", "select", "entity" }
 local ENTITY_TYPES = { "spawn", "npc", "trigger" }
 local ENTITY_KINDS = { "orc", "guard", "merchant", "warp", "marker" }
 
+-- Labels exibidos no painel; os IDs internos seguem em inglês porque são
+-- chave em código e na rede.
+local TOOL_LABELS = {
+    paint  = "Pintar",
+    fill   = "Preencher",
+    erase  = "Apagar",
+    select = "Selecionar",
+    entity = "Entidade",
+}
+local LAYER_LABELS = {
+    ground     = "Chão",
+    decoration = "Decoração",
+    collision  = "Colisão",
+    logic      = "Lógica",
+}
+local ENTITY_TYPE_LABELS = {
+    spawn   = "Spawn",
+    npc     = "NPC",
+    trigger = "Gatilho",
+}
+local ENTITY_KIND_LABELS = {
+    orc      = "Orc",
+    guard    = "Guarda",
+    merchant = "Mercador",
+    warp     = "Portal",
+    marker   = "Marcador",
+}
+
+local TOOL_TIPS = {
+    paint  = "Pinta o tile selecionado da paleta na camada atual.",
+    fill   = "Preenche por inundação a área de mesmo valor (tipo balde de tinta).",
+    erase  = "Apaga (zera) o tile da camada atual. Botão direito também apaga.",
+    select = "Marca uma seleção retangular para copiar (Ctrl+C) e colar (Ctrl+V).",
+    entity = "Adiciona/remove entidades (spawns, NPCs, gatilhos) no tile clicado.",
+}
+local LAYER_TIPS = {
+    ground     = "Camada visual de chão. Clique em um tile da paleta e pinte.",
+    decoration = "Camada visual sobreposta ao chão (objetos, detritos, etc).",
+    collision  = "Tiles bloqueiam movimento. Clique para alternar bloqueio.",
+    logic      = "Tiles de lógica/gatilho usados pelo gameplay.",
+}
+
 local function pointIn(px, py, x, y, w, h)
     return px >= x and py >= y and px < x + w and py < y + h
 end
@@ -29,22 +73,17 @@ end
 -- the inside into a left toolbar/palette and a right hint area.
 -- ---------------------------------------------------------------------------
 
-local function panelRect()
-    local W, H = love.graphics.getDimensions()
-    local margin = 30
-    local skillBarReserved = 96
-    return margin, margin, W - 2 * margin, H - 2 * margin - skillBarReserved
-end
+local panelRect = Layout.panelRect
 
 local function paletteRect()
-    local px, py, _, ph = panelRect()
-    return px + 16, py + 64, 320, ph - 80
+    local cx, cy, _, ch = Layout.contentRect()
+    return cx + 16, cy + 12, 320, ch - 28
 end
 
 local function toolbarRect()
-    local px, py, pw, ph = panelRect()
-    local _, _, lw, _ = paletteRect()
-    return px + 16 + lw + 16, py + 64, pw - lw - 48, ph - 80
+    local cx, cy, cw, ch = Layout.contentRect()
+    local lw = 320
+    return cx + 16 + lw + 16, cy + 12, cw - lw - 48, ch - 28
 end
 
 M.panelRect = panelRect
@@ -192,12 +231,12 @@ M.pasteAt       = pasteAt
 local function saveToServer()
     if not Map.current then return end
     if Network.connected and not Network.connected() then
-        State.mapEditor.saveStatus = "offline (not connected)"
+        State.mapEditor.saveStatus = "offline (sem conexão)"
         return
     end
     local payload = JSON.encode(Map.current)
     Network.send("SAVE_MAP " .. payload)
-    State.mapEditor.saveStatus = "save sent"
+    State.mapEditor.saveStatus = "envio realizado"
 end
 
 M.save = saveToServer
@@ -314,8 +353,8 @@ local function drawPalette()
 
     if me.layer == "collision" or me.layer == "logic" then
         love.graphics.setColor(0.7, 0.75, 0.85)
-        love.graphics.printf("Tile palette is hidden for non-visual layers."
-            .. "\nLeft-click world: set marker. Right-click: clear.",
+        love.graphics.printf("A paleta fica oculta em camadas não visuais."
+            .. "\nClique esquerdo no mundo: marcar. Botão direito: limpar.",
             lx + 8, ly + 70, lw - 16, "left")
         return
     end
@@ -323,7 +362,7 @@ local function drawPalette()
     local ts = tilesets[me.tilesetIndex]
     if not ts or not ts.image then
         love.graphics.setColor(0.85, 0.4, 0.4)
-        love.graphics.printf("Tileset image missing or not loaded.",
+        love.graphics.printf("Imagem do tileset ausente ou não carregada.",
             lx + 8, ly + 70, lw - 16, "left")
         return
     end
@@ -360,10 +399,51 @@ local function drawPalette()
     love.graphics.setColor(0.7, 0.75, 0.85)
     love.graphics.print(string.format("tile %d  (%dx%d)",
         me.tileIndex, ts.columns, ts.rows), lx + 8, ly + lh - 18)
+    if pointIn(State.mouse.x or 0, State.mouse.y or 0,
+               tilesArea.x, tilesArea.y, tilesArea.w, tilesArea.h) then
+        Tooltip.hover("Paleta do tileset. Clique para escolher um tile, role o mouse para rolar.")
+    end
+end
+
+-- ACTIONS é tabela de ação para os botões inferiores. O label é resolvido
+-- por closure para refletir o estado atual (ex.: "Grade: ON/OFF").
+local function buildActions(me)
+    return {
+        { id = "undo",  label = "Desfazer (Ctrl+Z)",
+          tip = "Desfaz a última alteração no mapa." },
+        { id = "redo",  label = "Refazer (Ctrl+Y)",
+          tip = "Refaz a alteração que acabou de ser desfeita." },
+        { id = "copy",  label = "Copiar Seleção (Ctrl+C)",
+          tip = "Copia a seleção atual. Use Ctrl+V no mundo para colar." },
+        { id = "grid",  label = me.showGrid and "Grade: ON" or "Grade: OFF",
+          tip = "Mostra/esconde a grade de tiles sobre o mundo." },
+        { id = "save",  label = "Salvar Mapa (Ctrl+S)",
+          tip = "Envia o mapa atual ao servidor (cria um .bak da versão anterior)." },
+    }
+end
+
+-- Layout fluido para a linha de ações: quebra para a próxima linha quando
+-- a próxima ação não couber. Retorna o último y + altura usada.
+local function layoutActionRow(actions, fx, fw, y, btnH)
+    local positions = {}
+    local x = fx + 12
+    local rightLimit = fx + fw - 12
+    for _, a in ipairs(actions) do
+        local w = State.fonts.ui:getWidth(a.label) + 18
+        if x ~= fx + 12 and x + w > rightLimit then
+            x = fx + 12
+            y = y + btnH + 6
+        end
+        positions[#positions + 1] = { a = a, x = x, y = y, w = w, h = btnH }
+        x = x + w + 6
+    end
+    return positions, y + btnH
 end
 
 local function drawToolbar()
     local fx, fy, fw, fh = toolbarRect()
+    local mx, my = State.mouse.x or 0, State.mouse.y or 0
+
     love.graphics.setColor(0.06, 0.07, 0.10)
     love.graphics.rectangle("fill", fx, fy, fw, fh, 4, 4)
     love.graphics.setColor(0.3, 0.4, 0.6)
@@ -373,15 +453,18 @@ local function drawToolbar()
     love.graphics.setFont(State.fonts.ui)
 
     local y = fy + 12
-    local function row(title, items, current, getLabel)
+    local function row(title, items, current, labelMap, tipMap)
         love.graphics.setColor(0.7, 0.75, 0.85)
         love.graphics.print(title, fx + 12, y + 6)
         local x = fx + 110
         for _, it in ipairs(items) do
-            local label = getLabel and getLabel(it) or it
+            local label = labelMap and labelMap[it] or it
             local w = State.fonts.ui:getWidth(label) + 16
+            local hover = pointIn(mx, my, x, y, w, 24)
             if it == current then
                 love.graphics.setColor(0.25, 0.42, 0.65)
+            elseif hover then
+                love.graphics.setColor(0.18, 0.22, 0.30)
             else
                 love.graphics.setColor(0.13, 0.15, 0.20)
             end
@@ -390,64 +473,65 @@ local function drawToolbar()
             love.graphics.rectangle("line", x, y, w, 24, 4, 4)
             love.graphics.setColor(1, 1, 1)
             love.graphics.print(label, x + 8, y + 5)
+            if hover and tipMap and tipMap[it] then
+                Tooltip.hover(tipMap[it])
+            end
             x = x + w + 6
         end
         y = y + 32
     end
 
-    row("Tool", TOOLS, me.tool)
-    row("Layer", LAYERS, me.layer)
+    row("Ferramenta", TOOLS,  me.tool,  TOOL_LABELS,  TOOL_TIPS)
+    row("Camada",     LAYERS, me.layer, LAYER_LABELS, LAYER_TIPS)
     if me.tool == "entity" then
-        row("Entity", ENTITY_TYPES, me.entityType)
-        row("Kind", ENTITY_KINDS, me.entityKind)
+        row("Entidade", ENTITY_TYPES, me.entityType, ENTITY_TYPE_LABELS)
+        row("Tipo",     ENTITY_KINDS, me.entityKind, ENTITY_KIND_LABELS)
     end
 
-    -- Action buttons row
-    local actions = {
-        { id = "undo",  label = "Undo (Ctrl+Z)" },
-        { id = "redo",  label = "Redo (Ctrl+Y)" },
-        { id = "copy",  label = "Copy Sel" },
-        { id = "grid",  label = me.showGrid and "Grid: ON" or "Grid: OFF" },
-        { id = "save",  label = "Save Map" },
-    }
-    local x = fx + 12
-    for _, a in ipairs(actions) do
-        local w = State.fonts.ui:getWidth(a.label) + 18
-        if a.id == "save" then
-            love.graphics.setColor(0.20, 0.45, 0.25)
+    -- Linha de ações (com wrap)
+    local positions, newY = layoutActionRow(buildActions(me), fx, fw, y, 26)
+    for _, p in ipairs(positions) do
+        local hover = pointIn(mx, my, p.x, p.y, p.w, p.h)
+        if p.a.id == "save" then
+            love.graphics.setColor(hover and 0.26 or 0.20, hover and 0.55 or 0.45,
+                                   hover and 0.32 or 0.25)
         else
-            love.graphics.setColor(0.18, 0.22, 0.30)
+            love.graphics.setColor(hover and 0.22 or 0.18,
+                                   hover and 0.27 or 0.22,
+                                   hover and 0.36 or 0.30)
         end
-        love.graphics.rectangle("fill", x, y, w, 26, 4, 4)
+        love.graphics.rectangle("fill", p.x, p.y, p.w, p.h, 4, 4)
         love.graphics.setColor(0.4, 0.5, 0.6)
-        love.graphics.rectangle("line", x, y, w, 26, 4, 4)
+        love.graphics.rectangle("line", p.x, p.y, p.w, p.h, 4, 4)
         love.graphics.setColor(1, 1, 1)
-        love.graphics.print(a.label, x + 9, y + 6)
-        x = x + w + 6
+        love.graphics.print(p.a.label, p.x + 9, p.y + 6)
+        if hover and p.a.tip then Tooltip.hover(p.a.tip) end
     end
-    y = y + 36
+    y = newY + 10
 
     love.graphics.setColor(0.65, 0.75, 0.9)
     local m = Map.current
     if m then
         love.graphics.print(string.format(
-            "map: %s   %dx%d   entities: %d   layer: %s",
-            m.name, m.width, m.height, #m.entities, me.layer),
+            "mapa: %s   %dx%d   entidades: %d   camada: %s",
+            m.name, m.width, m.height, #m.entities,
+            LAYER_LABELS[me.layer] or me.layer),
             fx + 12, y)
         y = y + 22
     end
     if me.saveStatus and me.saveStatus ~= "" then
         love.graphics.setColor(0.95, 0.85, 0.40)
-        love.graphics.print("save: " .. me.saveStatus, fx + 12, y)
+        love.graphics.print("salvar: " .. me.saveStatus, fx + 12, y)
         y = y + 22
     end
 
     love.graphics.setColor(0.6, 0.7, 0.85)
     love.graphics.printf(
-        "Click on the world to use the active tool. Right-click erases. "
-        .. "F1 toggles editor. While editing, the map renders live; press "
-        .. "Save Map to persist on the server (creates a .bak of the previous "
-        .. "version). Use Layer=collision to define walkable areas.",
+        "Clique no mundo para usar a ferramenta ativa. Botão direito apaga. "
+        .. "F1 alterna o editor. Enquanto edita, o mapa é renderizado ao vivo; "
+        .. "use Salvar Mapa (Ctrl+S) para persistir no servidor (gera um .bak "
+        .. "da versão anterior). Use Camada=Colisão para definir áreas onde "
+        .. "personagens podem ou não andar.",
         fx + 12, y, fw - 24, "left")
 end
 
@@ -535,10 +619,10 @@ local function toolbarClick(x, y, button)
     local me = State.mapEditor
 
     local yy = fy + 12
-    local function rowHit(items, current, setter)
+    local function rowHit(items, current, setter, labelMap)
         local xx = fx + 110
         for _, it in ipairs(items) do
-            local label = it
+            local label = labelMap and labelMap[it] or it
             local w = State.fonts.ui:getWidth(label) + 16
             if pointIn(x, y, xx, yy, w, 24) then
                 setter(it)
@@ -549,40 +633,41 @@ local function toolbarClick(x, y, button)
         return false
     end
 
-    if rowHit(TOOLS,  me.tool,  function(v) me.tool  = v end) then return true end
+    if rowHit(TOOLS,  me.tool,  function(v) me.tool  = v end, TOOL_LABELS) then
+        return true
+    end
     yy = yy + 32
-    if rowHit(LAYERS, me.layer, function(v) me.layer = v end) then return true end
+    if rowHit(LAYERS, me.layer, function(v) me.layer = v end, LAYER_LABELS) then
+        return true
+    end
     yy = yy + 32
     if me.tool == "entity" then
         if rowHit(ENTITY_TYPES, me.entityType,
-                function(v) me.entityType = v end) then return true end
+                function(v) me.entityType = v end, ENTITY_TYPE_LABELS) then
+            return true
+        end
         yy = yy + 32
         if rowHit(ENTITY_KINDS, me.entityKind,
-                function(v) me.entityKind = v end) then return true end
+                function(v) me.entityKind = v end, ENTITY_KIND_LABELS) then
+            return true
+        end
         yy = yy + 32
     end
 
-    -- action buttons
-    local actions = {
-        { id = "undo",  label = "Undo (Ctrl+Z)" },
-        { id = "redo",  label = "Redo (Ctrl+Y)" },
-        { id = "copy",  label = "Copy Sel" },
-        { id = "grid",  label = me.showGrid and "Grid: ON" or "Grid: OFF" },
-        { id = "save",  label = "Save Map" },
-    }
-    local xx = fx + 12
-    for _, a in ipairs(actions) do
-        local w = State.fonts.ui:getWidth(a.label) + 18
-        if pointIn(x, y, xx, yy, w, 26) then
-            if a.id == "undo" then undo()
-            elseif a.id == "redo" then redo()
-            elseif a.id == "copy" then copySelection()
-            elseif a.id == "grid" then me.showGrid = not me.showGrid
-            elseif a.id == "save" then saveToServer()
+    -- Hit-test usa o MESMO layout fluido do desenho, então os botões nunca
+    -- ficam clicáveis num ponto onde não estão renderizados.
+    local positions = layoutActionRow(buildActions(me), fx, fw, yy, 26)
+    for _, p in ipairs(positions) do
+        if pointIn(x, y, p.x, p.y, p.w, p.h) then
+            local id = p.a.id
+            if id == "undo" then undo()
+            elseif id == "redo" then redo()
+            elseif id == "copy" then copySelection()
+            elseif id == "grid" then me.showGrid = not me.showGrid
+            elseif id == "save" then saveToServer()
             end
             return true
         end
-        xx = xx + w + 6
     end
 
     return true

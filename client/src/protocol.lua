@@ -81,7 +81,7 @@ function M.handle(line)
         State.mapSize   = State.mapWidth
         State.myName    = name
         State.scene     = State.SCENE_PLAYING
-        State.status    = "connected"
+        State.status    = "conectado"
         Spells.clear()
     elseif cmd == "MAP" then
         local m, err = JSON.decode(rest)

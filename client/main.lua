@@ -24,8 +24,8 @@ local Skillbar = require("src.skillbar")
 local Editor   = require("src.editor")
 local Scenes   = require("src.scenes")
 local Input    = require("src.input")
-local Sprites  = require("src.sprites")
 local Map      = require("src.map")
+local Tooltip  = require("src.tooltip")
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
@@ -34,6 +34,10 @@ function love.load()
     State.fonts.title = love.graphics.newFont(28)
     math.randomseed(os.time())
     Sprites.init()
+    -- Maximize so the editor (and the dragged window position) can roam the
+    -- entire monitor instead of being clipped to a small client area. F11
+    -- toggles borderless fullscreen for an even bigger canvas.
+    love.window.maximize()
 end
 
 function love.update(dt)
@@ -78,6 +82,7 @@ function love.draw()
     HUD.draw()
     Editor.draw()
     Skillbar.draw()
+    Tooltip.draw()
 end
 
 love.textinput     = Input.textinput

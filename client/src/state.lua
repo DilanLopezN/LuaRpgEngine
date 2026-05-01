@@ -6,7 +6,7 @@ M.SCENE_PLAYING    = "playing"
 
 M.scene       = M.SCENE_NAME
 M.nameInput   = ""
-M.status      = "Enter your name"
+M.status      = "Digite seu nome"
 M.serverHost  = "127.0.0.1"
 M.serverPort  = 7777
 M.mapSize     = 20
@@ -27,6 +27,15 @@ M.editorOpen     = false
 M.editorTab      = "map"
 M.editorSelected = nil
 M.editorFocus    = nil
+
+-- Movable panel geometry. Initialized lazily by editor_layout.ensureInit().
+M.editorPanel = {
+    x = 0, y = 0, w = 0, h = 0,
+    initialized = false,
+}
+-- When the user grabs the title bar, this stores the click offset within the
+-- panel so dragging keeps the cursor anchored to the same spot.
+M.editorDrag = nil
 
 -- Map editor state. The editor reads `Map.current` directly for tile data
 -- and only keeps tool/UI selection here.
