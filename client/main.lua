@@ -16,7 +16,7 @@
 local State    = require("src.state")
 local World    = require("src.world")
 local Network  = require("src.network")
-local Spells   = require("src.spells")
+local Sprites  = require("src.sprites")
 local Protocol = require("src.protocol")
 local Render   = require("src.render")
 local HUD      = require("src.hud")
@@ -31,7 +31,7 @@ function love.load()
     State.fonts.name  = love.graphics.newFont(13)
     State.fonts.title = love.graphics.newFont(28)
     math.randomseed(os.time())
-    Spells.load()
+    Sprites.init()
 end
 
 function love.update(dt)

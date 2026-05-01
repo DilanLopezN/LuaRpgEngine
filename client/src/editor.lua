@@ -72,6 +72,14 @@ local function persist(spell)
     if spell then registerWithServer(spell) end
 end
 
+local function loseFocus()
+    if State.editorFocus then
+        local sp = selected()
+        if sp then registerWithServer(sp) end
+        State.editorFocus = nil
+    end
+end
+
 -- ---------------------------------------------------------------------------
 -- Form fields layout
 --
@@ -365,9 +373,9 @@ local function listClick(x, y)
     if not pointIn(x, y, lx, ly, lw, lh) then return false end
 
     if pointIn(x, y, lx + 6, ly + 6, lw - 12, 28) then
+        loseFocus()
         local sp = Spells.add(newSpell())
         State.editorSelected = sp.id
-        State.editorFocus = nil
         registerWithServer(sp)
         return true
     end
@@ -379,8 +387,8 @@ local function listClick(x, y)
         local cy = cardY + (i - 1) * (cardH + 6)
         if cy + cardH > ly + lh then break end
         if pointIn(x, y, cx, cy, lw - 12, cardH) then
+            loseFocus()
             State.editorSelected = sp.id
-            State.editorFocus = nil
             State.drag = { spellId = sp.id, source = "editor" }
             return true
         end
@@ -408,8 +416,8 @@ local function formClick(x, y)
             for _, opt in ipairs(r.options) do
                 local ow = State.fonts.ui:getWidth(opt) + 22
                 if pointIn(x, y, ox, r.y, ow, r.h) then
+                    loseFocus()
                     spell[r.name] = opt
-                    State.editorFocus = nil
                     persist(spell)
                     return true
                 end
@@ -420,33 +428,35 @@ local function formClick(x, y)
             local sw = r.w - LABEL_W
             local btnW = 26
             if pointIn(x, y, sx, r.y, btnW, r.h) then
+                loseFocus()
                 applyStep(spell, r, -r.step)
-                State.editorFocus = nil
                 persist(spell)
                 return true
             elseif pointIn(x, y, sx + sw - btnW, r.y, btnW, r.h) then
+                loseFocus()
                 applyStep(spell, r, r.step)
-                State.editorFocus = nil
                 persist(spell)
                 return true
             end
         elseif r.type == "button" then
             if pointIn(x, y, r.x, r.y, r.w, r.h) then
                 if r.name == "delete" then
-                    Spells.remove(spell.id)
+                    State.editorFocus = nil
+                    local id = spell.id
+                    Spells.remove(id)
                     for i = 1, 5 do
-                        if State.skillbar[i] == spell.id then
+                        if State.skillbar[i] == id then
                             State.skillbar[i] = nil
                         end
                     end
                     State.editorSelected = nil
+                    unregisterWithServer(id)
                 end
-                State.editorFocus = nil
                 return true
             end
         end
     end
-    State.editorFocus = nil
+    loseFocus()
     return true
 end
 
@@ -458,8 +468,8 @@ function M.mousepressed(x, y)
 
     -- close button
     if pointIn(x, y, px + pw - 36, py + 14, 22, 22) then
+        loseFocus()
         State.editorOpen = false
-        State.editorFocus = nil
         return true
     end
 
@@ -470,7 +480,7 @@ function M.mousepressed(x, y)
     if listClick(x, y) then return true end
     if formClick(x, y) then return true end
 
-    State.editorFocus = nil
+    loseFocus()
     return true
 end
 
@@ -483,7 +493,6 @@ function M.textinput(t)
     if field == "name" and #(sp.name or "") < 24 then
         if t:match("[%w _%-]") then
             sp.name = (sp.name or "") .. t
-            Spells.save()
         end
     end
     return true
@@ -494,14 +503,12 @@ function M.keypressed(key)
     if State.editorFocus then
         local sp = selected()
         if sp and key == "backspace" then
-            local field = State.editorFocus
-            if field == "name" then
+            if State.editorFocus == "name" then
                 sp.name = (sp.name or ""):sub(1, -2)
-                Spells.save()
             end
             return true
         elseif key == "return" or key == "kpenter" or key == "escape" then
-            State.editorFocus = nil
+            loseFocus()
             return true
         end
         return true

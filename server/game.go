@@ -30,12 +30,13 @@ const (
 	spellMaxCooldown = 60 * time.Second
 )
 
-// Spell is a player-defined ability. The server keeps no global registry: each
-// player's set of spells lives on their Player struct and is populated through
-// REGSPELL messages from the client. Visual fields (R/G/B) are echoed back in
-// SPELL broadcasts so other clients render the same look.
+// Spell is a player-defined ability. Each player's set of spells lives on
+// their Player struct, hydrated from Postgres on bindName and updated as the
+// editor sends REGSPELL/DELSPELL. Visual fields (R/G/B, Name) are echoed back
+// in SPELL_DEF / SPELL broadcasts so the client can render and label them.
 type Spell struct {
 	ID       string
+	Name     string
 	Kind     string // "line" | "area" | "self"
 	Effect   string // "damage" | "heal" | "mana"
 	Range    int
@@ -44,6 +45,53 @@ type Spell struct {
 	ManaCost int
 	Cooldown time.Duration
 	R, G, B  int
+}
+
+func (s *Spell) toRecord() SpellRecord {
+	return SpellRecord{
+		ID:         s.ID,
+		Name:       s.Name,
+		Kind:       s.Kind,
+		Effect:     s.Effect,
+		Range:      s.Range,
+		Radius:     s.Radius,
+		Power:      s.Power,
+		ManaCost:   s.ManaCost,
+		CooldownMs: int(s.Cooldown / time.Millisecond),
+		R:          s.R,
+		G:          s.G,
+		B:          s.B,
+	}
+}
+
+func spellFromRecord(r SpellRecord) *Spell {
+	return &Spell{
+		ID:       r.ID,
+		Name:     r.Name,
+		Kind:     r.Kind,
+		Effect:   r.Effect,
+		Range:    r.Range,
+		Radius:   r.Radius,
+		Power:    r.Power,
+		ManaCost: r.ManaCost,
+		Cooldown: time.Duration(r.CooldownMs) * time.Millisecond,
+		R:        r.R,
+		G:        r.G,
+		B:        r.B,
+	}
+}
+
+func formatSpellDef(s *Spell) string {
+	name := s.Name
+	if name == "" {
+		name = s.ID
+	}
+	return fmt.Sprintf("SPELL_DEF %s %s %s %d %d %d %d %d %d %d %d %s\n",
+		s.ID, s.Kind, s.Effect,
+		s.Range, s.Radius, s.Power, s.ManaCost,
+		int(s.Cooldown/time.Millisecond),
+		s.R, s.G, s.B,
+		name)
 }
 
 type Player struct {
@@ -202,9 +250,23 @@ func (g *Game) bindName(id int, name string) *Player {
 	p.Name = name
 	if g.db != nil {
 		rec := g.db.LoadOrCreate(name)
-		p.HP, p.Kills = rec.HP, rec.Kills
+		p.HP, p.MaxHP = rec.HP, rec.MaxHP
+		p.MP, p.MaxMP = rec.MP, rec.MaxMP
+		p.Kills = rec.Kills
+		if p.MaxHP <= 0 {
+			p.MaxHP = 100
+		}
+		if p.MaxMP <= 0 {
+			p.MaxMP = maxManaDefault
+		}
 		if p.HP <= 0 {
 			p.HP = p.MaxHP
+		}
+		if p.MP > p.MaxMP {
+			p.MP = p.MaxMP
+		}
+		for _, sr := range g.db.LoadSpells(name) {
+			p.Spells[sr.ID] = spellFromRecord(sr)
 		}
 		if rec.X >= 0 && rec.X < mapSize && rec.Y >= 0 && rec.Y < mapSize &&
 			!g.tileOccupied(rec.X, rec.Y, p.ID) {
@@ -241,11 +303,13 @@ func (g *Game) removePlayer(id int) {
 		others = append(others, op.Out)
 	}
 	name := p.Name
-	hp, kills, x, y := p.HP, p.Kills, p.TileX, p.TileY
+	hp, maxHp := p.HP, p.MaxHP
+	mp, maxMp := p.MP, p.MaxMP
+	kills, x, y := p.Kills, p.TileX, p.TileY
 	g.mu.Unlock()
 
 	if name != "" && g.db != nil {
-		g.db.Save(name, hp, kills, x, y)
+		g.db.Save(name, hp, maxHp, mp, maxMp, kills, x, y)
 	}
 	if name != "" && g.cache != nil {
 		g.cache.SetOffline(name)
@@ -278,11 +342,7 @@ func (g *Game) handleLine(p *Player, line string) {
 		}
 		bound := g.bindName(p.ID, name)
 		if bound != nil {
-			welcome := fmt.Sprintf("WELCOME %d %d %s\n", bound.ID, mapSize, bound.Name)
-			select {
-			case bound.Out <- welcome:
-			default:
-			}
+			g.sendCharacterState(bound)
 		}
 	case "MOVE":
 		if len(parts) != 3 {
@@ -297,11 +357,43 @@ func (g *Game) handleLine(p *Player, line string) {
 		g.handleAttack(p)
 	case "REGSPELL":
 		g.handleRegSpell(p, parts[1:])
+	case "DELSPELL":
+		if len(parts) < 2 {
+			return
+		}
+		g.handleDelSpell(p, parts[1])
 	case "CAST":
 		if len(parts) < 2 {
 			return
 		}
 		g.handleCast(p, parts[1])
+	}
+}
+
+// sendCharacterState pushes the freshly-bound character's WELCOME, STATS, and
+// every persisted SPELL_DEF down the wire so the client can rebuild the HUD,
+// spell registry, and skillbar before the first P snapshot lands.
+func (g *Game) sendCharacterState(p *Player) {
+	g.mu.Lock()
+	welcome := fmt.Sprintf("WELCOME %d %d %s\n", p.ID, mapSize, p.Name)
+	stats := fmt.Sprintf("STATS %d %d %d %d\n", p.HP, p.MaxHP, p.MP, p.MaxMP)
+	defs := make([]string, 0, len(p.Spells))
+	for _, sp := range p.Spells {
+		defs = append(defs, formatSpellDef(sp))
+	}
+	out := p.Out
+	g.mu.Unlock()
+
+	send := func(msg string) {
+		select {
+		case out <- msg:
+		default:
+		}
+	}
+	send(welcome)
+	send(stats)
+	for _, def := range defs {
+		send(def)
 	}
 }
 
@@ -330,10 +422,14 @@ func validEffect(s string) bool {
 	return s == "damage" || s == "heal" || s == "mana"
 }
 
-// handleRegSpell stores or replaces a spell in the caster's personal registry.
-// Format: REGSPELL <id> <kind> <effect> <range> <radius> <power> <manaCost> <cooldownMs> <r> <g> <b>
+// handleRegSpell stores or replaces a spell in the caster's personal registry
+// and persists it to the character_spells table.
+// Format:
+//
+//	REGSPELL <id> <kind> <effect> <range> <radius> <power> <manaCost>
+//	         <cooldownMs> <r> <g> <b> <name with spaces>
 func (g *Game) handleRegSpell(p *Player, args []string) {
-	if len(args) < 11 {
+	if len(args) < 12 {
 		return
 	}
 	id := args[0]
@@ -365,6 +461,10 @@ func (g *Game) handleRegSpell(p *Player, args []string) {
 	rr, _ := strconv.Atoi(args[8])
 	gg, _ := strconv.Atoi(args[9])
 	bb, _ := strconv.Atoi(args[10])
+	name := strings.Join(args[11:], " ")
+	if len(name) > 64 {
+		name = name[:64]
+	}
 
 	cd := time.Duration(cdMs) * time.Millisecond
 	if cd < spellMinCooldown {
@@ -376,6 +476,7 @@ func (g *Game) handleRegSpell(p *Player, args []string) {
 
 	sp := &Spell{
 		ID:       id,
+		Name:     name,
 		Kind:     kind,
 		Effect:   effect,
 		Range:    clampInt(rng, 0, spellMaxRange),
@@ -393,7 +494,26 @@ func (g *Game) handleRegSpell(p *Player, args []string) {
 		p.Spells = make(map[string]*Spell)
 	}
 	p.Spells[sp.ID] = sp
+	character := p.Name
 	g.mu.Unlock()
+
+	if character != "" && g.db != nil {
+		g.db.UpsertSpell(character, sp.toRecord())
+	}
+}
+
+func (g *Game) handleDelSpell(p *Player, id string) {
+	g.mu.Lock()
+	if p.Spells != nil {
+		delete(p.Spells, id)
+	}
+	delete(p.SpellCDs, id)
+	character := p.Name
+	g.mu.Unlock()
+
+	if character != "" && g.db != nil {
+		g.db.DeleteSpell(character, id)
+	}
 }
 
 func (g *Game) handleCast(p *Player, spellID string) {
@@ -752,9 +872,10 @@ func (g *Game) persistAll() {
 		return
 	}
 	type snap struct {
-		name      string
-		hp, kills int
-		x, y      int
+		name             string
+		hp, maxHp        int
+		mp, maxMp, kills int
+		x, y             int
 	}
 	g.mu.Lock()
 	snaps := make([]snap, 0, len(g.players))
@@ -762,10 +883,15 @@ func (g *Game) persistAll() {
 		if p.Name == "" {
 			continue
 		}
-		snaps = append(snaps, snap{p.Name, p.HP, p.Kills, p.TileX, p.TileY})
+		snaps = append(snaps, snap{
+			p.Name,
+			p.HP, p.MaxHP,
+			p.MP, p.MaxMP, p.Kills,
+			p.TileX, p.TileY,
+		})
 	}
 	g.mu.Unlock()
 	for _, s := range snaps {
-		g.db.Save(s.name, s.hp, s.kills, s.x, s.y)
+		g.db.Save(s.name, s.hp, s.maxHp, s.mp, s.maxMp, s.kills, s.x, s.y)
 	}
 }
