@@ -3,14 +3,13 @@ package main
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
 const (
-
-	
 	tickRate          = 30
 	mapSize           = 20
 	stepDuration      = 250 * time.Millisecond
@@ -22,43 +21,43 @@ const (
 	manaRegenInterval = 200 * time.Millisecond
 	manaRegenAmount   = 1
 	maxManaDefault    = 100
+
+	spellMaxRange    = 30
+	spellMaxRadius   = 10
+	spellMaxPower    = 10000
+	spellMaxManaCost = 10000
+	spellMinCooldown = 50 * time.Millisecond
+	spellMaxCooldown = 60 * time.Second
 )
 
+// Spell is a player-defined ability. The server keeps no global registry: each
+// player's set of spells lives on their Player struct and is populated through
+// REGSPELL messages from the client. Visual fields (R/G/B) are echoed back in
+// SPELL broadcasts so other clients render the same look.
 type Spell struct {
 	ID       string
-	Kind     string
+	Kind     string // "line" | "area" | "self"
+	Effect   string // "damage" | "heal" | "mana"
 	Range    int
 	Radius   int
-	Damage   int
+	Power    int
 	ManaCost int
 	Cooldown time.Duration
-}
-
-var spellRegistry = map[string]*Spell{
-	"fireball":  {ID: "fireball", Kind: "line", Range: 6, Damage: 15, ManaCost: 15, Cooldown: 700 * time.Millisecond},
-	"frostbolt": {ID: "frostbolt", Kind: "line", Range: 5, Damage: 10, ManaCost: 10, Cooldown: 500 * time.Millisecond},
-	"lightning": {ID: "lightning", Kind: "line", Range: 8, Damage: 20, ManaCost: 25, Cooldown: 1000 * time.Millisecond},
-	"explosion": {ID: "explosion", Kind: "area", Radius: 2, Damage: 25, ManaCost: 30, Cooldown: 1500 * time.Millisecond},
-	"icenova":   {ID: "icenova", Kind: "area", Radius: 1, Damage: 15, ManaCost: 20, Cooldown: 800 * time.Millisecond},
+	R, G, B  int
 }
 
 type Player struct {
 	ID   int
 	Name string
 
-	// Tile-based position. While stepping the renderable position is interpolated
-	// between (FromX,FromY) and (TileX,TileY) using StepStart/StepDur (Tibia style).
 	TileX, TileY int
 	FromX, FromY int
 	Stepping     bool
 	StepStart    time.Time
 	StepDur      time.Duration
 
-	// Latest input direction (-1, 0, 1 each axis). Server schedules the next
-	// step from this whenever the player is idle.
 	DirX, DirY int
 
-	// Last facing direction so attacks have a known orientation.
 	FaceX, FaceY int
 
 	HP, MaxHP int
@@ -70,6 +69,7 @@ type Player struct {
 
 	LastManaTick time.Time
 	SpellCDs     map[string]time.Time
+	Spells       map[string]*Spell
 
 	Out chan<- string
 }
@@ -138,13 +138,6 @@ func (g *Game) tileOccupied(x, y, excludeID int) bool {
 	return false
 }
 
-func absInt(v int) int {
-	if v < 0 {
-		return -v
-	}
-	return v
-}
-
 // findSpawn searches outward from the board centre for a free tile. The caller
 // must hold g.mu.
 func (g *Game) findSpawn(excludeID int) (int, int) {
@@ -192,6 +185,7 @@ func (g *Game) addPlayer(out chan<- string) *Player {
 		MP: maxManaDefault, MaxMP: maxManaDefault,
 		LastManaTick: time.Now(),
 		SpellCDs:     make(map[string]time.Time),
+		Spells:       make(map[string]*Spell),
 		Out:          out,
 	}
 	g.players[p.ID] = p
@@ -301,6 +295,8 @@ func (g *Game) handleLine(p *Player, line string) {
 		g.mu.Unlock()
 	case "ATTACK":
 		g.handleAttack(p)
+	case "REGSPELL":
+		g.handleRegSpell(p, parts[1:])
 	case "CAST":
 		if len(parts) < 2 {
 			return
@@ -316,14 +312,99 @@ func absInt(v int) int {
 	return v
 }
 
-func (g *Game) handleCast(p *Player, spellID string) {
-	sp, ok := spellRegistry[spellID]
-	if !ok {
+func clampInt(v, lo, hi int) int {
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
+}
+
+func validKind(s string) bool {
+	return s == "line" || s == "area" || s == "self"
+}
+
+func validEffect(s string) bool {
+	return s == "damage" || s == "heal" || s == "mana"
+}
+
+// handleRegSpell stores or replaces a spell in the caster's personal registry.
+// Format: REGSPELL <id> <kind> <effect> <range> <radius> <power> <manaCost> <cooldownMs> <r> <g> <b>
+func (g *Game) handleRegSpell(p *Player, args []string) {
+	if len(args) < 11 {
 		return
 	}
+	id := args[0]
+	kind := args[1]
+	effect := args[2]
+	if id == "" || !validKind(kind) || !validEffect(effect) {
+		return
+	}
+	rng, err := strconv.Atoi(args[3])
+	if err != nil {
+		return
+	}
+	rad, err := strconv.Atoi(args[4])
+	if err != nil {
+		return
+	}
+	pwr, err := strconv.Atoi(args[5])
+	if err != nil {
+		return
+	}
+	mc, err := strconv.Atoi(args[6])
+	if err != nil {
+		return
+	}
+	cdMs, err := strconv.Atoi(args[7])
+	if err != nil {
+		return
+	}
+	rr, _ := strconv.Atoi(args[8])
+	gg, _ := strconv.Atoi(args[9])
+	bb, _ := strconv.Atoi(args[10])
+
+	cd := time.Duration(cdMs) * time.Millisecond
+	if cd < spellMinCooldown {
+		cd = spellMinCooldown
+	}
+	if cd > spellMaxCooldown {
+		cd = spellMaxCooldown
+	}
+
+	sp := &Spell{
+		ID:       id,
+		Kind:     kind,
+		Effect:   effect,
+		Range:    clampInt(rng, 0, spellMaxRange),
+		Radius:   clampInt(rad, 0, spellMaxRadius),
+		Power:    clampInt(pwr, 0, spellMaxPower),
+		ManaCost: clampInt(mc, 0, spellMaxManaCost),
+		Cooldown: cd,
+		R:        clampInt(rr, 0, 255),
+		G:        clampInt(gg, 0, 255),
+		B:        clampInt(bb, 0, 255),
+	}
+
+	g.mu.Lock()
+	if p.Spells == nil {
+		p.Spells = make(map[string]*Spell)
+	}
+	p.Spells[sp.ID] = sp
+	g.mu.Unlock()
+}
+
+func (g *Game) handleCast(p *Player, spellID string) {
 	now := time.Now()
 	g.mu.Lock()
 	if p.Name == "" || p.HP <= 0 {
+		g.mu.Unlock()
+		return
+	}
+	sp, ok := p.Spells[spellID]
+	if !ok {
 		g.mu.Unlock()
 		return
 	}
@@ -347,42 +428,100 @@ func (g *Game) handleCast(p *Player, spellID string) {
 	}
 	ox, oy := p.TileX, p.TileY
 
-	var hits []int
-	var killed []*Enemy
-	if sp.Kind == "line" {
+	var (
+		hits    []int
+		killed  []*Enemy
+		pHits   []int
+		pKilled []int
+	)
+
+	hitEnemy := func(e *Enemy) {
+		if sp.Effect != "damage" {
+			return
+		}
+		e.HP -= sp.Power
+		hits = append(hits, e.ID)
+		if e.HP <= 0 {
+			killed = append(killed, e)
+		}
+	}
+
+	hitPlayer := func(op *Player, isCaster bool) {
+		switch sp.Effect {
+		case "damage":
+			if isCaster {
+				return
+			}
+			op.HP -= sp.Power
+			pHits = append(pHits, op.ID)
+			if op.HP <= 0 {
+				op.HP = op.MaxHP
+				op.Stepping = false
+				op.DirX, op.DirY = 0, 0
+				sx, sy := g.findSpawn(op.ID)
+				op.TileX, op.TileY = sx, sy
+				op.FromX, op.FromY = sx, sy
+				pKilled = append(pKilled, op.ID)
+			}
+		case "heal":
+			op.HP += sp.Power
+			if op.HP > op.MaxHP {
+				op.HP = op.MaxHP
+			}
+		case "mana":
+			op.MP += sp.Power
+			if op.MP > op.MaxMP {
+				op.MP = op.MaxMP
+			}
+		}
+	}
+
+	switch sp.Kind {
+	case "line":
 		for step := 1; step <= sp.Range; step++ {
 			tx := ox + fx*step
 			ty := oy + fy*step
 			for _, e := range g.enemies {
 				if e.X == tx && e.Y == ty {
-					e.HP -= sp.Damage
-					hits = append(hits, e.ID)
-					if e.HP <= 0 {
-						killed = append(killed, e)
-					}
+					hitEnemy(e)
+				}
+			}
+			for _, op := range g.players {
+				if op.Name == "" || op.HP <= 0 || op.ID == p.ID {
+					continue
+				}
+				if op.TileX == tx && op.TileY == ty {
+					hitPlayer(op, false)
 				}
 			}
 		}
-	} else if sp.Kind == "area" {
+	case "area":
 		cx := ox + fx
 		cy := oy + fy
 		for _, e := range g.enemies {
 			if absInt(e.X-cx) <= sp.Radius && absInt(e.Y-cy) <= sp.Radius {
-				e.HP -= sp.Damage
-				hits = append(hits, e.ID)
-				if e.HP <= 0 {
-					killed = append(killed, e)
-				}
+				hitEnemy(e)
 			}
 		}
+		for _, op := range g.players {
+			if op.Name == "" || op.HP <= 0 {
+				continue
+			}
+			if absInt(op.TileX-cx) <= sp.Radius && absInt(op.TileY-cy) <= sp.Radius {
+				hitPlayer(op, op.ID == p.ID)
+			}
+		}
+	case "self":
+		hitPlayer(p, true)
 	}
 
-	spellMsg := fmt.Sprintf("SPELL %d %s %d %d %d %d\n", p.ID, spellID, fx, fy, ox, oy)
+	spellMsg := fmt.Sprintf("SPELL %d %s %d %d %d %d %s %d %d %d %d %d\n",
+		p.ID, spellID, fx, fy, ox, oy,
+		sp.Kind, sp.Range, sp.Radius, sp.R, sp.G, sp.B)
 	outs := make([]chan<- string, 0, len(g.players))
 	for _, op := range g.players {
 		outs = append(outs, op.Out)
 	}
-
 	for _, e := range killed {
 		delete(g.enemies, e.ID)
 		p.Kills++
@@ -393,6 +532,12 @@ func (g *Game) handleCast(p *Player, spellID string) {
 	g.broadcast(outs, spellMsg)
 	for _, id := range hits {
 		g.broadcast(outs, fmt.Sprintf("HIT %d\n", id))
+	}
+	for _, id := range pHits {
+		g.broadcast(outs, fmt.Sprintf("PHIT %d\n", id))
+	}
+	for _, id := range pKilled {
+		g.broadcast(outs, fmt.Sprintf("PDIE %d\n", id))
 	}
 	for _, e := range killed {
 		g.broadcast(outs, fmt.Sprintf("EDIE %d\n", e.ID))
