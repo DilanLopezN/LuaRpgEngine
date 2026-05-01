@@ -46,11 +46,11 @@ Transformar mapa em dado + permitir edição dentro do jogo.
 
 ### Entregas
 
-- [ ] Definir formato versionado de mapa (`schema_version`)
-- [ ] Suportar múltiplas layers (`ground`, `collision`, `decoration`, `logic`)
-- [ ] Inserção de entidades no mapa (spawn/NPC/trigger)
-- [ ] Loader de mapa no servidor e no cliente
-- [ ] Colisão baseada em layer de dados
+- [x] Definir formato versionado de mapa (`schema_version`)
+- [x] Suportar múltiplas layers (`ground`, `collision`, `decoration`, `logic`)
+- [x] Inserção de entidades no mapa (spawn/NPC/trigger)
+- [x] Loader de mapa no servidor e no cliente
+- [x] Colisão baseada em layer de dados
 
 ### Exemplo de estrutura
 
@@ -75,34 +75,34 @@ Transformar mapa em dado + permitir edição dentro do jogo.
 
 Ativado via tecla (ex: `F1`):
 
-- [ ] Pintura de tiles com mouse
-- [ ] Seleção de tileset
-- [ ] Alternância de layers
-- [ ] Inserção de entidades (spawn/NPC)
-- [ ] Undo/redo simples
-- [ ] Ferramenta de preenchimento (fill)
-- [ ] Ferramenta de seleção e cópia de região
-- [ ] Overlay de grid + coordenadas
+- [x] Pintura de tiles com mouse
+- [x] Seleção de tileset
+- [x] Alternância de layers
+- [x] Inserção de entidades (spawn/NPC)
+- [x] Undo/redo simples
+- [x] Ferramenta de preenchimento (fill)
+- [x] Ferramenta de seleção e cópia de região
+- [x] Overlay de grid + coordenadas
 
 ### Persistência
 
-- [ ] Cliente envia comando `SAVE_MAP <json>`
-- [ ] Servidor valida payload (tamanho, ids, bounds)
-- [ ] Servidor salva em `server/data/maps/`
-- [ ] Backup automático da versão anterior ao sobrescrever
+- [x] Cliente envia comando `SAVE_MAP <json>`
+- [x] Servidor valida payload (tamanho, ids, bounds)
+- [x] Servidor salva em `server/data/maps/`
+- [x] Backup automático da versão anterior ao sobrescrever
 
 ### Backend
 
-- [ ] `world.go` com `Map` e `IsWalkable(x, y)`
-- [ ] Suporte a múltiplas layers no runtime
+- [x] `world.go` com `Map` e `IsWalkable(x, y)`
+- [x] Suporte a múltiplas layers no runtime
 - [ ] Preparação para chunking (futuro)
 
 ### Critério de pronto
 
-- [ ] Editar mapa dentro do jogo
-- [ ] Salvar sem reiniciar servidor
-- [ ] Colisão funcionando corretamente
-- [ ] Reabrir mapa salvo e manter consistência dos dados
+- [x] Editar mapa dentro do jogo
+- [x] Salvar sem reiniciar servidor
+- [x] Colisão funcionando corretamente
+- [x] Reabrir mapa salvo e manter consistência dos dados
 
 ---
 

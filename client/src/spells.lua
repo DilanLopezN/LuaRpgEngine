@@ -71,6 +71,11 @@ function M.clear()
     M.byId = {}
 end
 
+-- The server is the persistence layer for spells; load/save here are no-op
+-- compatibility shims for callers that haven't been migrated yet.
+function M.load() end
+function M.save() end
+
 -- Apply a spell definition pushed by the server. Replaces the entry in place
 -- if it already exists so references in the editor / skillbar stay valid.
 function M.upsertFromServer(spell)

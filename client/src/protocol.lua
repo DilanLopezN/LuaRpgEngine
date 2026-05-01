@@ -1,5 +1,7 @@
 local State   = require("src.state")
 local Spells  = require("src.spells")
+local Map     = require("src.map")
+local JSON    = require("src.json")
 
 local SPELL_LINE_DURATION = 0.45
 local SPELL_AREA_DURATION = 0.55
@@ -67,13 +69,30 @@ end
 function M.handle(line)
     local cmd, rest = line:match("^(%S+)%s*(.*)$")
     if cmd == "WELCOME" then
-        local id, mapSize, name = rest:match("^(%-?%d+)%s+(%-?%d+)%s+(.+)$")
-        State.myId    = tonumber(id)
-        State.mapSize = tonumber(mapSize) or State.mapSize
-        State.myName  = name
-        State.scene   = State.SCENE_PLAYING
-        State.status  = "connected"
+        local id, w, h, name = rest:match("^(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(.+)$")
+        if not id then
+            -- Backwards compat: legacy WELCOME used a single mapSize field.
+            local lid, ms, lname = rest:match("^(%-?%d+)%s+(%-?%d+)%s+(.+)$")
+            id, w, h, name = lid, ms, ms, lname
+        end
+        State.myId      = tonumber(id)
+        State.mapWidth  = tonumber(w) or State.mapWidth
+        State.mapHeight = tonumber(h) or State.mapHeight
+        State.mapSize   = State.mapWidth
+        State.myName    = name
+        State.scene     = State.SCENE_PLAYING
+        State.status    = "connected"
         Spells.clear()
+    elseif cmd == "MAP" then
+        local m, err = JSON.decode(rest)
+        if m then
+            Map.setActive(m)
+            State.mapWidth  = m.width
+            State.mapHeight = m.height
+            State.mapSize   = math.max(m.width, m.height)
+        else
+            print("MAP decode failed: " .. tostring(err))
+        end
     elseif cmd == "STATS" then
         -- Authoritative HP/MP follows in the next P snapshot; the explicit
         -- STATS line is kept for parity with server-side persistence and lets

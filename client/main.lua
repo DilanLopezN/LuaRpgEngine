@@ -24,6 +24,8 @@ local Skillbar = require("src.skillbar")
 local Editor   = require("src.editor")
 local Scenes   = require("src.scenes")
 local Input    = require("src.input")
+local Sprites  = require("src.sprites")
+local Map      = require("src.map")
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
@@ -83,6 +85,7 @@ love.keypressed    = Input.keypressed
 love.mousepressed  = Input.mousepressed
 love.mousemoved    = Input.mousemoved
 love.mousereleased = Input.mousereleased
+love.wheelmoved    = Input.wheelmoved
 
 function love.quit()
     Network.close()

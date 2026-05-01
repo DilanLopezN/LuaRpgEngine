@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -11,7 +13,6 @@ import (
 
 const (
 	tickRate          = 30
-	mapSize           = 20
 	stepDuration      = 250 * time.Millisecond
 	diagFactor        = 1.41421356
 	attackDur         = 350 * time.Millisecond
@@ -150,6 +151,7 @@ type Game struct {
 	nextEnemyID int
 	db          *DB
 	cache       *Cache
+	world       *Map
 }
 
 func NewGame(db *DB, cache *Cache) *Game {
@@ -159,10 +161,24 @@ func NewGame(db *DB, cache *Cache) *Game {
 		db:      db,
 		cache:   cache,
 	}
+	m, err := LoadMap(defaultMapName)
+	if err != nil {
+		log.Printf("map load failed (%v); starting from blank map", err)
+		m = DefaultMap(defaultMapName)
+	} else {
+		log.Printf("loaded map %q (%dx%d, %d entities)",
+			m.Name, m.Width, m.Height, len(m.Entities))
+	}
+	g.world = m
 	g.spawnEnemy("orc", 1, 1)
 	g.spawnEnemy("orc", 6, 6)
 	return g
 }
+
+// mapWidth/mapHeight return the active map dimensions. Caller must hold g.mu
+// when consistency with concurrent SAVE_MAP handlers matters.
+func (g *Game) mapWidth() int  { return g.world.Width }
+func (g *Game) mapHeight() int { return g.world.Height }
 
 // tileOccupied reports whether tile (x, y) is currently held by another named
 // player or any enemy. The caller must hold g.mu.
@@ -189,15 +205,23 @@ func (g *Game) tileOccupied(x, y, excludeID int) bool {
 // findSpawn searches outward from the board centre for a free tile. The caller
 // must hold g.mu.
 func (g *Game) findSpawn(excludeID int) (int, int) {
-	cx, cy := mapSize/2, mapSize/2
-	for r := 0; r < mapSize; r++ {
+	w, h := g.mapWidth(), g.mapHeight()
+	cx, cy := w/2, h/2
+	maxR := w
+	if h > maxR {
+		maxR = h
+	}
+	for r := 0; r < maxR; r++ {
 		for dy := -r; dy <= r; dy++ {
 			for dx := -r; dx <= r; dx++ {
 				if absInt(dx) != r && absInt(dy) != r {
 					continue
 				}
 				x, y := cx+dx, cy+dy
-				if x < 0 || x >= mapSize || y < 0 || y >= mapSize {
+				if !g.world.InBounds(x, y) {
+					continue
+				}
+				if !g.world.IsWalkable(x, y) {
 					continue
 				}
 				if !g.tileOccupied(x, y, excludeID) {
@@ -224,10 +248,11 @@ func (g *Game) addPlayer(out chan<- string) *Player {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.nextID++
+	cx, cy := g.mapWidth()/2, g.mapHeight()/2
 	p := &Player{
 		ID:    g.nextID,
-		TileX: mapSize / 2, TileY: mapSize / 2,
-		FromX: mapSize / 2, FromY: mapSize / 2,
+		TileX: cx, TileY: cy,
+		FromX: cx, FromY: cy,
 		FaceX: 0, FaceY: 1,
 		HP: 100, MaxHP: 100,
 		MP: maxManaDefault, MaxMP: maxManaDefault,
@@ -262,6 +287,7 @@ func (g *Game) bindName(id int, name string) *Player {
 		if p.HP <= 0 {
 			p.HP = p.MaxHP
 		}
+		if g.world.InBounds(rec.X, rec.Y) && g.world.IsWalkable(rec.X, rec.Y) &&
 		if p.MP > p.MaxMP {
 			p.MP = p.MaxMP
 		}
@@ -323,6 +349,10 @@ func (g *Game) removePlayer(id int) {
 }
 
 func (g *Game) handleLine(p *Player, line string) {
+	if strings.HasPrefix(line, "SAVE_MAP ") {
+		g.handleSaveMap(p, strings.TrimPrefix(line, "SAVE_MAP "))
+		return
+	}
 	parts := strings.Fields(line)
 	if len(parts) == 0 {
 		return
@@ -342,6 +372,13 @@ func (g *Game) handleLine(p *Player, line string) {
 		}
 		bound := g.bindName(p.ID, name)
 		if bound != nil {
+			g.sendMapTo(bound)
+			welcome := fmt.Sprintf("WELCOME %d %d %d %s\n",
+				bound.ID, g.mapWidth(), g.mapHeight(), bound.Name)
+			select {
+			case bound.Out <- welcome:
+			default:
+			}
 			g.sendCharacterState(bound)
 		}
 	case "MOVE":
@@ -806,7 +843,11 @@ func (g *Game) tick(now time.Time) {
 			continue
 		}
 		nx, ny := p.TileX+dx, p.TileY+dy
-		if nx < 0 || nx >= mapSize || ny < 0 || ny >= mapSize {
+		if !g.world.InBounds(nx, ny) {
+			p.FaceX, p.FaceY = dx, dy
+			continue
+		}
+		if !g.world.IsWalkable(nx, ny) {
 			p.FaceX, p.FaceY = dx, dy
 			continue
 		}
@@ -894,4 +935,58 @@ func (g *Game) persistAll() {
 	for _, s := range snaps {
 		g.db.Save(s.name, s.hp, s.maxHp, s.mp, s.maxMp, s.kills, s.x, s.y)
 	}
+}
+
+// sendMapTo dumps the active world to a single MAP message so the client
+// can rebuild its renderer cache. Caller must hold g.mu *or* be confident
+// no SAVE_MAP is in flight; the JSON serialisation copies the slice
+// headers, so brief contention is acceptable.
+func (g *Game) sendMapTo(p *Player) {
+	g.mu.Lock()
+	data, err := g.world.Marshal()
+	g.mu.Unlock()
+	if err != nil {
+		log.Printf("map marshal: %v", err)
+		return
+	}
+	msg := "MAP " + string(data) + "\n"
+	select {
+	case p.Out <- msg:
+	default:
+	}
+}
+
+// handleSaveMap accepts a JSON payload from the client, validates it, and
+// atomically replaces the active map. On success the new map is broadcast
+// to every connected player so everyone stays in sync without a reconnect.
+func (g *Game) handleSaveMap(p *Player, payload string) {
+	if len(payload) > saveMapMaxPayload {
+		log.Printf("save_map from %d rejected: payload %d bytes", p.ID, len(payload))
+		return
+	}
+	var m Map
+	if err := json.Unmarshal([]byte(payload), &m); err != nil {
+		log.Printf("save_map from %d: parse: %v", p.ID, err)
+		return
+	}
+	if err := validateMap(&m); err != nil {
+		log.Printf("save_map from %d: invalid: %v", p.ID, err)
+		return
+	}
+	if err := SaveMap(&m); err != nil {
+		log.Printf("save_map persist: %v", err)
+		return
+	}
+	g.mu.Lock()
+	g.world = &m
+	outs := make([]chan<- string, 0, len(g.players))
+	for _, op := range g.players {
+		outs = append(outs, op.Out)
+	}
+	data, _ := g.world.Marshal()
+	g.mu.Unlock()
+
+	log.Printf("map %q saved by player %d (%dx%d, %d entities)",
+		m.Name, p.ID, m.Width, m.Height, len(m.Entities))
+	g.broadcast(outs, "MAP "+string(data)+"\n")
 }

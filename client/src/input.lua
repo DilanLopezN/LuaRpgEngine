@@ -49,22 +49,34 @@ function M.keypressed(key)
 end
 
 function M.mousepressed(x, y, button)
-    if button ~= 1 then return end
     State.mouse.x, State.mouse.y = x, y
     if State.scene ~= State.SCENE_PLAYING then return end
 
-    if Skillbar.mousepressed(x, y) then return end
-    if Editor.mousepressed(x, y) then return end
+    if button == 1 and Skillbar.mousepressed(x, y) then return end
+    if Editor.mousepressed(x, y, button) then return end
 end
 
-function M.mousemoved(x, y)
+function M.mousemoved(x, y, dx, dy)
     State.mouse.x, State.mouse.y = x, y
+    if State.scene == State.SCENE_PLAYING and State.editorOpen then
+        Editor.mousemoved(x, y, dx, dy)
+    end
 end
 
 function M.mousereleased(x, y, button)
-    if button ~= 1 then return end
     State.mouse.x, State.mouse.y = x, y
-    Skillbar.mousereleased(x, y)
+    if button == 1 then
+        Skillbar.mousereleased(x, y)
+    end
+    if State.scene == State.SCENE_PLAYING and State.editorOpen then
+        Editor.mousereleased(x, y, button)
+    end
+end
+
+function M.wheelmoved(dx, dy)
+    if State.scene == State.SCENE_PLAYING and State.editorOpen then
+        Editor.wheelmoved(dx, dy)
+    end
 end
 
 function M.update(dt)

@@ -1,21 +1,21 @@
--- Unified F1 engine editor. Owns the outer panel/tab strip and dispatches
--- input + drawing to the active tab module.
---
--- Tabs:
---   "map"    → editor_map    (Phase 1: tilemap editing)
---   "spells" → editor_spells (legacy spell creator)
+-- In-game engine editor. Toggle with F1 in the playing scene.
+-- Tab "Spell Creator" lets you author spells dynamically: pick a kind
+-- (line / area / self), an effect (damage / heal / mana), tune numbers,
+-- pick a color, and drag the resulting spell card into the skillbar.
+-- Every meaningful change is mirrored to the server via REGSPELL so the
+-- spell is persisted to the character's row in Postgres; deletes flush
+-- with DELSPELL.
 
-local State        = require("src.state")
-local EditorSpells = require("src.editor_spells")
-local EditorMap    = require("src.editor_map")
-local Map          = require("src.map")
+local State   = require("src.state")
+local Spells  = require("src.spells")
+local Network = require("src.network")
+local Icons   = require("src.icons")
 
 local M = {}
 
-local TABS = {
-    { id = "map",    label = "Map Editor"    },
-    { id = "spells", label = "Spell Creator" },
-}
+local LABEL_W   = 110
+local FIELD_H   = 28
+local FIELD_GAP = 8
 
 local function pointIn(px, py, x, y, w, h)
     return px >= x and py >= y and px < x + w and py < y + h
@@ -27,11 +27,7 @@ local function panelRect()
     local skillBarReserved = 96
     return margin, margin, W - 2 * margin, H - 2 * margin - skillBarReserved
 end
-M.panelRect = panelRect
 
-local function activeTab()
-    if State.editorTab == "spells" then return EditorSpells end
-    return EditorMap
 local function listRect()
     local px, py, _, ph = panelRect()
     return px + 16, py + 64, 260, ph - 80
@@ -74,14 +70,6 @@ end
 
 local function persist(spell)
     if spell then registerWithServer(spell) end
-end
-
-local function loseFocus()
-    if State.editorFocus then
-        local sp = selected()
-        if sp then registerWithServer(sp) end
-        State.editorFocus = nil
-    end
 end
 
 -- ---------------------------------------------------------------------------
@@ -316,66 +304,15 @@ local function drawForm()
     end
 end
 
-function M.draw()
-    if not State.editorOpen then return end
-    if State.scene ~= State.SCENE_PLAYING then return end
-
-    if State.editorTab == "map" then
-        EditorMap.drawCursor()
-    end
-
-    local W, H = love.graphics.getDimensions()
-    love.graphics.setColor(0, 0, 0, 0.45)
-    love.graphics.rectangle("fill", 0, 0, W, H)
-
-    local px, py, pw, ph = panelRect()
-    love.graphics.setColor(0.10, 0.12, 0.16, 0.97)
-    love.graphics.rectangle("fill", px, py, pw, ph, 8, 8)
-    love.graphics.setColor(0.4, 0.5, 0.7)
-    love.graphics.rectangle("line", px, py, pw, ph, 8, 8)
-
-    love.graphics.setFont(State.fonts.title)
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.print("Engine Editor", px + 16, py + 10)
-
-    love.graphics.setFont(State.fonts.ui)
-    local cx, cy = px + pw - 36, py + 14
-    love.graphics.setColor(0.45, 0.18, 0.18)
-    love.graphics.rectangle("fill", cx, cy, 22, 22, 4, 4)
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.print("X", cx + 7, cy + 3)
-
-    local tx = px + 16
-    local ty = py + 50
-    for _, t in ipairs(TABS) do
-        local tw = State.fonts.ui:getWidth(t.label) + 24
-        local th = 22
-        if t.id == State.editorTab then
-            love.graphics.setColor(0.22, 0.34, 0.55)
-        else
-            love.graphics.setColor(0.15, 0.18, 0.22)
-        end
-        love.graphics.rectangle("fill", tx, ty, tw, th, 4, 4)
-        love.graphics.setColor(0.5, 0.6, 0.8)
-        love.graphics.rectangle("line", tx, ty, tw, th, 4, 4)
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.print(t.label, tx + 12, ty + 4)
-        tx = tx + tw + 8
-    end
-
-    local tab = activeTab()
-    if tab and tab.drawContent then tab.drawContent() end
+function M.drawContent()
+    drawListAndCards()
+    drawForm()
 end
 
-local function clickedTab(x, y)
-    local px, py = panelRect()
-    local tx = px + 16
-    local ty = py + 50
-    for _, t in ipairs(TABS) do
-        local tw = State.fonts.ui:getWidth(t.label) + 24
-        if pointIn(x, y, tx, ty, tw, 22) then
-            State.editorTab = t.id
-            State.editorFocus = nil
+M.panelRect = panelRect
+M.listRect  = listRect
+M.formRect  = formRect
+
 -- ---------------------------------------------------------------------------
 -- Input
 -- ---------------------------------------------------------------------------
@@ -385,9 +322,9 @@ local function listClick(x, y)
     if not pointIn(x, y, lx, ly, lw, lh) then return false end
 
     if pointIn(x, y, lx + 6, ly + 6, lw - 12, 28) then
-        loseFocus()
         local sp = Spells.add(newSpell())
         State.editorSelected = sp.id
+        State.editorFocus = nil
         registerWithServer(sp)
         return true
     end
@@ -399,14 +336,12 @@ local function listClick(x, y)
         local cy = cardY + (i - 1) * (cardH + 6)
         if cy + cardH > ly + lh then break end
         if pointIn(x, y, cx, cy, lw - 12, cardH) then
-            loseFocus()
             State.editorSelected = sp.id
+            State.editorFocus = nil
             State.drag = { spellId = sp.id, source = "editor" }
             return true
         end
-        tx = tx + tw + 8
     end
-    return false
     return true -- absorbed: clicked inside list
 end
 
@@ -430,8 +365,8 @@ local function formClick(x, y)
             for _, opt in ipairs(r.options) do
                 local ow = State.fonts.ui:getWidth(opt) + 22
                 if pointIn(x, y, ox, r.y, ow, r.h) then
-                    loseFocus()
                     spell[r.name] = opt
+                    State.editorFocus = nil
                     persist(spell)
                     return true
                 end
@@ -442,78 +377,45 @@ local function formClick(x, y)
             local sw = r.w - LABEL_W
             local btnW = 26
             if pointIn(x, y, sx, r.y, btnW, r.h) then
-                loseFocus()
                 applyStep(spell, r, -r.step)
+                State.editorFocus = nil
                 persist(spell)
                 return true
             elseif pointIn(x, y, sx + sw - btnW, r.y, btnW, r.h) then
-                loseFocus()
                 applyStep(spell, r, r.step)
+                State.editorFocus = nil
                 persist(spell)
                 return true
             end
         elseif r.type == "button" then
             if pointIn(x, y, r.x, r.y, r.w, r.h) then
                 if r.name == "delete" then
-                    State.editorFocus = nil
-                    local id = spell.id
-                    Spells.remove(id)
+                    Spells.remove(spell.id)
                     for i = 1, 5 do
-                        if State.skillbar[i] == id then
+                        if State.skillbar[i] == spell.id then
                             State.skillbar[i] = nil
                         end
                     end
                     State.editorSelected = nil
-                    unregisterWithServer(id)
                 end
+                State.editorFocus = nil
                 return true
             end
         end
     end
-    loseFocus()
+    State.editorFocus = nil
     return true
 end
 
-function M.mousepressed(x, y, button)
-    if not State.editorOpen then return false end
-    if State.scene ~= State.SCENE_PLAYING then return false end
-    button = button or 1
-
-    local px, py, pw, ph = panelRect()
-
-    if pointIn(x, y, px + pw - 36, py + 14, 22, 22) then
-        loseFocus()
-        State.editorOpen = false
-        return true
-    end
-
-    if not pointIn(x, y, px, py, pw, ph) then
-        -- Click outside the panel: world-level edit when on Map tab.
-        if State.editorTab == "map" and Map.current then
-            EditorMap.worldClick(x, y, button)
-            return true
-        end
-        return false
-    end
-
-    if clickedTab(x, y) then return true end
-
-    local tab = activeTab()
-    if tab and tab.mousepressedContent then
-        return tab.mousepressedContent(x, y, button)
-    end
-    loseFocus()
+function M.mousepressedContent(x, y)
+    if listClick(x, y) then return true end
+    if formClick(x, y) then return true end
+    State.editorFocus = nil
     return true
 end
 
-function M.mousemoved(x, y, dx, dy)
+function M.textinput(t)
     if not State.editorOpen then return false end
-    if State.scene ~= State.SCENE_PLAYING then return false end
-    if State.editorTab ~= "map" then return false end
-    if love.mouse.isDown(1) or love.mouse.isDown(2) then
-        local px, py, pw, ph = panelRect()
-        if not pointIn(x, y, px, py, pw, ph) then
-            EditorMap.worldDrag(x, y)
     if not State.editorFocus then return false end
     local sp = selected()
     if not sp then return false end
@@ -521,50 +423,32 @@ function M.mousemoved(x, y, dx, dy)
     if field == "name" and #(sp.name or "") < 24 then
         if t:match("[%w _%-]") then
             sp.name = (sp.name or "") .. t
+            Spells.save()
         end
     end
-    return false
-end
-
-function M.mousereleased(x, y, button)
-    if not State.editorOpen then return false end
-    if State.editorTab ~= "map" then return false end
-    EditorMap.worldRelease()
-    return false
-end
-
-function M.wheelmoved(dx, dy)
-    if not State.editorOpen then return false end
-    if State.editorTab == "map" then EditorMap.wheelmoved(dx, dy); return true end
-    return false
-end
-
-function M.textinput(t)
-    if not State.editorOpen then return false end
-    if State.editorTab == "spells" then return EditorSpells.textinput(t) end
-    return false
+    return true
 end
 
 function M.keypressed(key)
     if not State.editorOpen then return false end
-    if State.editorTab == "spells" then
-        return EditorSpells.keypressed(key)
-    end
-    if State.editorTab == "map" then
-        if key == "escape" then
-            State.editorOpen = false
     if State.editorFocus then
         local sp = selected()
         if sp and key == "backspace" then
-            if State.editorFocus == "name" then
+            local field = State.editorFocus
+            if field == "name" then
                 sp.name = (sp.name or ""):sub(1, -2)
+                Spells.save()
             end
             return true
         elseif key == "return" or key == "kpenter" or key == "escape" then
-            loseFocus()
+            State.editorFocus = nil
             return true
         end
-        if EditorMap.keypressed(key) then return true end
+        return true
+    end
+    if key == "escape" then
+        State.editorOpen = false
+        return true
     end
     return false
 end
