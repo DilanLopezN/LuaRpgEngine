@@ -24,6 +24,8 @@ local Skillbar = require("src.skillbar")
 local Editor   = require("src.editor")
 local Scenes   = require("src.scenes")
 local Input    = require("src.input")
+local Sprites  = require("src.sprites")
+local Map      = require("src.map")
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
@@ -31,6 +33,8 @@ function love.load()
     State.fonts.name  = love.graphics.newFont(13)
     State.fonts.title = love.graphics.newFont(28)
     math.randomseed(os.time())
+    Sprites.init()
+    Map.setActive(Map.empty(State.mapWidth, State.mapHeight))
     Spells.load()
 end
 
@@ -83,6 +87,7 @@ love.keypressed    = Input.keypressed
 love.mousepressed  = Input.mousepressed
 love.mousemoved    = Input.mousemoved
 love.mousereleased = Input.mousereleased
+love.wheelmoved    = Input.wheelmoved
 
 function love.quit()
     Network.close()

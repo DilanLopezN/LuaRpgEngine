@@ -1,6 +1,8 @@
-local State   = require("src.state")
-local World   = require("src.world")
-local Sprites = require("src.sprites")
+local State    = require("src.state")
+local World    = require("src.world")
+local Sprites  = require("src.sprites")
+local Map      = require("src.map")
+local Tilesets = require("src.tilesets")
 
 local M = {}
 
@@ -10,16 +12,9 @@ local TILE_H = World.TILE_H
 local PLAYER_SCALE = 1
 local ORC_SCALE    = 1.6
 
-local function drawFloor()
-    local size = State.mapSize
-    local boardW = size * TILE_W
-    local boardH = size * TILE_H
-
-    love.graphics.setColor(0.18, 0.10, 0.05)
-    love.graphics.rectangle("fill", -12, -12, boardW + 24, boardH + 24)
-
-    for ty = 0, size - 1 do
-        for tx = 0, size - 1 do
+local function drawCheckerFallback(w, h)
+    for ty = 0, h - 1 do
+        for tx = 0, w - 1 do
             if (tx + ty) % 2 == 0 then
                 love.graphics.setColor(0.93, 0.85, 0.66)
             else
@@ -28,12 +23,116 @@ local function drawFloor()
             World.fillTile(tx, ty)
         end
     end
+end
 
-    love.graphics.setColor(0.10, 0.06, 0.03, 0.85)
-    love.graphics.setLineWidth(2)
-    for i = 0, size do
-        love.graphics.line(i * TILE_W, 0, i * TILE_W, boardH)
-        love.graphics.line(0, i * TILE_H, boardW, i * TILE_H)
+local function drawTileLayer(layer, mapW, mapH)
+    if not layer then return end
+    for y = 1, mapH do
+        local row = layer[y]
+        if row then
+            for x = 1, mapW do
+                local id = row[x]
+                if id and id ~= 0 then
+                    local ts, quad = Tilesets.resolve(id)
+                    if ts and quad then
+                        local sx, sy = (x - 1) * TILE_W, (y - 1) * TILE_H
+                        local sxScale = TILE_W / ts.tileW
+                        local syScale = TILE_H / ts.tileH
+                        love.graphics.setColor(1, 1, 1)
+                        love.graphics.draw(ts.image, quad, sx, sy,
+                            0, sxScale, syScale)
+                    end
+                end
+            end
+        end
+    end
+end
+
+local function drawFloor()
+    local m = Map.current
+    local mapW = (m and m.width)  or State.mapWidth  or State.mapSize
+    local mapH = (m and m.height) or State.mapHeight or State.mapSize
+    local boardW = mapW * TILE_W
+    local boardH = mapH * TILE_H
+
+    love.graphics.setColor(0.18, 0.10, 0.05)
+    love.graphics.rectangle("fill", -12, -12, boardW + 24, boardH + 24)
+
+    if m then
+        drawCheckerFallback(mapW, mapH)
+        drawTileLayer(m.layers.ground, mapW, mapH)
+        drawTileLayer(m.layers.decoration, mapW, mapH)
+    else
+        drawCheckerFallback(mapW, mapH)
+    end
+
+    if State.editorOpen and State.editorTab == "map" and State.mapEditor then
+        if State.mapEditor.showGrid then
+            love.graphics.setColor(0, 0, 0, 0.35)
+            love.graphics.setLineWidth(1)
+            for i = 0, mapW do
+                love.graphics.line(i * TILE_W, 0, i * TILE_W, boardH)
+            end
+            for i = 0, mapH do
+                love.graphics.line(0, i * TILE_H, boardW, i * TILE_H)
+            end
+        end
+        if State.mapEditor.layer == "collision" and m then
+            love.graphics.setColor(0.95, 0.20, 0.20, 0.35)
+            for y = 1, mapH do
+                local row = m.layers.collision[y]
+                if row then
+                    for x = 1, mapW do
+                        if (row[x] or 0) ~= 0 then
+                            love.graphics.rectangle("fill",
+                                (x - 1) * TILE_W, (y - 1) * TILE_H,
+                                TILE_W, TILE_H)
+                        end
+                    end
+                end
+            end
+        elseif State.mapEditor.layer == "logic" and m then
+            love.graphics.setColor(0.30, 0.65, 1.00, 0.30)
+            for y = 1, mapH do
+                local row = m.layers.logic[y]
+                if row then
+                    for x = 1, mapW do
+                        if (row[x] or 0) ~= 0 then
+                            love.graphics.rectangle("fill",
+                                (x - 1) * TILE_W, (y - 1) * TILE_H,
+                                TILE_W, TILE_H)
+                        end
+                    end
+                end
+            end
+        end
+        if m and m.entities then
+            love.graphics.setFont(State.fonts.name)
+            for _, e in ipairs(m.entities) do
+                local ex = e.x * TILE_W + TILE_W * 0.5
+                local ey = e.y * TILE_H + TILE_H * 0.5
+                love.graphics.setColor(0.20, 0.85, 0.30, 0.85)
+                love.graphics.circle("line", ex, ey, math.min(TILE_W, TILE_H) * 0.35)
+                love.graphics.setColor(1, 1, 1, 0.95)
+                local label = (e.type or "?") .. ":" .. (e.kind or "")
+                love.graphics.print(label, ex - TILE_W * 0.35, ey - TILE_H * 0.5)
+            end
+        end
+        if State.mapEditor.selection then
+            local s = State.mapEditor.selection
+            local x1, y1 = math.min(s.x1, s.x2), math.min(s.y1, s.y2)
+            local x2, y2 = math.max(s.x1, s.x2), math.max(s.y1, s.y2)
+            love.graphics.setColor(1, 1, 0.4, 0.25)
+            love.graphics.rectangle("fill",
+                (x1 - 1) * TILE_W, (y1 - 1) * TILE_H,
+                (x2 - x1 + 1) * TILE_W, (y2 - y1 + 1) * TILE_H)
+            love.graphics.setColor(1, 1, 0.4, 0.9)
+            love.graphics.setLineWidth(2)
+            love.graphics.rectangle("line",
+                (x1 - 1) * TILE_W, (y1 - 1) * TILE_H,
+                (x2 - x1 + 1) * TILE_W, (y2 - y1 + 1) * TILE_H)
+            love.graphics.setLineWidth(1)
+        end
     end
 
     love.graphics.setColor(0.08, 0.04, 0.02)
