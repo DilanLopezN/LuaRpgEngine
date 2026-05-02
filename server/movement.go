@@ -1,0 +1,86 @@
+package main
+
+import "time"
+
+// Phase 3 — Sistema de movimentação.
+//
+// Goal: keep the per-tick movement loop in one well-named place so
+// Game.tick stays focused on orchestration. The legacy Player struct
+// remains the source of truth for position (HP/XY/etc. are read across
+// db.go, scripting.go, skills_runtime.go); the ECS mirror gets the new
+// state via syncECSLocked after this runs.
+//
+// Movement is a two-phase pass per tick:
+//
+//  1. Settle finished steps so a player who just landed on a tile is
+//     immediately eligible to start the next step in the same tick.
+//     Without this the perceived input rate drops to half whenever the
+//     network MOVE arrives mid-step.
+//  2. For idle, alive, named players whose desired direction is
+//     non-zero, attempt the step. Blocked attempts still update facing
+//     (the avatar should turn toward what it bumped into).
+//
+// Caller must hold g.mu.
+
+// runMovement advances every player by at most one tile this tick.
+// Enemies do not move yet — Phase 4 (AI) wires that path through the
+// AISystem.
+func (g *Game) runMovement(now time.Time) {
+	for _, p := range g.players {
+		if p.Stepping && now.Sub(p.StepStart) >= p.StepDur {
+			p.FromX, p.FromY = p.TileX, p.TileY
+			p.Stepping = false
+		}
+	}
+
+	for _, p := range g.players {
+		if p.Stepping || p.Name == "" || p.HP <= 0 {
+			continue
+		}
+		dx, dy := p.DirX, p.DirY
+		if dx == 0 && dy == 0 {
+			continue
+		}
+		// Always face the input direction. Bumping into a wall or an
+		// occupied tile should still rotate the sprite — matches the
+		// Tibia-style feel the client renderer expects.
+		p.FaceX, p.FaceY = dx, dy
+
+		nx, ny := p.TileX+dx, p.TileY+dy
+		if !g.world.InBounds(nx, ny) || !g.world.IsWalkable(nx, ny) {
+			continue
+		}
+		if g.tileOccupied(nx, ny, p.ID) {
+			continue
+		}
+
+		p.FromX, p.FromY = p.TileX, p.TileY
+		p.TileX, p.TileY = nx, ny
+		p.Stepping = true
+		p.StepStart = now
+		if dx != 0 && dy != 0 {
+			p.StepDur = time.Duration(float64(stepDuration) * diagFactor)
+		} else {
+			p.StepDur = stepDuration
+		}
+	}
+}
+
+// runManaRegen ticks the per-player mana regeneration. Lives next to
+// movement because both belong to the "passive per-tick player update"
+// bucket and share the same iteration shape. Caller must hold g.mu.
+func (g *Game) runManaRegen(now time.Time) {
+	for _, p := range g.players {
+		if p.MaxMP <= 0 || p.MP >= p.MaxMP {
+			continue
+		}
+		if now.Sub(p.LastManaTick) < manaRegenInterval {
+			continue
+		}
+		p.MP += manaRegenAmount
+		if p.MP > p.MaxMP {
+			p.MP = p.MaxMP
+		}
+		p.LastManaTick = now
+	}
+}

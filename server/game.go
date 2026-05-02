@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -182,6 +181,11 @@ type Game struct {
 	ecs      *ECSWorld
 	pipeline *SystemPipeline
 	tickN    int64
+
+	// snapBuf is reused across ticks to avoid allocating a fresh
+	// strings.Builder backing slice every 33ms. Mutated only under
+	// g.mu inside buildSnapshotLocked.
+	snapBuf strings.Builder
 }
 
 func NewGame(db *DB, cache *Cache) *Game {
@@ -709,22 +713,13 @@ func (g *Game) handleCast(p *Player, spellID string) {
 	}
 	ox, oy := p.TileX, p.TileY
 
-	var (
-		hits    []int
-		killed  []*Enemy
-		pHits   []int
-		pKilled []int
-	)
+	var out combatOutcome
 
 	hitEnemy := func(e *Enemy) {
 		if sp.Effect != "damage" {
 			return
 		}
-		e.HP -= sp.Power
-		hits = append(hits, e.ID)
-		if e.HP <= 0 {
-			killed = append(killed, e)
-		}
+		g.damageEnemy(e, sp.Power, &out)
 	}
 
 	hitPlayer := func(op *Player, isCaster bool) {
@@ -733,17 +728,7 @@ func (g *Game) handleCast(p *Player, spellID string) {
 			if isCaster {
 				return
 			}
-			op.HP -= sp.Power
-			pHits = append(pHits, op.ID)
-			if op.HP <= 0 {
-				op.HP = op.MaxHP
-				op.Stepping = false
-				op.DirX, op.DirY = 0, 0
-				sx, sy := g.findSpawn(op.ID)
-				op.TileX, op.TileY = sx, sy
-				op.FromX, op.FromY = sx, sy
-				pKilled = append(pKilled, op.ID)
-			}
+			g.damagePlayer(op, sp.Power, &out)
 		case "heal":
 			op.HP += sp.Power
 			if op.HP > op.MaxHP {
@@ -799,33 +784,15 @@ func (g *Game) handleCast(p *Player, spellID string) {
 	spellMsg := fmt.Sprintf("SPELL %d %s %d %d %d %d %s %d %d %d %d %d\n",
 		p.ID, spellID, fx, fy, ox, oy,
 		sp.Kind, sp.Range, sp.Radius, sp.R, sp.G, sp.B)
-	outs := make([]chan<- string, 0, len(g.players))
-	for _, op := range g.players {
-		outs = append(outs, op.Out)
-	}
-	for _, e := range killed {
+	outs := g.snapshotOutsLocked()
+	for _, e := range out.enemyKilled {
 		delete(g.enemies, e.ID)
 		p.Kills++
 	}
 	playerName := p.Name
 	g.mu.Unlock()
 
-	g.broadcast(outs, spellMsg)
-	for _, id := range hits {
-		g.broadcast(outs, fmt.Sprintf("HIT %d\n", id))
-	}
-	for _, id := range pHits {
-		g.broadcast(outs, fmt.Sprintf("PHIT %d\n", id))
-	}
-	for _, id := range pKilled {
-		g.broadcast(outs, fmt.Sprintf("PDIE %d\n", id))
-	}
-	for _, e := range killed {
-		g.broadcast(outs, fmt.Sprintf("EDIE %d\n", e.ID))
-		if g.cache != nil {
-			g.cache.RecordKill(playerName)
-		}
-	}
+	g.broadcastCombat(outs, spellMsg, out, playerName)
 }
 
 func parseDir(s string) int {
@@ -854,82 +821,27 @@ func sanitizeName(s string) string {
 func (g *Game) handleAttack(p *Player) {
 	now := time.Now()
 	g.mu.Lock()
-	if p.Name == "" || now.Before(p.NextAttack) || p.HP <= 0 {
+	out, atkMsg, ok := g.runMeleeAttack(p, now)
+	if !ok {
 		g.mu.Unlock()
 		return
 	}
-	p.AttackUntil = now.Add(attackDur)
-	p.NextAttack = now.Add(attackCD)
+	outs := g.snapshotOutsLocked()
+	playerName := p.Name
+	g.mu.Unlock()
 
-	tx := float64(p.TileX) + float64(p.FaceX)
-	ty := float64(p.TileY) + float64(p.FaceY)
+	g.broadcastCombat(outs, atkMsg, out, playerName)
+}
 
-	var killed []*Enemy
-	var hits []int
-	for _, e := range g.enemies {
-		dx := float64(e.X) - tx
-		dy := float64(e.Y) - ty
-		if math.Hypot(dx, dy) <= attackRange {
-			e.HP -= attackDamage
-			hits = append(hits, e.ID)
-			if e.HP <= 0 {
-				killed = append(killed, e)
-			}
-		}
-	}
-
-	var pHits []int
-	var pKilled []int
-	for _, op := range g.players {
-		if op.ID == p.ID || op.Name == "" || op.HP <= 0 {
-			continue
-		}
-		dx := float64(op.TileX) - tx
-		dy := float64(op.TileY) - ty
-		if math.Hypot(dx, dy) <= attackRange {
-			op.HP -= attackDamage
-			pHits = append(pHits, op.ID)
-			if op.HP <= 0 {
-				op.HP = op.MaxHP
-				op.Stepping = false
-				op.DirX, op.DirY = 0, 0
-				sx, sy := g.findSpawn(op.ID)
-				op.TileX, op.TileY = sx, sy
-				op.FromX, op.FromY = sx, sy
-				pKilled = append(pKilled, op.ID)
-			}
-		}
-	}
-
-	atkMsg := fmt.Sprintf("ATK %d %d %d\n", p.ID, p.FaceX, p.FaceY)
+// snapshotOutsLocked returns a fresh slice of every connected player's
+// output channel. Caller must hold g.mu. The slice is detached from
+// the map so the broadcast can run after the lock is released.
+func (g *Game) snapshotOutsLocked() []chan<- string {
 	outs := make([]chan<- string, 0, len(g.players))
 	for _, op := range g.players {
 		outs = append(outs, op.Out)
 	}
-
-	for _, e := range killed {
-		delete(g.enemies, e.ID)
-		p.Kills++
-	}
-	playerName := p.Name
-	g.mu.Unlock()
-
-	g.broadcast(outs, atkMsg)
-	for _, id := range hits {
-		g.broadcast(outs, fmt.Sprintf("HIT %d\n", id))
-	}
-	for _, id := range pHits {
-		g.broadcast(outs, fmt.Sprintf("PHIT %d\n", id))
-	}
-	for _, id := range pKilled {
-		g.broadcast(outs, fmt.Sprintf("PDIE %d\n", id))
-	}
-	for _, e := range killed {
-		g.broadcast(outs, fmt.Sprintf("EDIE %d\n", e.ID))
-		if g.cache != nil {
-			g.cache.RecordKill(playerName)
-		}
-	}
+	return outs
 }
 
 func (g *Game) broadcast(outs []chan<- string, msg string) {
@@ -944,76 +856,12 @@ func (g *Game) broadcast(outs []chan<- string, msg string) {
 func (g *Game) tick(now time.Time) {
 	g.mu.Lock()
 
-	for _, p := range g.players {
-		if p.Stepping && now.Sub(p.StepStart) >= p.StepDur {
-			p.FromX, p.FromY = p.TileX, p.TileY
-			p.Stepping = false
-		}
-		if p.MaxMP > 0 && p.MP < p.MaxMP && now.Sub(p.LastManaTick) >= manaRegenInterval {
-			p.MP += manaRegenAmount
-			if p.MP > p.MaxMP {
-				p.MP = p.MaxMP
-			}
-			p.LastManaTick = now
-		}
-	}
-
+	g.runManaRegen(now)
 	deadEnemies, deadPlayers := g.tickStatuses(now)
+	g.runMovement(now)
 
-	for _, p := range g.players {
-		if p.Stepping || p.Name == "" {
-			continue
-		}
-		dx, dy := p.DirX, p.DirY
-		if dx == 0 && dy == 0 {
-			continue
-		}
-		nx, ny := p.TileX+dx, p.TileY+dy
-		if !g.world.InBounds(nx, ny) {
-			p.FaceX, p.FaceY = dx, dy
-			continue
-		}
-		if !g.world.IsWalkable(nx, ny) {
-			p.FaceX, p.FaceY = dx, dy
-			continue
-		}
-		if g.tileOccupied(nx, ny, p.ID) {
-			p.FaceX, p.FaceY = dx, dy
-			continue
-		}
-		p.FromX, p.FromY = p.TileX, p.TileY
-		p.TileX, p.TileY = nx, ny
-		p.FaceX, p.FaceY = dx, dy
-		p.Stepping = true
-		p.StepStart = now
-		if dx != 0 && dy != 0 {
-			p.StepDur = time.Duration(float64(stepDuration) * diagFactor)
-		} else {
-			p.StepDur = stepDuration
-		}
-	}
-
-	var sb strings.Builder
-	for _, p := range g.players {
-		if p.Name == "" {
-			continue
-		}
-		x, y := p.interpolated(now)
-		atk := 0
-		if now.Before(p.AttackUntil) {
-			atk = 1
-		}
-		fmt.Fprintf(&sb, "P %d %.3f %.3f %d %d %d %d %d %d %d %s\n",
-			p.ID, x, y, p.FaceX, p.FaceY, p.HP, p.MaxHP, p.MP, p.MaxMP, atk, p.Name)
-	}
-	for _, e := range g.enemies {
-		fmt.Fprintf(&sb, "E %d %s %d %d %d %d\n", e.ID, e.Kind, e.X, e.Y, e.HP, e.MaxHP)
-	}
-	msg := sb.String()
-	outs := make([]chan<- string, 0, len(g.players))
-	for _, p := range g.players {
-		outs = append(outs, p.Out)
-	}
+	msg := g.buildSnapshotLocked(now)
+	outs := g.snapshotOutsLocked()
 
 	// Phase 3 — push the legacy struct fields onto each entity, drop
 	// orphans (whose Player/Enemy was deleted mid-tick), then run the
@@ -1036,6 +884,32 @@ func (g *Game) tick(now time.Time) {
 	for _, id := range deadPlayers {
 		g.broadcast(outs, fmt.Sprintf("PDIE %d\n", id))
 	}
+}
+
+// buildSnapshotLocked emits the per-tick "P"/"E" wire frame consumed
+// by Protocol.handleSnapshot on the client. Caller must hold g.mu.
+func (g *Game) buildSnapshotLocked(now time.Time) string {
+	if len(g.players) == 0 && len(g.enemies) == 0 {
+		return ""
+	}
+	g.snapBuf.Reset()
+	for _, p := range g.players {
+		if p.Name == "" {
+			continue
+		}
+		x, y := p.interpolated(now)
+		atk := 0
+		if now.Before(p.AttackUntil) {
+			atk = 1
+		}
+		fmt.Fprintf(&g.snapBuf, "P %d %.3f %.3f %d %d %d %d %d %d %d %s\n",
+			p.ID, x, y, p.FaceX, p.FaceY, p.HP, p.MaxHP, p.MP, p.MaxMP, atk, p.Name)
+	}
+	for _, e := range g.enemies {
+		fmt.Fprintf(&g.snapBuf, "E %d %s %d %d %d %d\n",
+			e.ID, e.Kind, e.X, e.Y, e.HP, e.MaxHP)
+	}
+	return g.snapBuf.String()
 }
 
 // syncECSLocked mirrors the gameplay structs into their entity
