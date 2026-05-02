@@ -537,6 +537,7 @@ func (g *Game) removePlayer(id int) {
 }
 
 func (g *Game) handleLine(p *Player, line string) {
+	fmt.Printf(">>> handleLine player=%d line=%q\n", p.ID, line)
 	if p != nil && p.Throttle != nil && !p.Throttle.allowGlobal(time.Now()) {
 		// Drop this command entirely. Legitimate clients never trip the
 		// global bucket; floods are absorbed silently to avoid feeding
@@ -588,16 +589,19 @@ func (g *Game) handleLine(p *Player, line string) {
 			g.sendMapTo(bound)
 			g.sendCharacterState(bound)
 		}
-	case "MOVE", "WSAD":
-		if len(parts) != 3 {
-			return
-		}
-		dx, ok1 := parseDirToken(parts[1])
-		dy, ok2 := parseDirToken(parts[2])
-		if !ok1 || !ok2 {
-			return
-		}
-		g.applyMoveIntent(p, dx, dy)
+case "MOVE", "WSAD":
+    fmt.Printf(">>> got %s from player %d (parts=%v)\n", parts[0], p.ID, parts)
+    if len(parts) != 3 {
+        fmt.Printf(">>> rejected: parts != 3 (got %d)\n", len(parts))
+        return
+    }
+    dx, ok1 := parseDirToken(parts[1])
+    dy, ok2 := parseDirToken(parts[2])
+    fmt.Printf(">>> parsed dx=%d dy=%d (ok1=%v ok2=%v)\n", dx, dy, ok1, ok2)
+    if !ok1 || !ok2 {
+        return
+    }
+    g.applyMoveIntent(p, dx, dy)
 	case "ATTACK":
 		g.applyAttackIntent(p)
 	case "REGSPELL":

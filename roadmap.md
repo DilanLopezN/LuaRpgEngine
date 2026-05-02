@@ -25,6 +25,8 @@ Construir uma engine capaz de:
 - [ ] **Escalável desde cedo:** evitar refactors destrutivos
 - [ ] **Observabilidade obrigatória:** todo sistema crítico com logs e métricas
 - [ ] **Autoridade do servidor:** cliente nunca decide estado final
+- [ ] **Concorrência sem reentrância:** mutexes Go não são reentrantes;
+      ordem de aquisição é regra, não sugestão (ver seção 🔒).
 
 ---
 
@@ -35,6 +37,52 @@ Construir uma engine capaz de:
 - [ ] **Banco:** Postgres
 - [ ] **Cache:** Redis
 - [ ] **Infra:** Docker + docker-compose para ambiente local
+
+---
+
+## 🔒 Regras de Concorrência (obrigatórias)
+
+Toda nova funcionalidade que toca gameplay + scripts + DB deve passar
+por essa checklist antes do merge.
+
+- [ ] Nunca segurar `Game.mu` durante `L.PCall` (execução de Lua).
+- [ ] `ScriptEngine.mu` protege apenas os mapas (skills/items/...).
+      `vmMu` é o lock que serializa a VM Lua. NUNCA o mesmo mutex.
+- [ ] Toda função do host exposta ao Lua adquire seu próprio lock
+      internamente; callbacks não devem assumir lock pré-segurado.
+- [ ] Hooks Lua que podem reentrar no host (`damage_entity`,
+      `give_item`, `broadcast`) disparam em goroutine separada
+      quando chamados de dentro de um tick.
+- [ ] `RWMutex` do ECS não é reentrante. Se um sistema precisa do
+      estado de outro, passar componentes por argumento — nunca
+      chamar `Each` dentro de outro `Each`.
+- [ ] Persistência (Postgres/Redis) NUNCA ocorre com `Game.mu`
+      segurado. Copiar o snapshot necessário, soltar o lock, depois
+      escrever.
+- [ ] Ordem de aquisição documentada e respeitada:
+      `Game.mu` → `ScriptEngine.mu` → `vmMu` → DB.
+      Nunca o inverso. Quem precisa do inverso, copia e libera.
+- [ ] Toda mudança suspeita roda com `go test -race ./...` antes do
+      commit.
+
+---
+
+## 🌐 Regras de Rede no Cliente
+
+- [ ] `socket:send` é não-bloqueante; sempre tratar retorno parcial
+      `(nil, "timeout", last_index)`.
+- [ ] `outQueue` para back-pressure de envio; nunca confiar que um
+      `send` único vai escoar todos os bytes.
+- [ ] `closeSock` limpa `pending` e `outQueue` ao reconectar.
+      Reconexão sem reset propaga lixo da sessão anterior.
+- [ ] `tcp-nodelay` ativo em ambos os lados — Nagle adiciona
+      latência visível em jogos de input curto/frequente.
+- [ ] `Network.poll` chama `flushOut` no início para drenar
+      mensagens represadas mesmo sem novo `send`.
+- [ ] Heartbeat (PING/PONG) a cada N segundos — detecta peer morto
+      antes do TCP RST chegar (que pode demorar minutos).
+- [ ] Tela de "connecting" tem timeout; se WELCOME não chegar em
+      X segundos, volta para a cena de login com erro visível.
 
 ---
 
@@ -51,29 +99,12 @@ Transformar mapa em dado + permitir edição dentro do jogo.
 - [x] Inserção de entidades no mapa (spawn/NPC/trigger)
 - [x] Loader de mapa no servidor e no cliente
 - [x] Colisão baseada em layer de dados
-
-### Exemplo de estrutura
-
-```json
-{
-  "schema_version": 1,
-  "width": 100,
-  "height": 100,
-  "layers": {
-    "ground": [[1,1,1]],
-    "collision": [[0,1,0]],
-    "decoration": [[5,0,2]],
-    "logic": [[0,0,0]]
-  },
-  "entities": [
-    { "type": "spawn", "kind": "orc", "x": 10, "y": 5 }
-  ]
-}
-```
+- [ ] **Hardening:** validar `schema_version` recusando versões
+      futuras desconhecidas com mensagem clara (não só tamanho).
+- [ ] **Hardening:** teste automatizado que carrega o mapa default,
+      salva, recarrega e compara — pega regressão de serialização.
 
 ### Editor in-game (cliente)
-
-Ativado via tecla (ex: `F1`):
 
 - [x] Pintura de tiles com mouse
 - [x] Seleção de tileset
@@ -83,6 +114,11 @@ Ativado via tecla (ex: `F1`):
 - [x] Ferramenta de preenchimento (fill)
 - [x] Ferramenta de seleção e cópia de região
 - [x] Overlay de grid + coordenadas
+- [ ] **Hardening:** garantir que `editorOpen=false` ao perder foco
+      da janela; janela arrastada para fora da tela volta com Home
+      (já tem) — adicionar auto-recenter no `love.resize`.
+- [ ] **Hardening:** `editorFocus` deve sempre limpar com Esc;
+      auditar todos os caminhos que setam focus para garantir reset.
 
 ### Persistência
 
@@ -90,12 +126,18 @@ Ativado via tecla (ex: `F1`):
 - [x] Servidor valida payload (tamanho, ids, bounds)
 - [x] Servidor salva em `server/data/maps/`
 - [x] Backup automático da versão anterior ao sobrescrever
+- [ ] **Hardening:** rate-limit de SAVE_MAP (1 por segundo) para
+      evitar spam de backups; SAVE_MAP gigante já está coberto pelo
+      `saveMapMaxPayload`.
 
 ### Backend
 
 - [x] `world.go` com `Map` e `IsWalkable(x, y)`
 - [x] Suporte a múltiplas layers no runtime
 - [ ] Preparação para chunking (futuro)
+- [ ] **Hardening:** broadcast do MAP atualizado para todos os
+      jogadores conectados após SAVE_MAP (já existe — confirmar
+      que não trava se algum `Out` channel estiver cheio).
 
 ### Critério de pronto
 
@@ -131,6 +173,10 @@ server/data/scripts/
 - [x] `broadcast`
 - [x] `apply_status`
 - [x] `schedule_event`
+- [ ] **Hardening:** auditar TODA função exposta para garantir
+      que adquire seus próprios locks; nenhuma assume contexto.
+- [ ] **Hardening:** funções que mutam estado de gameplay nunca
+      são chamadas com `ScriptEngine.mu` segurado.
 
 ### Segurança
 
@@ -138,11 +184,27 @@ server/data/scripts/
 - [x] Limite de tempo por execução de script
 - [x] Limite de memória/objetos por contexto
 - [x] Lista explícita de funções permitidas (allowlist)
+- [ ] **Hardening:** teste que tenta carregar script com `os.execute`
+      e confirma que falha; mesmo para `io.open`, `require`,
+      `loadstring`, `dofile`.
 
 ### Hot reload
 
 - [x] Comando admin `/reload`
 - [x] Reload granular por domínio (`/reload skills`, `/reload enemies`)
+- [ ] **Hardening:** reload de hooks fecha a VM antiga e cria nova;
+      garantir que goroutines de hooks pendentes não sejam afetadas
+      (devem usar referência capturada da VM no momento do disparo).
+
+### Execução de hooks
+
+- [x] `FireHook` separa mapa-lock (`mu`) de VM-lock (`vmMu`).
+- [ ] **Hardening:** documentar no comentário de `FireHook` que
+      callbacks Lua chamam funções do host que pegam locks próprios
+      — referenciar a regra 🔒 acima.
+- [ ] **Hardening:** hook que demora mais que `scriptHookTimeout`
+      é cancelado via `context`; verificar que o timeout realmente
+      interrompe a VM (gopher-lua respeita ctx.Done? testar).
 
 ### Critério de pronto
 
@@ -164,24 +226,9 @@ Evitar caos estrutural e permitir expansão organizada.
 - [x] Handlers por tipo base
 - [x] DSL de efeitos interpretada no servidor
 - [x] Árvore de progressão e validação de unlock
-
-### Exemplo de skill
-
-```lua
-return {
-  id = "fireball",
-  type = "projectile",
-  damage = 50,
-  mana_cost = 20,
-  cooldown = 2.0,
-  range = 6,
-  scaling = { int = 1.2 },
-  effects = {
-    { type = "damage", value = 50 },
-    { type = "apply_status", status = "burn", duration = 3 }
-  }
-}
-```
+- [ ] **Hardening:** teste unitário para cada handler (melee,
+      projectile, area, heal, buff, debuff) cobrindo dano, custo
+      de mana, cooldown e alvos válidos.
 
 ### Tipos base (handlers)
 
@@ -197,6 +244,8 @@ return {
 - [x] Regras de pré-requisito
 - [x] Custo por ponto de talento
 - [x] Reset de árvore (admin/dev)
+- [ ] **Hardening:** validar pré-requisitos cíclicos no load
+      (`A requires B`, `B requires A` deve falhar com erro claro).
 
 ### Critério de pronto
 
@@ -205,7 +254,6 @@ return {
 - [x] Cooldown e custo de mana validados no servidor
 
 ---
-
 
 ## 🧍 Fase 3 — Sistema de Entidades (ECS Simplificado)
 
@@ -228,6 +276,16 @@ Unificar player, NPC e inimigos.
       dos componentes (`Entity.Position`/`Entity.Health`/`Entity.Combat`)
       ao invés de campos do `Player`/`Enemy`. NPCs já aparecem no
       frame `N` automaticamente via ECS.
+- [ ] **Hardening:** auditar callbacks de `AISystem` (Targets/Step/
+      Attack) para garantir que nunca chamam `g.scripts.*` que
+      pegue `ScriptEngine.mu` enquanto `Game.mu` está segurado
+      pelo tick — bug que já travou tudo uma vez.
+- [ ] **Hardening:** teste com `-race` cobrindo um tick com 50+
+      entidades, validando que `ECSWorld.Each` não é chamado
+      reentrante.
+- [ ] **Hardening:** quando um sistema precisa de dados de outra
+      entidade durante `Each`, copiar para um slice antes —
+      evitar segurar `RLock` enquanto chama callback do host.
 
 ### Benefícios esperados
 
@@ -255,6 +313,13 @@ Unificar player, NPC e inimigos.
 - [x] Regras de stack, raridade e bound (`ItemDef.Stack`,
       `ItemDef.Rarity`, `ItemDef.Bound`; aplicadas em `addItem`,
       `handleDropItem` recusa dropar bound items).
+- [ ] **Hardening:** persistência de inventário (`SaveInventory`)
+      ocorre fora de `Game.mu`. Auditar todos os call-sites para
+      garantir que copiamos o snapshot e soltamos o lock antes do
+      DB call.
+- [ ] **Hardening:** `addItem`/`removeItem` sob `Game.mu` apenas;
+      nunca disparar hook Lua daí dentro (mover hook para depois
+      do unlock, ou para uma goroutine).
 
 ### Stats
 
@@ -265,6 +330,8 @@ Unificar player, NPC e inimigos.
       consulta o atributo do caster).
 - [x] Regras de progressão configuráveis (`data/scripts/progression.lua`,
       curva XP + ganhos por level).
+- [ ] **Hardening:** `awardXP` que dispara level-up encadeado nunca
+      reentra em hooks Lua sem soltar `Game.mu` primeiro.
 
 ### Chat
 
@@ -273,6 +340,10 @@ Unificar player, NPC e inimigos.
 - [x] SHOUT — global ao mapa com cooldown anti-spam.
 - [x] Canal de sistema/admin — `SYS` continua sendo a saída do
       `BroadcastSystem` exposto a scripts.
+- [ ] **Hardening:** `BroadcastSystem` chamado de hook Lua nunca
+      pode segurar `Game.mu` durante a iteração de outs. Já corrigido
+      — adicionar teste que dispara hook que chama broadcast e
+      valida com `-race`.
 
 ### NPC
 
@@ -281,6 +352,11 @@ Unificar player, NPC e inimigos.
 - [x] Quests básicas orientadas a dados (`data/scripts/quests/<id>.lua`,
       objetivos kill/item, recompensa em XP/gold/item, persistência
       em `character_quests`).
+- [ ] **Hardening:** `DIALOG_PICK` que dispara hook (`quest_start`,
+      `quest_complete`) executa o hook fora de `Game.mu` —
+      auditar `applyNPCHook`.
+- [ ] **Hardening:** `SaveQuest` ocorre fora de `Game.mu`.
+      Confirmar todos os call-sites.
 
 ### Critério de pronto
 
@@ -312,6 +388,16 @@ Unificar player, NPC e inimigos.
 - [ ] Perfil de CPU/memória em ambiente de teste (usar
       `go test -cpuprofile` ou `go tool pprof http://localhost:9091/debug/pprof`
       com o loadtest acima — falta gerar baseline gravado).
+- [ ] **Hardening rede cliente:** `network.lua` com `outQueue`,
+      `closeSock` no reconnect, `tcp-nodelay`, e retorno parcial
+      do `socket:send` tratado. Já corrigido — confirmar no commit
+      e proibir regressão via comentário no arquivo.
+- [ ] **Hardening rede servidor:** `tcp-nodelay` no
+      `net.TCPConn` aceito por `HandleConn`.
+- [ ] **Hardening:** heartbeat PING/PONG a cada 10s para detectar
+      peers mortos; se 30s sem PONG, fecha a conexão.
+- [ ] **Hardening:** métrica de `outQueue` máximo por jogador
+      no Prometheus para detectar back-pressure no campo.
 
 ---
 
@@ -323,6 +409,15 @@ Unificar player, NPC e inimigos.
 - [ ] Minimapa
 - [ ] Feedback visual de hit/heal/status
 - [ ] Configuração de keybinds no cliente
+- [ ] **Concorrência rede:** `Network.poll` deve rodar em todo
+      `love.update`, antes da lógica pesada — render ou áudio
+      lento não pode atrasar a recepção de pacotes.
+- [ ] **Estado de input:** auditar que `inputBlocked()` reflete
+      apenas overlays REALMENTE abertos; fechar overlay sempre
+      limpa o flag (testar Esc, clique fora, perder foco).
+- [ ] **UI keybinds:** ao capturar próximo input para rebind,
+      garantir timeout (5s) e Esc para cancelar — não deixar a
+      UI travada esperando uma tecla pra sempre.
 
 ---
 
@@ -333,6 +428,10 @@ Unificar player, NPC e inimigos.
 - [ ] Schema versionado
 - [ ] Seeds para ambiente dev
 - [ ] Rotina de rollback testada
+- [ ] **Boot order:** servidor não aceita conexões antes de
+      `goose up` rodar com sucesso. Falha de migration = exit 1.
+- [ ] **Hardening:** test que cria DB do zero, roda todas as
+      migrations, e confirma que `LoadOrCreate` funciona.
 
 ---
 
@@ -352,6 +451,9 @@ Unificar player, NPC e inimigos.
 - [ ] Backup automático
 - [ ] Firewall configurado
 - [ ] Observabilidade mínima (logs + uptime + alertas)
+- [ ] **Rede produção:** validar que `tcp-nodelay` está ativo
+      em ambos os lados; latência sem ele em internet real
+      (>20ms RTT) é visivelmente pior.
 
 ---
 
@@ -374,6 +476,10 @@ Modo editor unificado:
 - [ ] `F4` → spawn tools
 - [ ] Painel de inspeção de entidades em tempo real
 - [ ] Console de comandos admin/dev embutido
+- [ ] **Concorrência:** painel de inspeção lê snapshot do ECS
+      via cópia, não segurando `Game.mu` durante a serialização.
+- [ ] **Concorrência:** comandos admin que disparam Lua seguem
+      regra 🔒 — nunca dentro de `Game.mu`.
 
 ---
 
@@ -388,11 +494,14 @@ Modo editor unificado:
 - [ ] Toda feature crítica precisa de critério de rollback
 - [ ] Falhas de script devem degradar com segurança
 - [ ] Compatibilidade retroativa de dados quando possível
+- [ ] Toda mudança que toca locks roda `go test -race ./...`
+- [ ] Toda mudança que toca rede tem teste de reconnect
 
 ### Comandos mínimos de validação
 
 - [ ] `go build ./...`
 - [ ] `go vet ./...`
+- [ ] `go test -race ./...`
 - [ ] `love client/`
 
 ---
@@ -419,17 +528,23 @@ Modo editor unificado:
 - [ ] Possui logs suficientes para diagnóstico
 - [ ] Não exige recompilar Go para ajustes de conteúdo
 - [ ] Está documentada minimamente
+- [ ] Passa em `go test -race ./...` se toca servidor
+- [ ] Não viola seção 🔒 (Regras de Concorrência)
+- [ ] Não viola seção 🌐 (Regras de Rede no Cliente) se toca rede
 
 ---
 
 ## 🧠 Filosofia Final
 
-Essa engine não é sobre “rodar um jogo”.
+Essa engine não é sobre "rodar um jogo".
 
 É sobre:
 
 - [ ] Reduzir fricção ao criar conteúdo
 - [ ] Iterar rápido
 - [ ] Evitar reescrever sistemas
+- [ ] Não repetir bugs já corrigidos — daí as seções 🔒 e 🌐.
 
 > Se algo exige recompilar Go para ajustar conteúdo, provavelmente está errado.
+> Se algo trava o tick do servidor, certamente está errado — e a causa
+> quase sempre é violação da seção 🔒.

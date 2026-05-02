@@ -123,19 +123,18 @@ func (g *Game) applyMoveIntent(p *Player, dx, dy int) {
 	}
 	now := time.Now()
 	if p.Throttle != nil && !p.Throttle.move.allow(now) {
+		mlog.Info("MOVE throttled", "player", p.ID)
 		return
 	}
 	g.mu.Lock()
 	if p.HP <= 0 {
-		// Dead players cannot queue moves; the respawn path resets the
-		// intent on its own.
 		p.DirX, p.DirY = 0, 0
 		g.mu.Unlock()
 		return
 	}
 	p.DirX, p.DirY = dx, dy
-	// Always face the input direction even before the step is allowed
-	// to start. The visible avatar should react instantly.
+	mlog.Info("MOVE applied", "player", p.ID, "name", p.Name, "dx", dx, "dy", dy,
+		"tilex", p.TileX, "tiley", p.TileY, "stepping", p.Stepping, "hp", p.HP)
 	if dx != 0 || dy != 0 {
 		p.FaceX, p.FaceY = dx, dy
 	}

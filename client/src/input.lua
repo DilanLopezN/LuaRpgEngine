@@ -196,11 +196,19 @@ end
 
 function M.update(dt)
     if State.scene ~= State.SCENE_PLAYING then
+        if love.keyboard.isDown("w","a","s","d") then
+            print("BLOCKED: scene=" .. tostring(State.scene))
+        end
         State.lastSent.dx, State.lastSent.dy = 0, 0
         return
     end
 
     if inputBlocked() then
+        if love.keyboard.isDown("w","a","s","d") then
+            print(string.format("BLOCKED at PLAYING: editorOpen=%s focus=%s chat=%s dialog=%s char=%s",
+                tostring(State.editorOpen), tostring(State.editorFocus),
+                tostring(Chat.isOpen()), tostring(Dialog.isOpen()), tostring(Char.isOpen())))
+        end
         if State.lastSent.dx ~= 0 or State.lastSent.dy ~= 0 then
             Network.send("MOVE 0 0")
             State.lastSent.dx, State.lastSent.dy = 0, 0
@@ -210,15 +218,15 @@ function M.update(dt)
 
     local dx, dy = readWasd()
     if dx ~= State.lastSent.dx or dy ~= State.lastSent.dy then
+        print(string.format("TX: MOVE %d %d (lastSent=%d,%d)", dx, dy, State.lastSent.dx, State.lastSent.dy))
         Network.send(string.format("MOVE %d %d", dx, dy))
         State.lastSent.dx, State.lastSent.dy = dx, dy
     end
 
-    -- Held attack: only retrigger if the key is still down past the
-    -- repeat window. Single-press already fires through keypressed.
     if love.keyboard.isDown("space") or love.keyboard.isDown("j") then
         local now = love.timer.getTime()
         if now - lastAttackSent >= ATTACK_REPEAT then
+            print("TX: ATTACK")
             Network.send("ATTACK")
             lastAttackSent = now
         end

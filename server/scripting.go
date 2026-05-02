@@ -70,6 +70,7 @@ var globalScripts *ScriptEngine
 // long-lived sandboxed VM that executes hook callbacks.
 type ScriptEngine struct {
 	mu      sync.Mutex
+	 vmMu    sync.Mutex  
 	rootDir string
 	host    ScriptHost
 
@@ -258,34 +259,33 @@ func (e *ScriptEngine) Progression() *ProgressionDef {
 // single Lua table built from args. Missing hooks are a no-op so
 // gameplay code can call FireHook unconditionally.
 func (e *ScriptEngine) FireHook(name string, args map[string]interface{}) {
-	e.mu.Lock()
-	fn := e.hooks[name]
-	L := e.hooksVM
-	e.mu.Unlock()
-	if fn == nil || L == nil {
-		return
-	}
+    e.mu.Lock()
+    fn := e.hooks[name]
+    L := e.hooksVM
+    e.mu.Unlock()
+    if fn == nil || L == nil {
+        return
+    }
 
-	ctx, cancel := context.WithTimeout(context.Background(), scriptHookTimeout)
-	defer cancel()
+    ctx, cancel := context.WithTimeout(context.Background(), scriptHookTimeout)
+    defer cancel()
 
-	e.mu.Lock()
-	defer e.mu.Unlock()
+    e.vmMu.Lock()
+    defer e.vmMu.Unlock()
 
-	L.SetContext(ctx)
-	defer L.RemoveContext()
+    L.SetContext(ctx)
+    defer L.RemoveContext()
 
-	tbl := L.NewTable()
-	for k, v := range args {
-		tbl.RawSetString(k, goToLua(L, v))
-	}
-	L.Push(fn)
-	L.Push(tbl)
-	if err := L.PCall(1, 0, nil); err != nil {
-		log.Printf("scripts: hook %s: %v", name, err)
-	}
+    tbl := L.NewTable()
+    for k, v := range args {
+        tbl.RawSetString(k, goToLua(L, v))
+    }
+    L.Push(fn)
+    L.Push(tbl)
+    if err := L.PCall(1, 0, nil); err != nil {
+        log.Printf("scripts: hook %s: %v", name, err)
+    }
 }
-
 // --- domain loaders ---------------------------------------------------------
 
 func (e *ScriptEngine) loadSkills() error {

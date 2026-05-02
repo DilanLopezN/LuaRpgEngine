@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"net"
 )
 
@@ -22,7 +23,9 @@ func (g *Game) HandleConn(conn net.Conn) {
 	defer func() {
 		g.removePlayer(p.ID)
 		metricsConnClosed()
-		mlog.Info("player disconnected", "id", p.ID)
+		fmt.Printf(">>> player %d DISCONNECTED\n", p.ID)
+    mlog.Info("player disconnected", "id", p.ID)
+
 	}()
 
 	writeDone := make(chan struct{})
@@ -45,6 +48,10 @@ func (g *Game) HandleConn(conn net.Conn) {
 		metricsLineObserved()
 		g.handleLine(p, scanner.Text())
 	}
+	if err := scanner.Err(); err != nil {
+    fmt.Printf(">>> scanner error player=%d err=%v\n", p.ID, err)
+}
+fmt.Printf(">>> scanner EOF player=%d\n", p.ID)
 
 	close(out)
 	<-writeDone

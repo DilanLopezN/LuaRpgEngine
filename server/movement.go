@@ -1,6 +1,9 @@
 package main
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // Phase 3 — Sistema de movimentação.
 //
@@ -34,23 +37,34 @@ func (g *Game) runMovement(now time.Time) {
 	}
 
 	for _, p := range g.players {
-		if p.Stepping || p.Name == "" || p.HP <= 0 {
+		if p.Name == "" {
+			continue
+		}
+		// log do estado atual sempre que tem intenção
+		if p.DirX != 0 || p.DirY != 0 {
+			fmt.Printf(">>> tick player=%d name=%s tile=(%d,%d) dir=(%d,%d) stepping=%v hp=%d\n",
+				p.ID, p.Name, p.TileX, p.TileY, p.DirX, p.DirY, p.Stepping, p.HP)
+		}
+		if p.Stepping || p.HP <= 0 {
 			continue
 		}
 		dx, dy := p.DirX, p.DirY
 		if dx == 0 && dy == 0 {
 			continue
 		}
-		// Always face the input direction. Bumping into a wall or an
-		// occupied tile should still rotate the sprite — matches the
-		// Tibia-style feel the client renderer expects.
 		p.FaceX, p.FaceY = dx, dy
 
 		nx, ny := p.TileX+dx, p.TileY+dy
-		if !g.world.InBounds(nx, ny) || !g.world.IsWalkable(nx, ny) {
+		if !g.world.InBounds(nx, ny) {
+			fmt.Printf(">>> blocked: out of bounds nx=%d ny=%d\n", nx, ny)
+			continue
+		}
+		if !g.world.IsWalkable(nx, ny) {
+			fmt.Printf(">>> blocked: not walkable nx=%d ny=%d\n", nx, ny)
 			continue
 		}
 		if g.tileOccupied(nx, ny, p.ID) {
+			fmt.Printf(">>> blocked: tile occupied nx=%d ny=%d\n", nx, ny)
 			continue
 		}
 
@@ -63,9 +77,9 @@ func (g *Game) runMovement(now time.Time) {
 		} else {
 			p.StepDur = stepDuration
 		}
+		fmt.Printf(">>> step OK player=%d to=(%d,%d) dur=%v\n", p.ID, nx, ny, p.StepDur)
 	}
 }
-
 // runManaRegen ticks the per-player mana regeneration. Lives next to
 // movement because both belong to the "passive per-tick player update"
 // bucket and share the same iteration shape. Caller must hold g.mu.

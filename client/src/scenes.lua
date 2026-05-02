@@ -8,7 +8,9 @@ function M.tryConnect()
         State.status = "Digite um nome primeiro"
         return false
     end
+      print("tryConnect: tentando " .. State.serverHost .. ":" .. State.serverPort)
     local ok, err = Network.connect(State.serverHost, State.serverPort)
+       print("tryConnect: connect ok=" .. tostring(ok) .. " err=" .. tostring(err))
     if not ok then
         State.scene  = State.SCENE_NAME
         State.status = "offline: " .. tostring(err)

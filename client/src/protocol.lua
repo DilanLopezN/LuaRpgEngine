@@ -507,6 +507,7 @@ handlers.RELOADED = function(rest)
 end
 
 function M.handle(line)
+       print("RX: " .. line)
     local cmd, rest = line:match("^(%S+)%s*(.*)$")
     if not cmd then return end
     local h = handlers[cmd]
