@@ -133,6 +133,11 @@ type Player struct {
 	Statuses []Status
 
 	Out chan<- string
+
+	// Phase 3 — ECS mirror. Components live on the entity; the
+	// gameplay loop still mutates the Player fields above and a
+	// per-tick sync copies the state across.
+	Entity *Entity
 }
 
 func (p *Player) interpolated(now time.Time) (float64, float64) {
@@ -154,6 +159,9 @@ type Enemy struct {
 	X, Y      int
 	HP, MaxHP int
 	Statuses  []Status
+
+	// Phase 3 — see Player.Entity.
+	Entity *Entity
 }
 
 type Game struct {
@@ -166,14 +174,24 @@ type Game struct {
 	cache       *Cache
 	world       *Map
 	scripts     *ScriptEngine
+
+	// Phase 3 — ECS world. Player and Enemy keep their gameplay
+	// fields (the legacy tick still drives them), but each one also
+	// owns a mirror Entity here so new systems and the upcoming
+	// ECS_SNAP wire format have a single registry to query.
+	ecs      *ECSWorld
+	pipeline *SystemPipeline
+	tickN    int64
 }
 
 func NewGame(db *DB, cache *Cache) *Game {
 	g := &Game{
-		players: make(map[int]*Player),
-		enemies: make(map[int]*Enemy),
-		db:      db,
-		cache:   cache,
+		players:  make(map[int]*Player),
+		enemies:  make(map[int]*Enemy),
+		db:       db,
+		cache:    cache,
+		ecs:      NewECSWorld(),
+		pipeline: NewDefaultPipeline(),
 	}
 	m, err := LoadMap(defaultMapName)
 	if err != nil {
@@ -275,6 +293,18 @@ func (g *Game) spawnEnemy(kind string, x, y int) *Enemy {
 		HP: hp, MaxHP: hp,
 	}
 	g.enemies[e.ID] = e
+	if g.ecs != nil {
+		e.Entity = g.ecs.Add(&Entity{
+			Kind: KindEnemy,
+			Name: kind,
+			Position: &CPosition{
+				X: x, Y: y, FromX: x, FromY: y,
+			},
+			Health: &CHealth{HP: hp, MaxHP: hp},
+			Combat: &CCombat{Damage: attackDamage, Range: attackRange},
+			AI:     &CAI{Kind: kind, State: "idle"},
+		})
+	}
 	return e
 }
 
@@ -298,6 +328,20 @@ func (g *Game) addPlayer(out chan<- string) *Player {
 		Out:          out,
 	}
 	g.players[p.ID] = p
+	if g.ecs != nil {
+		p.Entity = g.ecs.Add(&Entity{
+			Kind: KindPlayer,
+			Position: &CPosition{
+				X: cx, Y: cy, FromX: cx, FromY: cy, FaceX: 0, FaceY: 1,
+			},
+			Health: &CHealth{
+				HP: p.HP, MaxHP: p.MaxHP,
+				MP: p.MP, MaxMP: p.MaxMP,
+			},
+			Combat:    &CCombat{Damage: attackDamage, Range: attackRange, Cooldown: attackCD},
+			Inventory: &CInventory{Items: nil, Capacity: 32},
+		})
+	}
 	return p
 }
 
@@ -970,6 +1014,19 @@ func (g *Game) tick(now time.Time) {
 	for _, p := range g.players {
 		outs = append(outs, p.Out)
 	}
+
+	// Phase 3 — push the legacy struct fields onto each entity, drop
+	// orphans (whose Player/Enemy was deleted mid-tick), then run the
+	// system pipeline. The pipeline is read-mostly today, but it is
+	// the seam new gameplay code is supposed to extend rather than
+	// adding more ad-hoc loops to tick().
+	if g.ecs != nil {
+		g.syncECSLocked(now)
+		g.tickN++
+		dt := time.Second / tickRate
+		g.pipeline.Tick(g.ecs, now, dt)
+	}
+
 	g.mu.Unlock()
 
 	g.broadcast(outs, msg)
@@ -979,6 +1036,78 @@ func (g *Game) tick(now time.Time) {
 	for _, id := range deadPlayers {
 		g.broadcast(outs, fmt.Sprintf("PDIE %d\n", id))
 	}
+}
+
+// syncECSLocked mirrors the gameplay structs into their entity
+// components and drops entities whose backing Player/Enemy is gone.
+// Caller must hold g.mu.
+func (g *Game) syncECSLocked(_ time.Time) {
+	alive := make(map[EntityID]bool, len(g.players)+len(g.enemies))
+
+	for _, p := range g.players {
+		if p.Entity == nil {
+			continue
+		}
+		alive[p.Entity.ID] = true
+		p.Entity.Name = p.Name
+		if p.Entity.Position != nil {
+			p.Entity.Position.X = p.TileX
+			p.Entity.Position.Y = p.TileY
+			p.Entity.Position.FromX = p.FromX
+			p.Entity.Position.FromY = p.FromY
+			p.Entity.Position.FaceX = p.FaceX
+			p.Entity.Position.FaceY = p.FaceY
+			p.Entity.Position.Stepping = p.Stepping
+			p.Entity.Position.StepStart = p.StepStart
+			p.Entity.Position.StepDur = p.StepDur
+		}
+		if p.Entity.Health != nil {
+			p.Entity.Health.HP = p.HP
+			p.Entity.Health.MaxHP = p.MaxHP
+			p.Entity.Health.MP = p.MP
+			p.Entity.Health.MaxMP = p.MaxMP
+		}
+		if p.Entity.Combat != nil {
+			p.Entity.Combat.AttackUntil = p.AttackUntil
+			p.Entity.Combat.NextAttack = p.NextAttack
+		}
+	}
+
+	for _, e := range g.enemies {
+		if e.Entity == nil {
+			continue
+		}
+		alive[e.Entity.ID] = true
+		if e.Entity.Position != nil {
+			e.Entity.Position.X = e.X
+			e.Entity.Position.Y = e.Y
+		}
+		if e.Entity.Health != nil {
+			e.Entity.Health.HP = e.HP
+			e.Entity.Health.MaxHP = e.MaxHP
+		}
+	}
+
+	var orphans []EntityID
+	g.ecs.Each(func(en *Entity) {
+		if !alive[en.ID] {
+			orphans = append(orphans, en.ID)
+		}
+	})
+	for _, id := range orphans {
+		g.ecs.Remove(id)
+	}
+}
+
+// SnapshotECS returns a serializable view of the current entity
+// world. Phase 4+ swaps this in for the bespoke "P"/"E" lines; the
+// method exists today so external tooling (admin console, replay)
+// can already consume it.
+func (g *Game) SnapshotECS() Snapshot {
+	g.mu.Lock()
+	tn := g.tickN
+	g.mu.Unlock()
+	return g.ecs.SnapshotAt(tn)
 }
 
 func (g *Game) Loop() {

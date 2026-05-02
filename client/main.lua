@@ -40,8 +40,19 @@ function love.load()
     love.window.maximize()
 end
 
+-- Network.poll dispatches every received line through Protocol.handle. A
+-- single malformed message must not be allowed to abort love.update, or the
+-- next call to Input.update never runs and the player ends up "stuck" with no
+-- WSAD movement (the symptom we kept hunting). pcall isolates the parser.
+local function safeHandle(line)
+    local ok, err = pcall(Protocol.handle, line)
+    if not ok then
+        print("protocol error: " .. tostring(err) .. " | line=" .. tostring(line))
+    end
+end
+
 function love.update(dt)
-    Network.poll(Protocol.handle)
+    Network.poll(safeHandle)
 
     if #State.activeSpells > 0 then
         local now = love.timer.getTime()

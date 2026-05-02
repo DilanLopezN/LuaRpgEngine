@@ -215,10 +215,17 @@ Unificar player, NPC e inimigos.
 
 ### Entregas
 
-- [ ] Estrutura única de entidade
-- [ ] Componentes: Position, Health, Combat, AI, Inventory
-- [ ] Sistemas independentes por responsabilidade
-- [ ] Serialização de estado para rede
+- [x] Estrutura única de entidade (`server/entity.go`: `Entity`, `ECSWorld`)
+- [x] Componentes: Position, Health, Combat, AI, Inventory
+- [x] Sistemas independentes por responsabilidade (`server/ecs_systems.go`:
+      `MovementSystem`, `HealthSystem`, `AISystem`, `SystemPipeline`)
+- [x] Serialização de estado para rede (`Snapshot` / `EntitySnapshot` em
+      JSON, com componentes ausentes omitidos)
+
+> Status: base pronta. Player/Enemy ainda hospedam o gameplay legado;
+> cada um agora possui um `*Entity` espelhado a cada tick, e o pipeline
+> roda dentro de `Game.tick`. As próximas fases migram lógica
+> incrementalmente (combate, AI, inventário) para os sistemas.
 
 ### Benefícios esperados
 

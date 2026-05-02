@@ -82,6 +82,11 @@ function M.handle(line)
         State.myName    = name
         State.scene     = State.SCENE_PLAYING
         State.status    = "conectado"
+        -- Sentinel so the first Input.update tick always sends a MOVE,
+        -- even if the player happens to be standing still. Prevents the
+        -- "WSAD seems frozen" symptom on reconnects where lastSent could
+        -- be stale relative to the server's view.
+        State.lastSent.dx, State.lastSent.dy = -99, -99
         Spells.clear()
     elseif cmd == "MAP" then
         local m, err = JSON.decode(rest)

@@ -86,15 +86,11 @@ function M.wheelmoved(dx, dy)
     end
 end
 
-function M.update(dt)
-    if State.scene ~= State.SCENE_PLAYING then return end
-    if State.editorOpen then
-        if State.lastSent.dx ~= 0 or State.lastSent.dy ~= 0 then
-            Network.send("MOVE 0 0")
-            State.lastSent.dx, State.lastSent.dy = 0, 0
-        end
-        return
-    end
+-- readWasd polls every supported movement binding and clamps to {-1,0,1}.
+-- We sample love.keyboard each frame instead of relying on keypressed/
+-- keyreleased so dropped key events (alt-tab, focus loss) never leave the
+-- avatar walking forever.
+local function readWasd()
     local dx, dy = 0, 0
     if love.keyboard.isDown("w", "up")    then dy = dy - 1 end
     if love.keyboard.isDown("s", "down")  then dy = dy + 1 end
@@ -102,6 +98,22 @@ function M.update(dt)
     if love.keyboard.isDown("d", "right") then dx = dx + 1 end
     if dx < -1 then dx = -1 elseif dx > 1 then dx = 1 end
     if dy < -1 then dy = -1 elseif dy > 1 then dy = 1 end
+    return dx, dy
+end
+
+function M.update(dt)
+    if State.scene ~= State.SCENE_PLAYING then
+        State.lastSent.dx, State.lastSent.dy = 0, 0
+        return
+    end
+    if State.editorOpen or State.editorFocus then
+        if State.lastSent.dx ~= 0 or State.lastSent.dy ~= 0 then
+            Network.send("MOVE 0 0")
+            State.lastSent.dx, State.lastSent.dy = 0, 0
+        end
+        return
+    end
+    local dx, dy = readWasd()
     if dx ~= State.lastSent.dx or dy ~= State.lastSent.dy then
         Network.send(string.format("MOVE %d %d", dx, dy))
         State.lastSent.dx, State.lastSent.dy = dx, dy
