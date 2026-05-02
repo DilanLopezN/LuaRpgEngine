@@ -11,6 +11,7 @@
 local State        = require("src.state")
 local EditorSpells = require("src.editor_spells")
 local EditorMap    = require("src.editor_map")
+local EditorNPC    = require("src.editor_npc")
 local Map          = require("src.map")
 local Layout       = require("src.editor_layout")
 local Tooltip      = require("src.tooltip")
@@ -22,6 +23,8 @@ local TABS = {
       tip = "Editor de mapa: pintar tiles, marcar colisão, posicionar entidades. (Tab para alternar abas)" },
     { id = "spells", label = "Criador de Spells",
       tip = "Crie e edite spells dinamicamente: tipo, efeito, dano, cooldown, cor. (Tab para alternar abas)" },
+    { id = "npcs",   label = "Criador de NPCs",
+      tip = "Crie e edite NPCs com diálogos, opções e hooks de quest/item. (Tab para alternar abas)" },
 }
 
 local TAB_PADDING_X = 18
@@ -38,6 +41,7 @@ end
 
 local function activeTab()
     if State.editorTab == "spells" then return EditorSpells end
+    if State.editorTab == "npcs"   then return EditorNPC end
     return EditorMap
 end
 

@@ -77,6 +77,7 @@ M.itemDefs  = {}            -- id -> { name, slot, rarity, stack, bound }
 M.skillDefs = {}            -- id -> { name, type, dmg, mana, cd, range, radius }
 M.learned   = {}            -- id -> true
 M.npcDefs   = {}            -- id -> { name, title }
+M.npcFull   = {}            -- id -> full def { id, name, title, dialog = { node -> { text, options, on_enter } } }
 M.questDefs = {}            -- id -> { name, killTarget, killCount, ... }
 M.quests    = {}            -- id -> { stage, killCount, done }
 

@@ -440,6 +440,30 @@ handlers.NPC_DEF = function(rest)
     end
 end
 
+-- NPC_FULL <id> <jsonblob> ships the entire dialog tree so the in-game
+-- NPC editor can hydrate its form. The id is duplicated outside the JSON
+-- so a malformed payload still routes to the right entry for diagnosis.
+handlers.NPC_FULL = function(rest)
+    local id, blob = rest:match("^(%S+)%s+(.+)$")
+    if not id or not blob then return end
+    local def, err = JSON.decode(blob)
+    if not def then
+        print("NPC_FULL decode failed for " .. id .. ": " .. tostring(err))
+        return
+    end
+    def.id = id
+    def.dialog = def.dialog or {}
+    State.npcFull[id] = def
+end
+
+handlers.NPC_DEL = function(rest)
+    local id = rest:match("^(%S+)$")
+    if id then
+        State.npcDefs[id] = nil
+        State.npcFull[id] = nil
+    end
+end
+
 handlers.QUEST_DEF = function(rest)
     local id, name, killT, killC, itemT, itemC, xp, gold = rest:match(
         "^(%S+)%s+(%S+)%s+(%S+)%s+(%-?%d+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)$")

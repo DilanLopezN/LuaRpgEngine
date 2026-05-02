@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -423,10 +424,105 @@ func (e *ScriptEngine) loadNPCs() error {
 		}
 		npcs[def.ID] = def
 	}
+	// Editor-authored NPCs ship as JSON in npcs_user/. They merge on top
+	// of the hand-authored Lua so a designer can override an existing
+	// NPC from the in-game tool without touching the .lua source.
+	for _, def := range e.loadUserNPCs() {
+		npcs[def.ID] = def
+	}
 	e.mu.Lock()
 	e.npcs = npcs
 	e.mu.Unlock()
 	log.Printf("scripts: loaded %d npcs", len(npcs))
+	return nil
+}
+
+func (e *ScriptEngine) userNPCsDir() string {
+	return filepath.Join(e.rootDir, "npcs_user")
+}
+
+func (e *ScriptEngine) loadUserNPCs() []*NPCDef {
+	dir := e.userNPCsDir()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		log.Printf("scripts: user npcs read dir: %v", err)
+		return nil
+	}
+	var out []*NPCDef
+	for _, ent := range entries {
+		if ent.IsDir() || !strings.HasSuffix(ent.Name(), ".json") {
+			continue
+		}
+		base := strings.TrimSuffix(ent.Name(), ".json")
+		path := filepath.Join(dir, ent.Name())
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			log.Printf("scripts: user npc %s read: %v", base, err)
+			continue
+		}
+		def := &NPCDef{}
+		if err := json.Unmarshal(raw, def); err != nil {
+			log.Printf("scripts: user npc %s decode: %v", base, err)
+			continue
+		}
+		if def.ID == "" {
+			def.ID = base
+		}
+		if err := validateNPCDef(def); err != nil {
+			log.Printf("scripts: user npc %s invalid: %v", base, err)
+			continue
+		}
+		out = append(out, def)
+	}
+	return out
+}
+
+// SaveUserNPC validates the def, persists it to npcs_user/<id>.json,
+// and registers it in the live registry. Existing in-memory entries
+// (including hand-authored Lua NPCs) are replaced for the same id.
+func (e *ScriptEngine) SaveUserNPC(def *NPCDef) error {
+	if err := validateNPCDef(def); err != nil {
+		return err
+	}
+	dir := e.userNPCsDir()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(def, "", "  ")
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(dir, def.ID+".json")
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		return err
+	}
+	e.mu.Lock()
+	e.npcs[def.ID] = def
+	e.mu.Unlock()
+	return nil
+}
+
+// DeleteUserNPC removes the on-disk JSON for the given id and drops the
+// in-memory entry. Returns nil when the id was not present so callers can
+// stay idempotent.
+func (e *ScriptEngine) DeleteUserNPC(id string) error {
+	if err := validateNPCID(id); err != nil {
+		return err
+	}
+	path := filepath.Join(e.userNPCsDir(), id+".json")
+	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	e.mu.Lock()
+	delete(e.npcs, id)
+	e.mu.Unlock()
 	return nil
 }
 
