@@ -370,6 +370,37 @@ local function drawSpellEffect(eff)
     end
 end
 
+local function drawNPC(id, n)
+    local sx, sy = n.x * TILE_W + TILE_W / 2, n.y * TILE_H + TILE_H / 2
+    drawShadow(sx, sy, 14)
+
+    -- Subtle glow halo so NPCs read as "interactable" at a glance.
+    love.graphics.setColor(1.0, 0.85, 0.30, 0.20)
+    love.graphics.circle("fill", sx, sy - 16, 22)
+
+    love.graphics.setColor(0.95, 0.85, 0.55)
+    love.graphics.rectangle("fill", sx - 8, sy - 28, 16, 24)
+    love.graphics.setColor(0.96, 0.85, 0.72)
+    love.graphics.circle("fill", sx, sy - 32, 7)
+    love.graphics.setColor(0, 0, 0, 0.6)
+    love.graphics.rectangle("line", sx - 8, sy - 28, 16, 24)
+    love.graphics.circle("line", sx, sy - 32, 7)
+
+    love.graphics.setFont(State.fonts.name)
+    local def  = State.npcDefs[n.name] or {}
+    local label = def.name or n.name or "?"
+    local title = def.title or ""
+    local lblW = State.fonts.name:getWidth(label)
+    love.graphics.setColor(0, 0, 0, 0.55)
+    love.graphics.rectangle("fill", sx - lblW / 2 - 3, sy - 56, lblW + 6, 16, 4, 4)
+    love.graphics.setColor(1.0, 0.95, 0.55)
+    love.graphics.print(label, sx - lblW / 2, sy - 55)
+    if title ~= "" then
+        love.graphics.setColor(1, 1, 1, 0.7)
+        love.graphics.printf(title, sx - 80, sy - 70, 160, "center")
+    end
+end
+
 function M.drawWorld()
     drawFloor()
 
@@ -384,12 +415,19 @@ function M.drawWorld()
             list[#list + 1] = { kind = "e", id = id, ent = e, depth = e.y }
         end
     end
+    for id, n in pairs(State.npcs or {}) do
+        if n.x and n.y then
+            list[#list + 1] = { kind = "n", id = id, ent = n, depth = n.y }
+        end
+    end
     table.sort(list, function(a, b) return a.depth < b.depth end)
     for _, item in ipairs(list) do
         if item.kind == "p" then
             drawPlayer(item.id, item.ent)
-        else
+        elseif item.kind == "e" then
             drawEnemy(item.id, item.ent)
+        else
+            drawNPC(item.id, item.ent)
         end
     end
 

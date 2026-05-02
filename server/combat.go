@@ -87,6 +87,9 @@ func (g *Game) respawnPlayer(p *Player) {
 	sx, sy := g.findSpawn(p.ID)
 	p.TileX, p.TileY = sx, sy
 	p.FromX, p.FromY = sx, sy
+	// AoI cache is keyed off the previous tile so a respawn must
+	// re-emit every visible entity around the new location.
+	resetSeenForRespawn(p)
 }
 
 // runMeleeAttack resolves a basic attack — short-circuit version of

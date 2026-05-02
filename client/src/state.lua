@@ -16,6 +16,7 @@ M.myId        = nil
 M.myName      = nil
 M.players     = {}
 M.enemies     = {}
+M.npcs        = {}
 M.camera      = { x = 0, y = 0 }
 M.lastSent    = { dx = 0, dy = 0 }
 M.skillbar    = { nil, nil, nil, nil, nil }
@@ -58,6 +59,42 @@ M.mapEditor = {
     redo          = {},
     activeStroke  = nil,         -- snapshot pushed at drag start
 }
+
+-- Phase 4 — character sheet. Populated by STATS / SKILL_POINTS frames.
+M.character = {
+    level = 1,
+    xp    = 0,
+    nextX = 0,
+    str   = 0, dex = 0, intel = 0, vit = 0,
+    gold  = 0,
+    skillPoints = 0,
+}
+
+-- Phase 4 — inventory and equipment. INV_SET / EQUIP_SET rebuild these.
+M.inventory = {}            -- list of { id, qty }
+M.equipped  = {}            -- slot -> id
+M.itemDefs  = {}            -- id -> { name, slot, rarity, stack, bound }
+M.skillDefs = {}            -- id -> { name, type, dmg, mana, cd, range, radius }
+M.learned   = {}            -- id -> true
+M.npcDefs   = {}            -- id -> { name, title }
+M.questDefs = {}            -- id -> { name, killTarget, killCount, ... }
+M.quests    = {}            -- id -> { stage, killCount, done }
+
+-- Phase 4 — chat and toast feeds.
+M.chat = {
+    open    = false,
+    input   = "",
+    history = {},   -- list of { kind, who, msg, t }
+    max     = 60,
+}
+M.toasts = {}       -- list of { text, color, expires }
+
+-- Phase 4 — active NPC dialog. Set by DIALOG / DIALOG_OPT.
+M.dialog = nil      -- { npc, node, text, options = { { idx, text } } }
+
+-- Phase 4 — character panel (F2) toggles.
+M.charPanelOpen = false
+M.charPanelTab  = "stats"  -- stats | inventory | quests
 
 M.fonts = {}
 

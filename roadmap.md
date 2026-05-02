@@ -293,13 +293,25 @@ Unificar player, NPC e inimigos.
 
 ## ⚙️ Fase 5 — Performance e Rede
 
-- [ ] Snapshot diff
-- [ ] Área de interesse (AoI)
-- [ ] Anti-cheat server-side
-- [ ] Logs estruturados (`slog`)
-- [ ] Métricas Prometheus
-- [ ] Perfil de CPU/memória em ambiente de teste
-- [ ] Teste de carga com bots simulados
+- [x] Snapshot diff (`server/snapshot.go`: por jogador, mantém
+      `LastSeen` e emite apenas o que mudou; resync completo a cada
+      `fullSnapshotEvery`).
+- [x] Área de interesse (AoI) — Chebyshev `aoiRadius` em
+      `server/snapshot.go`; entidades fora da janela viram linha `X`
+      para o cliente derrubar do estado.
+- [x] Anti-cheat server-side — `inputThrottle` (token bucket por
+      conexão) em `server/input.go`; `MOVE`/`ATTACK`/`global` cada um
+      com seu balde; ataque ainda gated por `NextAttack`.
+- [x] Logs estruturados (`slog`) — `server/metrics.go` configura o
+      handler; `main.go`/`network.go` passam para `mlog.*`.
+- [x] Métricas Prometheus — endpoint `/metrics` em `:9091` (default,
+      `METRICS_ADDR` para mudar) no formato text exposition; expõe
+      conexões, ticks, frames por jogador, lines drop, alocação.
+- [x] Teste de carga com bots simulados — `server/cmd/loadtest`,
+      executa N conexões com NAME/MOVE/ATTACK randomizados.
+- [ ] Perfil de CPU/memória em ambiente de teste (usar
+      `go test -cpuprofile` ou `go tool pprof http://localhost:9091/debug/pprof`
+      com o loadtest acima — falta gerar baseline gravado).
 
 ---
 

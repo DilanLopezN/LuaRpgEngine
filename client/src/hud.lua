@@ -32,12 +32,23 @@ function M.draw()
     drawStatBar(barX, barY + 24, barW, 14, mp / math.max(1, maxMp),
         { 0.25, 0.50, 1.00 }, string.format("MP %d / %d", mp, maxMp))
 
+    -- Phase 4 — XP bar showing progress toward the next level.
+    local c = State.character
+    local xpFrac = (c.nextX > 0) and (c.xp / c.nextX) or 0
+    drawStatBar(barX, barY + 42, barW, 10, xpFrac,
+        { 0.95, 0.85, 0.30 },
+        string.format("Lv %d  XP %d/%d", c.level, c.xp, c.nextX))
+
     love.graphics.setFont(State.fonts.ui)
     love.graphics.setColor(1, 1, 1, 0.7)
-    love.graphics.print(string.format("FPS %d  %s", love.timer.getFPS(), State.status or ""),
-        barX, barY + 46)
+    love.graphics.print(
+        string.format("FPS %d  Gold %d  SP %d  %s",
+            love.timer.getFPS(), c.gold, c.skillPoints, State.status or ""),
+        barX, barY + 60)
     love.graphics.setColor(1, 1, 1, 0.55)
-    love.graphics.print("F1 - Editor da Engine   F11 - Tela cheia", barX, barY + 66)
+    love.graphics.print(
+        "WSAD - mover   Space - atacar   T - chat   F1 - editor   F2 - personagem   I - inventário   Q - quests   E - falar com NPC   F11 - fullscreen",
+        barX, barY + 80)
 end
 
 return M

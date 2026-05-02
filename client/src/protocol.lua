@@ -15,6 +15,30 @@ local function approxEq(a, b)
     return math.abs((a or 0) - (b or 0)) < 0.001
 end
 
+-- pushChat appends a message to the rolling log used by the chat UI.
+local function pushChat(kind, who, msg)
+    local entry = { kind = kind, who = who or "", msg = msg or "", t = love.timer.getTime() }
+    local hist = State.chat.history
+    hist[#hist + 1] = entry
+    while #hist > State.chat.max do
+        table.remove(hist, 1)
+    end
+end
+
+-- pushToast adds a transient floating notification.
+local function pushToast(text, color)
+    State.toasts[#State.toasts + 1] = {
+        text = text,
+        color = color or { 1, 0.95, 0.55 },
+        expires = love.timer.getTime() + 3.0,
+    }
+end
+
+local function decodeText(s)
+    if not s or s == "_" then return "" end
+    return (s:gsub("_", " "))
+end
+
 local function handleSnapshot(line)
     local kind, rest = line:match("^(%S+)%s*(.*)$")
     if kind == "P" then
@@ -57,6 +81,25 @@ local function handleSnapshot(line)
             e.hp       = tonumber(hp)
             e.maxHp    = tonumber(maxHp)
         end
+    elseif kind == "N" then
+        local id, name, x, y = rest:match("^(%-?%d+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)$")
+        if id then
+            id = tonumber(id)
+            State.npcs[id] = {
+                id = id, name = name,
+                x = tonumber(x), y = tonumber(y),
+            }
+        end
+    elseif kind == "X" then
+        -- Phase 5 — server tells us an entity left the AoI window.
+        local k, id = rest:match("^(%a)%s+(%-?%d+)$")
+        id = tonumber(id)
+        if id then
+            if k == "P" then State.players[id] = nil
+            elseif k == "E" then State.enemies[id] = nil
+            elseif k == "N" then State.npcs[id] = nil
+            end
+        end
     end
 end
 
@@ -66,136 +109,412 @@ local function durationFor(kind)
     return SPELL_SELF_DURATION
 end
 
-function M.handle(line)
-    local cmd, rest = line:match("^(%S+)%s*(.*)$")
-    if cmd == "WELCOME" then
-        local id, w, h, name = rest:match("^(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(.+)$")
-        if not id then
-            -- Backwards compat: legacy WELCOME used a single mapSize field.
-            local lid, ms, lname = rest:match("^(%-?%d+)%s+(%-?%d+)%s+(.+)$")
-            id, w, h, name = lid, ms, ms, lname
-        end
-        State.myId      = tonumber(id)
-        State.mapWidth  = tonumber(w) or State.mapWidth
-        State.mapHeight = tonumber(h) or State.mapHeight
-        State.mapSize   = State.mapWidth
-        State.myName    = name
-        State.scene     = State.SCENE_PLAYING
-        State.status    = "conectado"
-        -- Sentinel so the first Input.update tick always sends a MOVE,
-        -- even if the player happens to be standing still. Prevents the
-        -- "WSAD seems frozen" symptom on reconnects where lastSent could
-        -- be stale relative to the server's view.
-        State.lastSent.dx, State.lastSent.dy = -99, -99
-        Spells.clear()
-    elseif cmd == "MAP" then
-        local m, err = JSON.decode(rest)
-        if m then
-            Map.setActive(m)
-            State.mapWidth  = m.width
-            State.mapHeight = m.height
-            State.mapSize   = math.max(m.width, m.height)
-        else
-            print("MAP decode failed: " .. tostring(err))
-        end
-    elseif cmd == "STATS" then
-        -- Authoritative HP/MP follows in the next P snapshot; the explicit
-        -- STATS line is kept for parity with server-side persistence and lets
-        -- us pre-populate the HUD before the first tick lands.
-        local hp, maxHp, mp, maxMp = rest:match(
+-- Parsers grouped by command verb. Adding a new wire message means
+-- dropping a function into this table — no other file needs to know.
+local handlers = {}
+
+handlers.WELCOME = function(rest)
+    local id, w, h, name = rest:match("^(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(.+)$")
+    if not id then
+        local lid, ms, lname = rest:match("^(%-?%d+)%s+(%-?%d+)%s+(.+)$")
+        id, w, h, name = lid, ms, ms, lname
+    end
+    State.myId      = tonumber(id)
+    State.mapWidth  = tonumber(w) or State.mapWidth
+    State.mapHeight = tonumber(h) or State.mapHeight
+    State.mapSize   = State.mapWidth
+    State.myName    = name
+    State.scene     = State.SCENE_PLAYING
+    State.status    = "conectado"
+    State.lastSent.dx, State.lastSent.dy = -99, -99
+    Spells.clear()
+end
+
+handlers.MAP = function(rest)
+    local m, err = JSON.decode(rest)
+    if m then
+        Map.setActive(m)
+        State.mapWidth  = m.width
+        State.mapHeight = m.height
+        State.mapSize   = math.max(m.width, m.height)
+    else
+        print("MAP decode failed: " .. tostring(err))
+    end
+end
+
+-- STATS carries up to 12 numeric fields. Older clients only knew the
+-- first four; we now consume the full character sheet.
+handlers.STATS = function(rest)
+    local hp, maxHp, mp, maxMp, level, xp, nextX, str, dex, intel, vit, gold = rest:match(
+        "^(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)" ..
+        "%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)" ..
+        "%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)$")
+    if hp then
+        local me = State.players[State.myId] or { atkTime = -1 }
+        me.hp, me.maxHp = tonumber(hp), tonumber(maxHp)
+        me.mp, me.maxMp = tonumber(mp), tonumber(maxMp)
+        State.players[State.myId] = me
+        local c = State.character
+        c.level = tonumber(level)  or c.level
+        c.xp    = tonumber(xp)     or c.xp
+        c.nextX = tonumber(nextX)  or c.nextX
+        c.str   = tonumber(str)    or c.str
+        c.dex   = tonumber(dex)    or c.dex
+        c.intel = tonumber(intel)  or c.intel
+        c.vit   = tonumber(vit)    or c.vit
+        c.gold  = tonumber(gold)   or c.gold
+    else
+        local hp4, maxHp4, mp4, maxMp4 = rest:match(
             "^(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)$")
-        if hp then
+        if hp4 then
             local me = State.players[State.myId] or { atkTime = -1 }
-            me.hp, me.maxHp = tonumber(hp), tonumber(maxHp)
-            me.mp, me.maxMp = tonumber(mp), tonumber(maxMp)
+            me.hp, me.maxHp = tonumber(hp4), tonumber(maxHp4)
+            me.mp, me.maxMp = tonumber(mp4), tonumber(maxMp4)
             State.players[State.myId] = me
         end
-    elseif cmd == "SPELL_DEF" then
-        local id, kind, effect, rng, rad, power, manaCost, cdMs, sr, sg, sb, name =
-            rest:match("^(%S+)%s+(%S+)%s+(%S+)%s+" ..
-                       "(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+" ..
-                       "(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(.+)$")
-        if id then
-            Spells.upsertFromServer({
-                id       = id,
-                name     = name,
-                kind     = kind,
-                effect   = effect,
-                range    = tonumber(rng),
-                radius   = tonumber(rad),
-                power    = tonumber(power),
-                manaCost = tonumber(manaCost),
-                cooldown = (tonumber(cdMs) or 0) / 1000,
-                color    = {
-                    (tonumber(sr) or 0) / 255,
-                    (tonumber(sg) or 0) / 255,
-                    (tonumber(sb) or 0) / 255,
-                },
-            })
+    end
+end
+
+handlers.SPELL_DEF = function(rest)
+    local id, kind, effect, rng, rad, power, manaCost, cdMs, sr, sg, sb, name =
+        rest:match("^(%S+)%s+(%S+)%s+(%S+)%s+" ..
+                   "(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+" ..
+                   "(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(.+)$")
+    if id then
+        Spells.upsertFromServer({
+            id       = id,
+            name     = name,
+            kind     = kind,
+            effect   = effect,
+            range    = tonumber(rng),
+            radius   = tonumber(rad),
+            power    = tonumber(power),
+            manaCost = tonumber(manaCost),
+            cooldown = (tonumber(cdMs) or 0) / 1000,
+            color    = {
+                (tonumber(sr) or 0) / 255,
+                (tonumber(sg) or 0) / 255,
+                (tonumber(sb) or 0) / 255,
+            },
+        })
+    end
+end
+
+handlers.SPELL_DEL = function(rest)
+    local id = rest:match("^(%S+)$")
+    if id then
+        Spells.remove(id)
+        for i = 1, 5 do
+            if State.skillbar[i] == id then State.skillbar[i] = nil end
         end
-    elseif cmd == "SPELL_DEL" then
-        local id = rest:match("^(%S+)$")
-        if id then
-            Spells.remove(id)
-            for i = 1, 5 do
-                if State.skillbar[i] == id then State.skillbar[i] = nil end
+    end
+end
+
+handlers.LEAVE = function(rest)
+    local id = tonumber(rest)
+    if id then State.players[id] = nil end
+end
+
+handlers.ATK = function(rest)
+    local id, fx, fy = rest:match("^(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)$")
+    id = tonumber(id)
+    local p = State.players[id]
+    if p then
+        p.atkTime = love.timer.getTime()
+        p.fx, p.fy = tonumber(fx), tonumber(fy)
+    end
+end
+
+handlers.EATK = function(rest)
+    local id = tonumber(rest:match("^(%-?%d+)"))
+    local e = State.enemies[id]
+    if e then e.atkTime = love.timer.getTime() end
+end
+
+handlers.HIT = function(rest)
+    local id = tonumber(rest)
+    local e = State.enemies[id]
+    if e then e.hitTime = love.timer.getTime() end
+end
+
+handlers.PHIT = function(rest)
+    local id = tonumber(rest)
+    local p = State.players[id]
+    if p then p.hitTime = love.timer.getTime() end
+end
+
+handlers.PDIE = function(rest)
+    local id = tonumber(rest)
+    local p = State.players[id]
+    if p then p.dieTime = love.timer.getTime() end
+end
+
+handlers.EDIE = function(rest)
+    local id = tonumber(rest)
+    if id then State.enemies[id] = nil end
+end
+
+handlers.SPELL = function(rest)
+    local casterId, spellId, fx, fy, ox, oy,
+          skind, srange, sradius, sr, sg, sb = rest:match(
+        "^(%-?%d+)%s+(%S+)%s+" ..
+        "(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+" ..
+        "(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+" ..
+        "(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)$")
+    if spellId then
+        local kind = skind or "line"
+        State.activeSpells[#State.activeSpells + 1] = {
+            spellId  = spellId,
+            casterId = tonumber(casterId),
+            fx       = tonumber(fx),
+            fy       = tonumber(fy),
+            ox       = tonumber(ox),
+            oy       = tonumber(oy),
+            kind     = kind,
+            range    = tonumber(srange) or 0,
+            radius   = tonumber(sradius) or 0,
+            color    = {
+                (tonumber(sr) or 200) / 255,
+                (tonumber(sg) or 200) / 255,
+                (tonumber(sb) or 200) / 255,
+            },
+            start    = love.timer.getTime(),
+            duration = durationFor(kind),
+        }
+    end
+end
+
+-- Phase 4 — inventory / items.
+handlers.ITEM_DEF = function(rest)
+    local id, slot, rarity, stack, bound, _, name = rest:match(
+        "^(%S+)%s+(%S+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(.+)$")
+    if id then
+        State.itemDefs[id] = {
+            id     = id,
+            name   = decodeText(name),
+            slot   = slot,
+            rarity = rarity,
+            stack  = tonumber(stack) or 1,
+            bound  = (bound == "1"),
+        }
+    end
+end
+
+handlers.INV_SET = function(rest)
+    local count, items = rest:match("^(%-?%d+)%s*(.*)$")
+    count = tonumber(count) or 0
+    State.inventory = {}
+    if count > 0 and items and items ~= "" then
+        for token in items:gmatch("(%S+)") do
+            local id, qty = token:match("^(.-):(%-?%d+)$")
+            if id then
+                State.inventory[#State.inventory + 1] = {
+                    id = id, qty = tonumber(qty) or 0,
+                }
             end
         end
-    elseif cmd == "LEAVE" then
-        local id = tonumber(rest)
-        if id then State.players[id] = nil end
-    elseif cmd == "ATK" then
-        local id, fx, fy = rest:match("^(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)$")
-        id = tonumber(id)
-        local p = State.players[id]
-        if p then
-            p.atkTime = love.timer.getTime()
-            p.fx, p.fy = tonumber(fx), tonumber(fy)
+    end
+end
+
+handlers.EQUIP_SET = function(rest)
+    State.equipped = {}
+    if rest and rest ~= "" then
+        for token in rest:gmatch("(%S+)") do
+            local slot, id = token:match("^(.-):(.+)$")
+            if slot then State.equipped[slot] = id end
         end
-    elseif cmd == "HIT" then
-        local id = tonumber(rest)
-        local e = State.enemies[id]
-        if e then e.hitTime = love.timer.getTime() end
-    elseif cmd == "PHIT" then
-        local id = tonumber(rest)
-        local p = State.players[id]
-        if p then p.hitTime = love.timer.getTime() end
-    elseif cmd == "PDIE" then
-        local id = tonumber(rest)
-        local p = State.players[id]
-        if p then p.dieTime = love.timer.getTime() end
-    elseif cmd == "EDIE" then
-        local id = tonumber(rest)
-        if id then State.enemies[id] = nil end
-    elseif cmd == "SPELL" then
-        local casterId, spellId, fx, fy, ox, oy,
-              skind, srange, sradius, sr, sg, sb = rest:match(
-            "^(%-?%d+)%s+(%S+)%s+" ..
-            "(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+" ..
-            "(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+" ..
-            "(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)$")
-        if spellId then
-            local kind = skind or "line"
-            State.activeSpells[#State.activeSpells + 1] = {
-                spellId  = spellId,
-                casterId = tonumber(casterId),
-                fx       = tonumber(fx),
-                fy       = tonumber(fy),
-                ox       = tonumber(ox),
-                oy       = tonumber(oy),
-                kind     = kind,
-                range    = tonumber(srange) or 0,
-                radius   = tonumber(sradius) or 0,
-                color    = {
-                    (tonumber(sr) or 200) / 255,
-                    (tonumber(sg) or 200) / 255,
-                    (tonumber(sb) or 200) / 255,
-                },
-                start    = love.timer.getTime(),
-                duration = durationFor(kind),
-            }
+    end
+end
+
+handlers.LOOT = function(rest)
+    local id, qty = rest:match("^(%S+)%s+(%-?%d+)$")
+    if id then
+        local def = State.itemDefs[id]
+        local label = def and def.name or id
+        pushToast(string.format("+%s ×%d", label, tonumber(qty) or 1),
+            { 0.65, 0.85, 0.55 })
+    end
+end
+
+handlers.XP_GAIN = function(rest)
+    local n = tonumber(rest)
+    if n and n > 0 then
+        pushToast(string.format("+%d XP", n), { 0.6, 0.8, 1.0 })
+    end
+end
+
+handlers.LEVELUP = function(rest)
+    local n = tonumber(rest) or 1
+    pushToast(string.format("Level up! (+%d)", n), { 1.0, 0.85, 0.20 })
+end
+
+-- Phase 4 — skills / progression.
+handlers.SKILL_DEF = function(rest)
+    local id, kind, dmg, mana, cdMs, rng, rad, name = rest:match(
+        "^(%S+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(.+)$")
+    if id then
+        State.skillDefs[id] = {
+            id    = id,
+            type  = kind,
+            dmg   = tonumber(dmg) or 0,
+            mana  = tonumber(mana) or 0,
+            cdMs  = tonumber(cdMs) or 0,
+            range = tonumber(rng) or 0,
+            radius= tonumber(rad) or 0,
+            name  = decodeText(name),
+        }
+    end
+end
+
+handlers.SKILL_LEARNED = function(rest)
+    local id = rest:match("^(%S+)$")
+    if id then State.learned[id] = true end
+end
+
+handlers.SKILL_POINTS = function(rest)
+    State.character.skillPoints = tonumber(rest) or 0
+end
+
+handlers.SKILL_RESET = function(rest)
+    State.learned = {}
+    State.character.skillPoints = tonumber(rest) or 0
+    pushToast("Skill tree reset", { 0.85, 0.65, 0.95 })
+end
+
+handlers.SKILL = function(rest)
+    -- Visual fx for global skills mirror handlers.SPELL behaviour.
+    local casterId, skillId, fx, fy, ox, oy = rest:match(
+        "^(%-?%d+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)$")
+    if skillId then
+        local def = State.skillDefs[skillId] or {}
+        local kind = def.type == "area" and "area"
+                  or def.type == "heal" and "self"
+                  or def.type == "buff" and "self"
+                  or "line"
+        State.activeSpells[#State.activeSpells + 1] = {
+            spellId  = skillId,
+            casterId = tonumber(casterId),
+            fx       = tonumber(fx),
+            fy       = tonumber(fy),
+            ox       = tonumber(ox),
+            oy       = tonumber(oy),
+            kind     = kind,
+            range    = def.range or 4,
+            radius   = def.radius or 1,
+            color    = { 0.85, 0.55, 1.0 },
+            start    = love.timer.getTime(),
+            duration = durationFor(kind),
+        }
+    end
+end
+
+-- Phase 4 — NPCs / quests / dialog.
+handlers.NPC_DEF = function(rest)
+    local id, name, title = rest:match("^(%S+)%s+(%S+)%s+(.+)$")
+    if id then
+        State.npcDefs[id] = {
+            id = id,
+            name = decodeText(name),
+            title = decodeText(title),
+        }
+    end
+end
+
+handlers.QUEST_DEF = function(rest)
+    local id, name, killT, killC, itemT, itemC, xp, gold = rest:match(
+        "^(%S+)%s+(%S+)%s+(%S+)%s+(%-?%d+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)$")
+    if id then
+        State.questDefs[id] = {
+            id = id,
+            name = decodeText(name),
+            killTarget = killT ~= "-" and killT or nil,
+            killCount = tonumber(killC) or 0,
+            itemTarget = itemT ~= "-" and itemT or nil,
+            itemCount = tonumber(itemC) or 0,
+            rewardXP = tonumber(xp) or 0,
+            rewardGold = tonumber(gold) or 0,
+        }
+    end
+end
+
+handlers.QUEST_STATE = function(rest)
+    local id, stage, kills, done = rest:match(
+        "^(%S+)%s+(%S+)%s+(%-?%d+)%s+(%S+)$")
+    if id then
+        local prev = State.quests[id]
+        State.quests[id] = {
+            id = id,
+            stage = stage,
+            killCount = tonumber(kills) or 0,
+            done = (done == "1"),
+        }
+        if not prev then
+            local def = State.questDefs[id]
+            pushToast(string.format("Quest: %s", def and def.name or id),
+                { 1.0, 0.85, 0.55 })
         end
-    elseif cmd == "P" or cmd == "E" then
+    end
+end
+
+handlers.QUEST_COMPLETE = function(rest)
+    local id = rest:match("^(%S+)")
+    local def = State.questDefs[id] or {}
+    pushToast(string.format("Quest complete: %s", def.name or id),
+        { 0.85, 1.0, 0.55 })
+end
+
+handlers.DIALOG = function(rest)
+    local npc, node, text = rest:match("^(%S+)%s+(%S+)%s+(.+)$")
+    if npc then
+        State.dialog = {
+            npc     = npc,
+            node    = node,
+            text    = decodeText(text),
+            options = {},
+        }
+    end
+end
+
+handlers.DIALOG_OPT = function(rest)
+    local idx, text = rest:match("^(%-?%d+)%s+(.+)$")
+    if idx and State.dialog then
+        State.dialog.options[#State.dialog.options + 1] = {
+            idx  = tonumber(idx),
+            text = decodeText(text),
+        }
+    end
+end
+
+handlers.DIALOG_END = function()
+    State.dialog = nil
+end
+
+-- Phase 4 — chat.
+handlers.CHAT = function(rest)
+    local sub, who, msg = rest:match("^(%S+)%s+(%S+)%s+(.+)$")
+    if not sub then
+        sub, who, msg = "SYS", "server", rest
+    end
+    pushChat(sub, who, msg)
+end
+
+handlers.SYS = function(rest)
+    pushChat("SYS", "system", rest or "")
+end
+
+handlers.RELOADED = function(rest)
+    pushChat("SYS", "server", "reloaded " .. (rest or "all"))
+end
+
+function M.handle(line)
+    local cmd, rest = line:match("^(%S+)%s*(.*)$")
+    if not cmd then return end
+    local h = handlers[cmd]
+    if h then
+        h(rest)
+        return
+    end
+    if cmd == "P" or cmd == "E" or cmd == "N" or cmd == "X" then
         handleSnapshot(line)
     end
 end
