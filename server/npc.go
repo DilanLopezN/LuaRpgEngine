@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -16,11 +17,15 @@ import (
 
 // NPCDef is the on-disk template for an NPC. Like everything else in
 // data/scripts/, the loader catches typos at boot.
+//
+// JSON tags mirror the Lua keys so the in-game NPC editor can ship a
+// def directly via REGNPC and the loader can round-trip it from
+// data/scripts/npcs_user/<id>.json.
 type NPCDef struct {
-	ID    string
-	Name  string
-	Title string
-	Nodes map[string]*NPCNode
+	ID    string              `json:"id"`
+	Name  string              `json:"name"`
+	Title string              `json:"title"`
+	Nodes map[string]*NPCNode `json:"dialog"`
 }
 
 // NPCNode is a single dialogue beat. Text is what the NPC says;
@@ -29,16 +34,16 @@ type NPCDef struct {
 // the node — they're enough for "give a quest" / "complete a quest" /
 // "advance an objective" without scripting more glue.
 type NPCNode struct {
-	ID      string
-	Text    string
-	Options []NPCOption
-	OnEnter NPCHook
+	ID      string      `json:"-"`
+	Text    string      `json:"text"`
+	Options []NPCOption `json:"options,omitempty"`
+	OnEnter NPCHook     `json:"on_enter,omitempty"`
 }
 
 type NPCOption struct {
-	Text string
-	Goto string
-	Hook NPCHook
+	Text string  `json:"text"`
+	Goto string  `json:"next_node,omitempty"`
+	Hook NPCHook `json:"hook,omitempty"`
 }
 
 // NPCHook is the structured side-effect a dialogue beat can perform.
@@ -46,12 +51,12 @@ type NPCOption struct {
 // "give_item" | "take_item". Quest is the quest id; Item/Qty target
 // the inventory ops.
 type NPCHook struct {
-	Type   string
-	Quest  string
-	Stage  string
-	Item   string
-	Qty    int
-	Reward map[string]int
+	Type   string         `json:"type,omitempty"`
+	Quest  string         `json:"quest,omitempty"`
+	Stage  string         `json:"stage,omitempty"`
+	Item   string         `json:"item,omitempty"`
+	Qty    int            `json:"qty,omitempty"`
+	Reward map[string]int `json:"reward,omitempty"`
 }
 
 func parseNPCDef(raw interface{}, fallbackID string) (*NPCDef, error) {
@@ -201,4 +206,96 @@ func emptyDash(s string) string {
 		return "-"
 	}
 	return s
+}
+
+// formatNPCFull ships the entire NPC dialog tree as a single JSON line so
+// the in-game NPC editor can hydrate its form. The id travels in plain
+// text alongside the JSON so the parser can route the message even before
+// touching the blob.
+func formatNPCFull(def *NPCDef) string {
+	data, err := json.Marshal(def)
+	if err != nil {
+		return ""
+	}
+	return fmt.Sprintf("NPC_FULL %s %s\n", def.ID, string(data))
+}
+
+// validateNPCID enforces the same character set the script loader uses
+// for filenames, so a hostile client cannot craft an id that escapes the
+// npcs_user directory or shadows a hand-authored .lua.
+func validateNPCID(id string) error {
+	if id == "" {
+		return errors.New("npc id required")
+	}
+	if len(id) > 40 {
+		return errors.New("npc id too long")
+	}
+	for _, r := range id {
+		switch {
+		case r >= 'a' && r <= 'z',
+			r >= 'A' && r <= 'Z',
+			r >= '0' && r <= '9',
+			r == '_', r == '-':
+			// ok
+		default:
+			return fmt.Errorf("npc id %q has invalid character %q", id, r)
+		}
+	}
+	return nil
+}
+
+// validateNPCDef enforces the structural invariants the runtime relies on:
+// every NPC must have a "start" node, hooks must use a known type, and
+// option targets must point at an existing node or "end".
+func validateNPCDef(def *NPCDef) error {
+	if def == nil {
+		return errors.New("nil npc")
+	}
+	if err := validateNPCID(def.ID); err != nil {
+		return err
+	}
+	if len(def.Nodes) == 0 {
+		return errors.New("npc has no dialog nodes")
+	}
+	if _, ok := def.Nodes["start"]; !ok {
+		return errors.New("npc missing 'start' node")
+	}
+	for nid, n := range def.Nodes {
+		if n == nil {
+			return fmt.Errorf("node %q is nil", nid)
+		}
+		n.ID = nid
+		if len(n.Text) > 4096 {
+			return fmt.Errorf("node %q text too long", nid)
+		}
+		if err := validateHook(n.OnEnter); err != nil {
+			return fmt.Errorf("node %q on_enter: %w", nid, err)
+		}
+		for i, opt := range n.Options {
+			if len(opt.Text) > 256 {
+				return fmt.Errorf("node %q option %d text too long", nid, i+1)
+			}
+			if opt.Goto != "" && opt.Goto != "end" {
+				if _, ok := def.Nodes[opt.Goto]; !ok {
+					return fmt.Errorf("node %q option %d points to unknown node %q",
+						nid, i+1, opt.Goto)
+				}
+			}
+			if err := validateHook(opt.Hook); err != nil {
+				return fmt.Errorf("node %q option %d hook: %w", nid, i+1, err)
+			}
+		}
+	}
+	return nil
+}
+
+// validateHook accepts the empty hook (Type == "") and the four runtime
+// types that applyNPCHook knows how to dispatch.
+func validateHook(h NPCHook) error {
+	switch h.Type {
+	case "", "quest_start", "quest_complete", "quest_advance",
+		"give_item", "take_item":
+		return nil
+	}
+	return fmt.Errorf("unknown hook type %q", h.Type)
 }

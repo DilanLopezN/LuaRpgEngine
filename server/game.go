@@ -559,6 +559,13 @@ func (g *Game) handleLine(p *Player, line string) {
 		g.handleSaveMap(p, strings.TrimPrefix(line, "SAVE_MAP "))
 		return
 	}
+	// REGNPC ships the full NPC dialog tree as a JSON blob (the only
+	// other verb that can blow past whitespace tokenisation today is
+	// SAVE_MAP). Same parser shape — verb + JSON tail.
+	if strings.HasPrefix(line, "REGNPC ") {
+		g.handleRegNPC(p, strings.TrimPrefix(line, "REGNPC "))
+		return
+	}
 	// Chat commands carry free-form text after the verb; tokenise the
 	// first word and pass the rest through verbatim.
 	if strings.HasPrefix(line, "SAY ") {
@@ -676,6 +683,11 @@ case "MOVE", "WSAD":
 		g.handleDialogPick(p, idx)
 	case "DIALOG_END":
 		g.handleDialogEnd(p)
+	case "DELNPC":
+		if len(parts) < 2 {
+			return
+		}
+		g.handleDelNPC(p, parts[1])
 	case "RELOAD":
 		domain := "all"
 		if len(parts) >= 2 {
@@ -739,6 +751,7 @@ func (g *Game) sendCharacterState(p *Player) {
 		}
 		for _, npc := range g.scripts.NPCs() {
 			send(formatNPCDef(npc))
+			send(formatNPCFull(npc))
 		}
 		for _, q := range g.scripts.Quests() {
 			send(formatQuestDef(q))
@@ -1307,4 +1320,59 @@ func (g *Game) handleSaveMap(p *Player, payload string) {
 	log.Printf("map %q saved by player %d (%dx%d, %d entities)",
 		m.Name, p.ID, m.Width, m.Height, len(m.Entities))
 	g.broadcast(outs, "MAP "+string(data)+"\n")
+}
+
+// handleRegNPC accepts a JSON NPC definition from the in-game editor,
+// validates + persists it under data/scripts/npcs_user/, and broadcasts
+// the new tree to every connected client so dialog UIs can hydrate
+// without a /reload.
+//
+// Concurrency contract (see roadmap §🔒): the on-disk write and the
+// broadcast both happen outside Game.mu; the snapshot of player out
+// channels is copied under the lock and the lock is dropped before any
+// network I/O.
+func (g *Game) handleRegNPC(p *Player, payload string) {
+	if g.scripts == nil {
+		return
+	}
+	if len(payload) > 256*1024 {
+		log.Printf("regnpc from %d rejected: payload %d bytes",
+			p.ID, len(payload))
+		return
+	}
+	def := &NPCDef{}
+	if err := json.Unmarshal([]byte(payload), def); err != nil {
+		log.Printf("regnpc from %d parse: %v", p.ID, err)
+		return
+	}
+	if err := g.scripts.SaveUserNPC(def); err != nil {
+		log.Printf("regnpc from %d invalid: %v", p.ID, err)
+		return
+	}
+	g.mu.Lock()
+	outs := g.snapshotOutsLocked()
+	g.mu.Unlock()
+	g.broadcast(outs, formatNPCDef(def))
+	g.broadcast(outs, formatNPCFull(def))
+	log.Printf("npc %q saved by player %d (%d nodes)",
+		def.ID, p.ID, len(def.Nodes))
+}
+
+// handleDelNPC removes a previously-saved editor NPC and tells every
+// client to drop it from the local registry. Hand-authored Lua NPCs
+// reappear after a /reload npcs because their .lua file still wins on
+// the next loadNPCs call; the on-disk JSON is the only source removed.
+func (g *Game) handleDelNPC(p *Player, id string) {
+	if g.scripts == nil {
+		return
+	}
+	if err := g.scripts.DeleteUserNPC(id); err != nil {
+		log.Printf("delnpc from %d (%s): %v", p.ID, id, err)
+		return
+	}
+	g.mu.Lock()
+	outs := g.snapshotOutsLocked()
+	g.mu.Unlock()
+	g.broadcast(outs, fmt.Sprintf("NPC_DEL %s\n", id))
+	log.Printf("npc %q deleted by player %d", id, p.ID)
 }
