@@ -258,6 +258,23 @@ func (e *ScriptEngine) Progression() *ProgressionDef {
 // FireHook invokes the hook function registered under name with a
 // single Lua table built from args. Missing hooks are a no-op so
 // gameplay code can call FireHook unconditionally.
+//
+// Concurrency contract (see roadmap §🔒):
+//   - Callers MUST NOT hold Game.mu when invoking FireHook. The hook
+//     body can call host-exposed APIs (damage_entity, give_item, ...)
+//     that themselves acquire Game.mu — re-entering it from inside
+//     the lock deadlocks the world.
+//   - The implementation only takes ScriptEngine.mu briefly to look
+//     up the registered function, then drops it before grabbing
+//     vmMu. The two locks never overlap.
+//   - vmMu is the serialiser of the shared hooks VM; it is never
+//     held across host callbacks (gopher-lua reentry into Go runs
+//     synchronously from inside PCall, but those Go callbacks each
+//     acquire their own locks and never reach vmMu).
+//
+// If you find a callsite that needs to fire a hook while inside the
+// tick loop, dispatch via `go FireHook(...)` — the AI tick already
+// does this for player_join via bindName.
 func (e *ScriptEngine) FireHook(name string, args map[string]interface{}) {
     e.mu.Lock()
     fn := e.hooks[name]
@@ -313,6 +330,13 @@ func (e *ScriptEngine) loadSkills() error {
 			continue
 		}
 		skills[sk.ID] = sk
+	}
+	// Phase 2.5 hardening: refuse cyclic prerequisites at load time so
+	// a designer's typo surfaces in the boot log instead of silently
+	// breaking learn flow at runtime.
+	if err := validateSkillTree(tree); err != nil {
+		log.Printf("scripts: skill tree invalid: %v", err)
+		return err
 	}
 	e.mu.Lock()
 	e.skills = skills

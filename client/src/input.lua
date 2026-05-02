@@ -25,6 +25,7 @@ local World    = require("src.world")
 local Chat     = require("src.chatui")
 local Dialog   = require("src.dialogui")
 local Char     = require("src.charpanel")
+local Keybinds = require("src.keybinds")
 
 local M = {}
 
@@ -33,9 +34,29 @@ local M = {}
 local ATTACK_REPEAT = 0.18  -- seconds between auto-fired attacks
 local lastAttackSent = -1
 
+-- inputBlocked espelha exatamente os overlays REALMENTE abertos: editor
+-- (com ou sem campo focado), chat, modal de NPC, painel de personagem ou
+-- captura de keybind. Manter essa lista em UM único lugar evita o bug
+-- recorrente de "personagem anda sozinho com a UI aberta".
+--
+-- Regra: TODA UI nova com captura de input deve aparecer aqui *e* expor
+-- um isOpen()/isCapturing() correspondente. Se a flag pode ficar pendurada
+-- (ex.: editorFocus que não fechou), clearOverlays() é o reset central.
 local function inputBlocked()
     return State.editorOpen or State.editorFocus
         or Chat.isOpen() or Dialog.isOpen() or Char.isOpen()
+        or (State.keybindCapture ~= nil)
+end
+
+-- clearOverlays é chamado em love.focus(false) e love.resize: qualquer
+-- evento que possa deixar uma UI "presa" tem de passar por aqui.
+function M.clearOverlays()
+    State.editorOpen   = false
+    State.editorFocus  = nil
+    State.editorDrag   = nil
+    State.charPanelOpen = false
+    if Chat.close then Chat.close() end
+    State.keybindCapture = nil
 end
 
 function M.textinput(t)
@@ -55,6 +76,11 @@ local function npcAtTile(tx, ty)
 end
 
 function M.keypressed(key)
+    -- Captura de keybind tem prioridade absoluta — ela está esperando
+    -- exatamente UMA tecla do usuário. Esc cancela, qualquer outra
+    -- tecla vira o novo bind. Ver keybinds.lua para timeout.
+    if Keybinds.keypressed(key) then return end
+
     if State.scene == State.SCENE_NAME then
         if key == "backspace" then
             State.nameInput = State.nameInput:sub(1, -2)
@@ -72,20 +98,20 @@ function M.keypressed(key)
     if Chat.keypressed(key)   then return end
     if Dialog.keypressed(key) then return end
 
-    if key == "f11" then
+    if Keybinds.is("fullscreen", key) then
         local fs = love.window.getFullscreen()
         love.window.setFullscreen(not fs, "desktop")
         return
     end
 
-    if key == "f1" then
+    if Keybinds.is("editor", key) then
         State.editorOpen = not State.editorOpen
         State.editorFocus = nil
         if State.editorOpen and Editor.opened then Editor.opened() end
         return
     end
 
-    if key == "f2" then
+    if Keybinds.is("character", key) then
         Char.toggle()
         return
     end
@@ -93,26 +119,29 @@ function M.keypressed(key)
     if Editor.keypressed(key) then return end
     if State.editorOpen then return end
 
-    if key == "return" or key == "kpenter" or key == "t" then
+    if Keybinds.is("chat", key) then
         Chat.open()
         return
     end
 
-    if key == "i" then
+    if Keybinds.is("inventory", key) then
         State.charPanelOpen = true
         State.charPanelTab = "inventory"
         return
     end
-    if key == "q" and not Char.isOpen() then
+    if Keybinds.is("quests", key) and not Char.isOpen() then
         State.charPanelOpen = true
         State.charPanelTab = "quests"
         return
     end
 
-    if key == "space" or key == "j" then
+    if Keybinds.is("attack", key) then
         Network.send("ATTACK")
         lastAttackSent = love.timer.getTime()
-    elseif key == "e" then
+        return
+    end
+
+    if Keybinds.is("talk", key) then
         -- Talk to the NPC in front of the player. This complements the
         -- mouse-click path so keyboard-only play stays viable.
         local me = State.players[State.myId]
@@ -123,14 +152,23 @@ function M.keypressed(key)
             local npc = npcAtTile(tx, ty)
             if npc then Network.send("TALK " .. (npc.name or "")) end
         end
-    elseif key == "escape" then
+        return
+    end
+
+    if key == "escape" then
         if Char.isOpen() then
             State.charPanelOpen = false
         else
             love.event.quit()
         end
-    elseif key:match("^[1-5]$") then
-        Skillbar.cast(tonumber(key))
+        return
+    end
+
+    for slot = 1, 5 do
+        if Keybinds.is("skill_" .. slot, key) then
+            Skillbar.cast(slot)
+            return
+        end
     end
 end
 
@@ -185,10 +223,10 @@ end
 -- avatar walking forever.
 local function readWasd()
     local dx, dy = 0, 0
-    if love.keyboard.isDown("w", "up")    then dy = dy - 1 end
-    if love.keyboard.isDown("s", "down")  then dy = dy + 1 end
-    if love.keyboard.isDown("a", "left")  then dx = dx - 1 end
-    if love.keyboard.isDown("d", "right") then dx = dx + 1 end
+    if Keybinds.isHeld("move_up")    then dy = dy - 1 end
+    if Keybinds.isHeld("move_down")  then dy = dy + 1 end
+    if Keybinds.isHeld("move_left")  then dx = dx - 1 end
+    if Keybinds.isHeld("move_right") then dx = dx + 1 end
     if dx < -1 then dx = -1 elseif dx > 1 then dx = 1 end
     if dy < -1 then dy = -1 elseif dy > 1 then dy = 1 end
     return dx, dy
@@ -223,7 +261,7 @@ function M.update(dt)
         State.lastSent.dx, State.lastSent.dy = dx, dy
     end
 
-    if love.keyboard.isDown("space") or love.keyboard.isDown("j") then
+    if Keybinds.isHeld("attack") then
         local now = love.timer.getTime()
         if now - lastAttackSent >= ATTACK_REPEAT then
             print("TX: ATTACK")

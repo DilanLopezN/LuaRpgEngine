@@ -3,6 +3,7 @@ local World    = require("src.world")
 local Sprites  = require("src.sprites")
 local Map      = require("src.map")
 local Tilesets = require("src.tilesets")
+local FX       = require("src.fx")
 
 local M = {}
 
@@ -434,6 +435,9 @@ function M.drawWorld()
     for _, eff in ipairs(State.activeSpells) do
         drawSpellEffect(eff)
     end
+
+    -- Floating combat text por cima de tudo no mundo, abaixo da HUD.
+    FX.draw(TILE_W, TILE_H)
 end
 
 return M

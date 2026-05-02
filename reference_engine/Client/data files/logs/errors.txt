@@ -1,0 +1,3906 @@
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'BltMapTile' in 'modDirectDraw7'.
+Run-time error '6': Overflow.
+
+The following error occured at 'Render_Graphics' in 'modDirectDraw7'.
+Run-time error '9': Subscript out of range.
+

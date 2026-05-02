@@ -89,6 +89,15 @@ M.chat = {
 }
 M.toasts = {}       -- list of { text, color, expires }
 
+-- Phase 6 — floating combat text (números de dano/heal/mana sobem
+-- acima das entidades). Lista de { kind, x, y, value, start, duration }.
+M.fctEntries = {}
+
+-- Phase 6 — captura de keybind em curso. Quando setado, inputBlocked()
+-- retorna true e a UI pinta "Pressione uma tecla..." na linha da ação.
+-- Estrutura: { action, startedAt, timeout }.
+M.keybindCapture = nil
+
 -- Phase 4 — active NPC dialog. Set by DIALOG / DIALOG_OPT.
 M.dialog = nil      -- { npc, node, text, options = { { idx, text } } }
 

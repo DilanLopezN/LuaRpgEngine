@@ -1,0 +1,12 @@
+The following error occured at 'HandleAttack' in 'modHandleData'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'HandleAttack' in 'modHandleData'.
+Run-time error '9': Subscript out of range.
+
+The following error occured at 'JoinGame' in 'modPlayer'.
+Run-time error '28': Out of stack space.
+
+The following error occured at 'HandleUseChar' in 'modPlayer'.
+Run-time error '28': Out of stack space.
+

@@ -1,0 +1,21 @@
+[MAX]
+MAX=17
+
+[Noticias]
+1=Ao jogar/doar,você automaticamente esta concordando com os termos. Re-leia os termos caso haja alguma duvida.
+2=É PROÍBIDO comércio de contas(venda/troca/emprestimo,etc..). É para o bem de vocês,acreditem.
+3=Pense bem antes de doar,não há devolução/reembolso em qualquer situação(seja por roubo,bug do game,erro da equipe,etc..). Releia os termos caso haja dúvidas.
+4=Sempre pense antes de fazer algo errado,tudo tem uma consequência.
+5=Procurem no youtube heeyisis e se apaixonem :s
+6=Sua conta é unicamente responsabilidade sua. Cuide bem dela.
+7=Agora caso apareça que a conta já esteja logada,você pode usar o 'kick forçado' que fica na parte onde pode alterar senha.
+8=Caso encontre algum bug,avise na pagina do nip fazendo favor.
+9=NUNCA passe QUALQUER tipo de informação de sua conta para outro player ou para gm. Em caso de doações,só será pedido o LOGIN.
+10=CUIDADO com MENSAGEM PRIVADA,não passe qualquer informação que seja. Fale por privado e negocie apenas com alguem em quem confie.
+11=Não empreste/divida conta com ninguem. Isso causa problemas para VOCÊ.
+12=Caso você seja um char especial(itachi,hashirama,madara,pain,raikage,sasori) você pode usar os comandos /itachi , /madara, /pain, /hashirama /sasori e /raikage e todos chars iniciais(ex: /naruto) para fazer a troca de char rápida quantas vezes quizer.
+13=NÃO EXISTE recuperação de conta em qualquer situação(seja por roubo,bug ou erro da equipe,esquecimento). Siga as regras e as dicas do site que ficará tudo bem.
+14=NÃO insista em algo que já está dito nos termos,vai ser ignorado e tem chances de ser banido do game ou da pagina.
+15=Chunin Shiken nos sábados as 18 horas. Kage Shiken depois do CS.
+16=Agora há o modo /berserker. Quando dois jogadores estão com este modo ativado, o pvp é liberado até em área segura.
+17=Agora é possível bloquear msg no chat de player usando o comando /blockmsg nome.Você não conseguirá ver mensagens dele até relogar do jogo.

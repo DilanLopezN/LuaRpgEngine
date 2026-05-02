@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -152,6 +153,16 @@ type Player struct {
 	// so the next tick can emit only what changed.
 	LastSeen map[snapKey]snapState
 	LastFull time.Time
+
+	// Phase 5 — heartbeat. Owned by HandleConn; nil for tests that
+	// bypass the network layer. Stored as a pointer so the conn-level
+	// goroutine and handleLine can race-free update it via atomic.
+	lastPong *atomic.Int64
+
+	// Phase 1 — SAVE_MAP rate-limit bucket. Created on demand the first
+	// time the player issues a SAVE_MAP so non-editor sessions pay zero
+	// memory.
+	saveMapBucket *tokenBucket
 
 	Out chan<- string
 
@@ -1175,11 +1186,16 @@ func (g *Game) syncECSLocked(_ time.Time) {
 // world. Phase 4+ swaps this in for the bespoke "P"/"E" lines; the
 // method exists today so external tooling (admin console, replay)
 // can already consume it.
+//
+// Concurrency: the snapshot is built under Game.mu so the copy made
+// by Entity.Snapshot() observes a consistent view — AI callbacks
+// mutate component pointers under Game.mu, so reading them from a
+// goroutine without the lock would race. The lock is dropped before
+// returning, so the caller can serialise / send the result freely.
 func (g *Game) SnapshotECS() Snapshot {
 	g.mu.Lock()
-	tn := g.tickN
-	g.mu.Unlock()
-	return g.ecs.SnapshotAt(tn)
+	defer g.mu.Unlock()
+	return g.ecs.SnapshotAt(g.tickN)
 }
 
 func (g *Game) Loop() {
@@ -1252,6 +1268,19 @@ func (g *Game) handleSaveMap(p *Player, payload string) {
 	if len(payload) > saveMapMaxPayload {
 		log.Printf("save_map from %d rejected: payload %d bytes", p.ID, len(payload))
 		return
+	}
+	// Phase 1 hardening: throttle SAVE_MAP to 1 per second per player so
+	// a held key (or a malicious client) can't spam timestamped backups
+	// to disk. The bucket is lazy because non-editor sessions never
+	// trip the path.
+	if p != nil {
+		if p.saveMapBucket == nil {
+			p.saveMapBucket = newBucket(1, time.Second)
+		}
+		if !p.saveMapBucket.allow(time.Now()) {
+			mlog.Info("SAVE_MAP throttled", "player", p.ID)
+			return
+		}
 	}
 	var m Map
 	if err := json.Unmarshal([]byte(payload), &m); err != nil {

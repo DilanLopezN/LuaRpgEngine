@@ -7,12 +7,14 @@
 
 local State    = require("src.state")
 local Network  = require("src.network")
+local Keybinds = require("src.keybinds")
 
 local M = {}
 
 local PANEL_W = 460
-local PANEL_H = 360
-local TABS    = { "stats", "inventory", "quests" }
+local PANEL_H = 400
+local TABS    = { "stats", "inventory", "quests", "keybinds" }
+local ROW_H   = 22
 
 local function panelRect()
     local sw, sh = love.graphics.getDimensions()
@@ -102,6 +104,58 @@ local function drawInventory(x, y, w, h)
     end
 end
 
+-- Phase 6 — UI de keybinds. Lista cada ação + tecla atual, com botão
+-- "Bind" para iniciar captura. Durante captura mostramos contagem
+-- regressiva do timeout para o jogador ver que NÃO está travado.
+local function drawKeybinds(x, y, w, h)
+    love.graphics.setFont(State.fonts.ui)
+    local actions = Keybinds.actions()
+    local cap = State.keybindCapture
+    for i, action in ipairs(actions) do
+        local row = y + (i - 1) * ROW_H
+        if row > y + h - ROW_H then break end
+        love.graphics.setColor(0.08, 0.08, 0.10, 0.6)
+        love.graphics.rectangle("fill", x + 8, row, w - 16, ROW_H - 2, 3, 3)
+
+        love.graphics.setColor(1, 1, 1, 0.9)
+        love.graphics.print(action, x + 14, row + 3)
+
+        local keys = Keybinds.keysFor(action)
+        local keyStr = #keys > 0 and table.concat(keys, ", ") or "-"
+        love.graphics.setColor(0.85, 0.85, 0.95)
+        love.graphics.printf(keyStr, x + 140, row + 3, w - 280, "left")
+
+        local bx = x + w - 90
+        local by = row
+        local bw = 78
+        local bh = ROW_H - 4
+        local capturing = cap and cap.action == action
+        if capturing then
+            local remain = math.max(0, cap.timeout - (love.timer.getTime() - cap.startedAt))
+            love.graphics.setColor(0.85, 0.55, 0.20)
+            love.graphics.rectangle("fill", bx, by, bw, bh, 3, 3)
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.printf(string.format("Press... %.0fs", remain),
+                bx, by + 2, bw, "center")
+        else
+            love.graphics.setColor(0.20, 0.35, 0.55)
+            love.graphics.rectangle("fill", bx, by, bw, bh, 3, 3)
+            love.graphics.setColor(1, 1, 1, 0.95)
+            love.graphics.printf("Bind", bx, by + 2, bw, "center")
+        end
+    end
+
+    if cap then
+        love.graphics.setColor(1, 0.85, 0.55, 0.95)
+        love.graphics.printf("Pressione a nova tecla (Esc cancela)",
+            x, y + h - 22, w - 8, "right")
+    else
+        love.graphics.setColor(1, 1, 1, 0.55)
+        love.graphics.printf("Click \"Bind\" e pressione a nova tecla. Esc cancela.",
+            x, y + h - 22, w - 8, "right")
+    end
+end
+
 local function drawQuests(x, y, w, h)
     love.graphics.setFont(State.fonts.ui)
     local i = 0
@@ -155,6 +209,8 @@ function M.draw()
         drawStats(x + 8, bodyY, w - 16)
     elseif State.charPanelTab == "inventory" then
         drawInventory(x + 8, bodyY, w - 16, h - (bodyY - y) - 16)
+    elseif State.charPanelTab == "keybinds" then
+        drawKeybinds(x + 8, bodyY, w - 16, h - (bodyY - y) - 16)
     else
         drawQuests(x + 8, bodyY, w - 16, h - (bodyY - y) - 16)
     end
@@ -205,6 +261,20 @@ function M.mousepressed(mx, my, button)
                 elseif button == 2 then
                     Network.send("DROP " .. item.id .. " 1")
                 end
+                return true
+            end
+        end
+    end
+
+    -- Keybind rows: clique no botão "Bind" inicia captura.
+    if State.charPanelTab == "keybinds" and button == 1 then
+        local bodyY = y + 84
+        local actions = Keybinds.actions()
+        for i, action in ipairs(actions) do
+            local row = bodyY + (i - 1) * ROW_H
+            local bx = x + w - 16 - 90
+            if rectContains(bx, row, 78, ROW_H - 4, mx, my) then
+                Keybinds.startCapture(action)
                 return true
             end
         end

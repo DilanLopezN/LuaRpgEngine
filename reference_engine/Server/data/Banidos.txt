@@ -1,0 +1,6 @@
+[BAN POR TEMPO]
+pqp=Banido por:OhYehADM.Login:dsh3        .Dias Banido:1
+dshg=Banido por:OhYehADM.Login:dsh4        .Dias Banido:0
+..testando--=Banido por:OhYehADM.Login:dsh3        
+[ANTI HACK(CASH BANCO)]
+dshsetti=.Login:dsh7        Quantia:1922000000

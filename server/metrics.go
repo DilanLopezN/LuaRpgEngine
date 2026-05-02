@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -34,6 +35,14 @@ var (
 	metricsLineDropped     atomic.Int64
 	metricsBroadcasts      atomic.Int64
 	metricsStartTime       = time.Now()
+
+	// Phase 5 — per-player outQueue back-pressure tracking. We keep
+	// a watermark per player so the gauge surfaces the worst-case
+	// depth observed since reset rather than the instantaneous value
+	// (which is almost always 0 because the writer drains fast).
+	metricsOutQueueMu     sync.Mutex
+	metricsOutQueueMax    = make(map[int]int)
+	metricsOutQueueGlobal atomic.Int64
 )
 
 // mlog is the package-level slog handle. Subpackages should not need a
@@ -63,6 +72,40 @@ func metricsTickObserved(playerFrames int) {
 	if playerFrames > 0 {
 		metricsTickPlayersSeen.Add(int64(playerFrames))
 	}
+}
+
+// metricsObserveOutQueueDepth records the depth of one send. The map
+// stores the watermark (max observed) per player; the global counter
+// keeps the worst case across all connections so a single Prometheus
+// scrape surfaces back-pressure even when the offending player has
+// already disconnected.
+func metricsObserveOutQueueDepth(playerID, depth int) {
+	if depth <= 0 {
+		return
+	}
+	metricsOutQueueMu.Lock()
+	if cur := metricsOutQueueMax[playerID]; depth > cur {
+		metricsOutQueueMax[playerID] = depth
+	}
+	metricsOutQueueMu.Unlock()
+	for {
+		cur := metricsOutQueueGlobal.Load()
+		if int64(depth) <= cur {
+			return
+		}
+		if metricsOutQueueGlobal.CompareAndSwap(cur, int64(depth)) {
+			return
+		}
+	}
+}
+
+// metricsClearOutQueue drops the watermark for a player when their
+// connection closes — keeps the per-player map bounded by the active
+// connection count.
+func metricsClearOutQueue(playerID int) {
+	metricsOutQueueMu.Lock()
+	delete(metricsOutQueueMax, playerID)
+	metricsOutQueueMu.Unlock()
 }
 
 // startMetricsServer launches a background HTTP server on METRICS_ADDR
@@ -138,4 +181,20 @@ func handleMetrics(w http.ResponseWriter, _ *http.Request) {
 	fmt.Fprintf(w, "# HELP luarpg_alloc_bytes Allocated heap bytes.\n")
 	fmt.Fprintf(w, "# TYPE luarpg_alloc_bytes gauge\n")
 	fmt.Fprintf(w, "luarpg_alloc_bytes %d\n", ms.Alloc)
+
+	fmt.Fprintf(w, "# HELP luarpg_outqueue_max Worst-case send queue depth observed across all players since boot.\n")
+	fmt.Fprintf(w, "# TYPE luarpg_outqueue_max gauge\n")
+	fmt.Fprintf(w, "luarpg_outqueue_max %d\n", metricsOutQueueGlobal.Load())
+
+	metricsOutQueueMu.Lock()
+	maxActive := 0
+	for _, v := range metricsOutQueueMax {
+		if v > maxActive {
+			maxActive = v
+		}
+	}
+	metricsOutQueueMu.Unlock()
+	fmt.Fprintf(w, "# HELP luarpg_outqueue_max_active Worst-case send queue depth among currently connected players.\n")
+	fmt.Fprintf(w, "# TYPE luarpg_outqueue_max_active gauge\n")
+	fmt.Fprintf(w, "luarpg_outqueue_max_active %d\n", maxActive)
 }

@@ -154,11 +154,22 @@ func LoadMap(name string) (*Map, error) {
 }
 
 func validateMap(m *Map) error {
+	// Phase 1 hardening: a missing schema_version means a pre-versioned
+	// map saved before the field existed; treat it as v1 so legacy
+	// content keeps loading. Negative numbers are nonsense and a future
+	// version we can't migrate must be refused with a precise message
+	// (not just "size mismatch") so the operator knows the bug is the
+	// loader, not the file.
 	if m.SchemaVersion == 0 {
 		m.SchemaVersion = 1
 	}
+	if m.SchemaVersion < 0 {
+		return fmt.Errorf("invalid schema_version %d", m.SchemaVersion)
+	}
 	if m.SchemaVersion > MapSchemaVersion {
-		return fmt.Errorf("unsupported schema_version %d", m.SchemaVersion)
+		return fmt.Errorf(
+			"unsupported map schema_version %d (this build understands up to %d) — upgrade the server or downgrade the map",
+			m.SchemaVersion, MapSchemaVersion)
 	}
 	if m.Width <= 0 || m.Height <= 0 || m.Width > maxMapWidth || m.Height > maxMapHeight {
 		return fmt.Errorf("invalid map bounds %dx%d", m.Width, m.Height)

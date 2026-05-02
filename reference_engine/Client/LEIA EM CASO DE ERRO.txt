@@ -1,0 +1,9 @@
+Antes de tudo,instale os ARQUIVOS NECESSÁRIOS PARA RODAR O GAME novamente se for necessário e reinicie o seu computador. É importante reiniciar!
+
+Se seu jogo parecer meio loco(os mapas fora de ordem,etc..),feche o game por completo,vá na pasta 'Data files>maps' e delete todos os arquivos de lá ou você pode simplismente baixar um novo nip,dá na mesma. Isso também serve para caso ao entrar no game,não saia da tela verde.
+
+Se erros persistirem,consulte seu médico, vá no site baixaki e baixe/instale o DIRECTX.
+
+Se você estiver usando WINDOWS 7 ou WINDOWS 8 e se o menu do seu jogo estiver estranho(uma parte cinza),vá até a configuração de vídeo e mude o tamanho da FONTE para 'MENOR(100%)'. Se você não souber como mudar o tamanho da fonte,consulte o seu melhor amigo(GOOGLE).
+
+Se seu game não ficar ONLINE,reinicie sua internet. Verifique e MUDE o seu firewall,têm grandes chances do FIREWALL ou ANTIVIRUS estar BLOQUEANDO o NIP.

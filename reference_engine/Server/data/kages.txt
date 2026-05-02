@@ -1,0 +1,8 @@
+[KAGES]
+
+2=
+1=dsh5
+4=
+3=dsh5
+0=dsh4
+6=dsh8

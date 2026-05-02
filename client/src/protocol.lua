@@ -2,6 +2,7 @@ local State   = require("src.state")
 local Spells  = require("src.spells")
 local Map     = require("src.map")
 local JSON    = require("src.json")
+local FX      = require("src.fx")
 
 local SPELL_LINE_DURATION = 0.45
 local SPELL_AREA_DURATION = 0.55
@@ -57,6 +58,10 @@ local function handleSnapshot(line)
             if p.x and (not approxEq(nx, p.x) or not approxEq(ny, p.y)) then
                 p.movingUntil = love.timer.getTime() + MOVE_TRAIL
             end
+            -- Phase 6 — feedback visual: derivamos delta de HP/MP do
+            -- snapshot já que o servidor não envia o número do golpe
+            -- explicitamente. O sinal decide se é dano ou cura.
+            local prevHp, prevMp = p.hp, p.mp
             p.x, p.y    = nx, ny
             p.fx, p.fy  = tonumber(fx), tonumber(fy)
             p.hp        = tonumber(hp)
@@ -65,6 +70,17 @@ local function handleSnapshot(line)
             p.maxMp     = tonumber(maxMp)
             p.atk       = tonumber(atk) == 1
             p.name      = name
+            if prevHp and p.hp ~= prevHp then
+                local d = p.hp - prevHp
+                if d < 0 then
+                    FX.spawn("dmg", p.x, p.y, -d)
+                elseif d > 0 then
+                    FX.spawn("heal", p.x, p.y, d)
+                end
+            end
+            if prevMp and p.mp and p.mp > prevMp then
+                FX.spawn("mana", p.x, p.y, p.mp - prevMp)
+            end
         end
     elseif kind == "E" then
         local id, ekind, x, y, hp, maxHp = rest:match(
@@ -76,10 +92,14 @@ local function handleSnapshot(line)
                 e = { hitTime = -1 }
                 State.enemies[id] = e
             end
+            local prevHp = e.hp
             e.kind     = ekind
             e.x, e.y   = tonumber(x), tonumber(y)
             e.hp       = tonumber(hp)
             e.maxHp    = tonumber(maxHp)
+            if prevHp and e.hp and e.hp < prevHp then
+                FX.spawn("dmg", e.x, e.y, prevHp - e.hp)
+            end
         end
     elseif kind == "N" then
         local id, name, x, y = rest:match("^(%-?%d+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)$")

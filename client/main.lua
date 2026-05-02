@@ -34,6 +34,9 @@ local CharPanel = require("src.charpanel")
 local Chat     = require("src.chatui")
 local Dialog   = require("src.dialogui")
 local Toasts   = require("src.toasts")
+local Keybinds = require("src.keybinds")
+local Minimap  = require("src.minimap")
+local FX       = require("src.fx")
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
@@ -42,6 +45,7 @@ function love.load()
     State.fonts.title = love.graphics.newFont(28)
     math.randomseed(os.time())
     Sprites.init()
+    Keybinds.init()
     -- Maximize so the editor (and the dragged window position) can roam the
     -- entire monitor instead of being clipped to a small client area. F11
     -- toggles borderless fullscreen for an even bigger canvas.
@@ -60,6 +64,10 @@ local function safeHandle(line)
 end
 
 function love.update(dt)
+    -- Network.poll TEM de ser a primeira coisa do update (regra 🌐 do
+    -- roadmap). Render lento, áudio carregando ou qualquer cálculo
+    -- pesado depois disso pode atrasar 1+ frame de pacotes — o que
+    -- aparece como "input desincronizado" do servidor. Não mover.
     Network.poll(safeHandle)
 
     if #State.activeSpells > 0 then
@@ -74,6 +82,8 @@ function love.update(dt)
     end
 
     Toasts.update()
+    Keybinds.update(dt)
+    FX.update(dt)
     Input.update(dt)
 
     if State.scene == State.SCENE_PLAYING then
@@ -100,6 +110,7 @@ function love.draw()
     love.graphics.pop()
 
     HUD.draw()
+    Minimap.draw()
     Editor.draw()
     Skillbar.draw()
     CharPanel.draw()
@@ -118,4 +129,21 @@ love.wheelmoved    = Input.wheelmoved
 
 function love.quit()
     Network.close()
+end
+
+-- Phase 6 — perder foco da janela limpa overlays. Sem isso, alt-tab no
+-- meio de "esperando próxima tecla para rebind" deixa a UI travada
+-- até o jogador descobrir Esc. Mesmo princípio do roadmap §🎨.
+function love.focus(focused)
+    if not focused then
+        Input.clearOverlays()
+    end
+end
+
+-- Resize: a janela do editor pode ter sido arrastada para fora dos
+-- limites da nova resolução. Recolocamos automaticamente em vez de
+-- esperar o jogador apertar Home.
+function love.resize(_, _)
+    local Layout = require("src.editor_layout")
+    if Layout.recenter then Layout.recenter() end
 end

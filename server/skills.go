@@ -250,6 +250,60 @@ func parseSkillTree(raw interface{}, out map[string]*SkillTreeNode) {
 	}
 }
 
+// validateSkillTree returns an error if the tree contains a
+// prerequisite cycle (A → B → A) or a node with a self-reference.
+// Iterative DFS with a recursion stack tracks the in-progress path so
+// the first cycle is reported with the exact node IDs involved — not a
+// vague "tree malformed" message.
+func validateSkillTree(tree map[string]*SkillTreeNode) error {
+	const (
+		white = 0
+		gray  = 1
+		black = 2
+	)
+	color := make(map[string]int, len(tree))
+
+	var visit func(id string, path []string) error
+	visit = func(id string, path []string) error {
+		if color[id] == gray {
+			start := 0
+			for i, p := range path {
+				if p == id {
+					start = i
+					break
+				}
+			}
+			cycle := append(append([]string{}, path[start:]...), id)
+			return fmt.Errorf("skill tree cycle: %s", strings.Join(cycle, " -> "))
+		}
+		if color[id] == black {
+			return nil
+		}
+		color[id] = gray
+		path = append(path, id)
+		node, ok := tree[id]
+		if ok {
+			for _, req := range node.Requires {
+				if req == id {
+					return fmt.Errorf("skill %q requires itself", id)
+				}
+				if err := visit(req, path); err != nil {
+					return err
+				}
+			}
+		}
+		color[id] = black
+		return nil
+	}
+
+	for id := range tree {
+		if err := visit(id, nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // formatSkillDef renders a Skill for the wire so the client can show
 // names, costs, and metadata in a UI without needing the Lua source.
 // The format mirrors formatSpellDef so existing client code can hold

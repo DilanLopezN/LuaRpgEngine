@@ -99,9 +99,9 @@ Transformar mapa em dado + permitir edição dentro do jogo.
 - [x] Inserção de entidades no mapa (spawn/NPC/trigger)
 - [x] Loader de mapa no servidor e no cliente
 - [x] Colisão baseada em layer de dados
-- [ ] **Hardening:** validar `schema_version` recusando versões
+- [x] **Hardening:** validar `schema_version` recusando versões
       futuras desconhecidas com mensagem clara (não só tamanho).
-- [ ] **Hardening:** teste automatizado que carrega o mapa default,
+- [x] **Hardening:** teste automatizado que carrega o mapa default,
       salva, recarrega e compara — pega regressão de serialização.
 
 ### Editor in-game (cliente)
@@ -126,7 +126,7 @@ Transformar mapa em dado + permitir edição dentro do jogo.
 - [x] Servidor valida payload (tamanho, ids, bounds)
 - [x] Servidor salva em `server/data/maps/`
 - [x] Backup automático da versão anterior ao sobrescrever
-- [ ] **Hardening:** rate-limit de SAVE_MAP (1 por segundo) para
+- [x] **Hardening:** rate-limit de SAVE_MAP (1 por segundo) para
       evitar spam de backups; SAVE_MAP gigante já está coberto pelo
       `saveMapMaxPayload`.
 
@@ -184,7 +184,7 @@ server/data/scripts/
 - [x] Limite de tempo por execução de script
 - [x] Limite de memória/objetos por contexto
 - [x] Lista explícita de funções permitidas (allowlist)
-- [ ] **Hardening:** teste que tenta carregar script com `os.execute`
+- [x] **Hardening:** teste que tenta carregar script com `os.execute`
       e confirma que falha; mesmo para `io.open`, `require`,
       `loadstring`, `dofile`.
 
@@ -199,7 +199,7 @@ server/data/scripts/
 ### Execução de hooks
 
 - [x] `FireHook` separa mapa-lock (`mu`) de VM-lock (`vmMu`).
-- [ ] **Hardening:** documentar no comentário de `FireHook` que
+- [x] **Hardening:** documentar no comentário de `FireHook` que
       callbacks Lua chamam funções do host que pegam locks próprios
       — referenciar a regra 🔒 acima.
 - [ ] **Hardening:** hook que demora mais que `scriptHookTimeout`
@@ -244,7 +244,7 @@ Evitar caos estrutural e permitir expansão organizada.
 - [x] Regras de pré-requisito
 - [x] Custo por ponto de talento
 - [x] Reset de árvore (admin/dev)
-- [ ] **Hardening:** validar pré-requisitos cíclicos no load
+- [x] **Hardening:** validar pré-requisitos cíclicos no load
       (`A requires B`, `B requires A` deve falhar com erro claro).
 
 ### Critério de pronto
@@ -276,14 +276,14 @@ Unificar player, NPC e inimigos.
       dos componentes (`Entity.Position`/`Entity.Health`/`Entity.Combat`)
       ao invés de campos do `Player`/`Enemy`. NPCs já aparecem no
       frame `N` automaticamente via ECS.
-- [ ] **Hardening:** auditar callbacks de `AISystem` (Targets/Step/
+- [x] **Hardening:** auditar callbacks de `AISystem` (Targets/Step/
       Attack) para garantir que nunca chamam `g.scripts.*` que
       pegue `ScriptEngine.mu` enquanto `Game.mu` está segurado
       pelo tick — bug que já travou tudo uma vez.
-- [ ] **Hardening:** teste com `-race` cobrindo um tick com 50+
+- [x] **Hardening:** teste com `-race` cobrindo um tick com 50+
       entidades, validando que `ECSWorld.Each` não é chamado
-      reentrante.
-- [ ] **Hardening:** quando um sistema precisa de dados de outra
+      reentrante. (Pegou um race real em `SnapshotECS` — corrigido.)
+- [x] **Hardening:** quando um sistema precisa de dados de outra
       entidade durante `Each`, copiar para um slice antes —
       evitar segurar `RLock` enquanto chama callback do host.
 
@@ -388,34 +388,44 @@ Unificar player, NPC e inimigos.
 - [ ] Perfil de CPU/memória em ambiente de teste (usar
       `go test -cpuprofile` ou `go tool pprof http://localhost:9091/debug/pprof`
       com o loadtest acima — falta gerar baseline gravado).
-- [ ] **Hardening rede cliente:** `network.lua` com `outQueue`,
+- [x] **Hardening rede cliente:** `network.lua` com `outQueue`,
       `closeSock` no reconnect, `tcp-nodelay`, e retorno parcial
       do `socket:send` tratado. Já corrigido — confirmar no commit
-      e proibir regressão via comentário no arquivo.
-- [ ] **Hardening rede servidor:** `tcp-nodelay` no
+      e proibir regressão via comentário no arquivo. (Comentário
+      anti-regressão adicionado no topo do arquivo.)
+- [x] **Hardening rede servidor:** `tcp-nodelay` no
       `net.TCPConn` aceito por `HandleConn`.
-- [ ] **Hardening:** heartbeat PING/PONG a cada 10s para detectar
-      peers mortos; se 30s sem PONG, fecha a conexão.
-- [ ] **Hardening:** métrica de `outQueue` máximo por jogador
+- [x] **Hardening:** heartbeat PING/PONG a cada 10s para detectar
+      peers mortos; se 30s sem PONG, fecha a conexão. (Servidor +
+      cliente.)
+- [x] **Hardening:** métrica de `outQueue` máximo por jogador
       no Prometheus para detectar back-pressure no campo.
+      (`luarpg_outqueue_max` e `luarpg_outqueue_max_active`.)
 
 ---
 
 ## 🎨 Fase 6 — Cliente (UX + Arte)
 
-- [ ] Sprites animados
-- [ ] UI completa (HP/Mana, Skills, Inventário, Chat)
-- [ ] Som e partículas
-- [ ] Minimapa
-- [ ] Feedback visual de hit/heal/status
-- [ ] Configuração de keybinds no cliente
-- [ ] **Concorrência rede:** `Network.poll` deve rodar em todo
+- [x] Sprites animados (`sprites.lua` + `Pixel Crawler` pack).
+- [x] UI completa (HP/Mana, Skills, Inventário, Chat).
+- [ ] Som e partículas.
+- [x] Minimapa (`client/src/minimap.lua`, canvas top-down com
+      ground/colisão/lógica + pontos de player/inimigos/NPCs).
+- [x] Feedback visual de hit/heal/status (`client/src/fx.lua` —
+      floating combat text, derivado dos deltas de HP/MP nos
+      snapshots P/E).
+- [x] Configuração de keybinds no cliente (`client/src/keybinds.lua`
+      + aba "keybinds" no `charpanel`, persiste em `keybinds.json`).
+- [x] **Concorrência rede:** `Network.poll` deve rodar em todo
       `love.update`, antes da lógica pesada — render ou áudio
-      lento não pode atrasar a recepção de pacotes.
-- [ ] **Estado de input:** auditar que `inputBlocked()` reflete
+      lento não pode atrasar a recepção de pacotes. (Comentário
+      explícito no `main.lua` para impedir regressão.)
+- [x] **Estado de input:** auditar que `inputBlocked()` reflete
       apenas overlays REALMENTE abertos; fechar overlay sempre
       limpa o flag (testar Esc, clique fora, perder foco).
-- [ ] **UI keybinds:** ao capturar próximo input para rebind,
+      (`Input.clearOverlays()` chamado em `love.focus(false)` e
+      `love.resize`; lista única de flags em `inputBlocked()`.)
+- [x] **UI keybinds:** ao capturar próximo input para rebind,
       garantir timeout (5s) e Esc para cancelar — não deixar a
       UI travada esperando uma tecla pra sempre.
 

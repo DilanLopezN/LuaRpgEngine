@@ -1,0 +1,317 @@
+Novidades
+
+V6.9
+x Modo berserker podendo ser ativado pelo comando /berserker. Pode ser usado a partir do lvl 300 e quando dois jogadores estão com ele ativado, poderão se atacar sem a restrição de lvls. Algumas zonas seguras, tipo as vilas, poderão haver ataques também. Ainda é necessário ativar o PK para atacar.
+x Pra evitar que o cara deslogue no meio do pvp de sacanagem, foi colocado uma prevenção que só seja possível deslogar se o jogador não atacou ou foi atacado nos últimos 10 segundos.
+x Npc pinhata que nasce a cada 4 horas. Ao derrotar esse npc, os jogadores que contribuíram poderão ganhar alguns prêmios como lvl e cash
+x A xp de grupo/org agora é única de acordo com o jogador. Por exemplo: Char free mata npc de 10 de XP. O jogador ganhará os 10 xp e nesse caso, integrante que for vip OhYeh(dobro) ganhará 10 xp e integrante free ganhará 5. Desse jeito não haverá problemas em jogadores free e vip uparem juntos.
+x Aumentado a frequência da verificação anti bot graças aos caras abusados.
+x Ficar parado por muito tempo só será kikado se estiver em mapas de up. O mapa Respawn por exemplo não vai mais precisar se mexer pra não ser kikado por ausência
+x Anti free kill. Karma só irá contar se o jogador que morreu não tenha morrido pra ninguém nos últimos 2 minutos. Não adianta ficar matando em seguida.
+x Agora é possível bloquear msg no chat de player usando o comando /blockmsg nome. É temporário, então se quiser reverter terá que relogar. Você não conseguirá ver mensagens dele.
+x Igualado o dano dos summons de kage com os da loja cash
+x Liberado a entrada de algumas orgs apenas com o lvl. Policiais de konoha lvl500+, Hospital lvl700+, Guardiões lvl1000+
+x Previnido que seja possível enviar chat privado pra quem ta em torneio, atrapalhava o pvp.
+
+Erros corrigidos:
+x Corrigido o bug que o npc atacava jogadores quando não era pra atacar. Ex: espectadores morrendo ao ver a luta do torneio.
+x Arrumado a xp do zetsu lvl 300 e o cd do jutsu explosão dos policiais
+x Kage lider som ao relogar perde cargo e volta desertor
+x Kage desertor ao entrar em org, perde o cargo e a vila é alterada podendo haver 2 kages da mesma vila desertora.
+x Se o cara sai do grupo, continua dando e recebendo exp e ainda da pra colocar mais gente
+
+
+V6.8
+x Foi reformulado os jutsus para serem mais balanceados, principalmente no PVP.
+x Reset em praticamente tudo menos itens, login, senhas.
+x Retirado: xp automatico, orgs privadas e chars da loja cash que sejam dropados de boss
+(Orochimaru,Kisame,Tobi).
+x Também foi retirado o CS de QUARTA FEIRA. O motivo é para ser mais desafiador evoluir de rank e também para haver mais jogadores, aumentando a concorrência e emoção de virar chunnin(que é o único evento que não é missão). CS agora é só no sábado as 18 horas.
+x Grupos dão a mesma EXP de ORGS.
+x Valorizado alguns itens da loja cash. Os chars da loja cash também serão valorizados, mas mais pra frente.
+x Lendárias nerfadas por serem apelonas.
+x Stun é baseado na Jutsu apenas. Genjutsu é só para o dano de algumas skills(Itachi,Ino).
+x Retirado mensagens "Sem flood" pro johan para de enxer o saco.
+x Atualizado as notícias. Tinham algumas muito antigas.
+
+Bugs arrumados:
+x Zona segura dando dano.
+x Char com org desertora mas rank normal(reloga se acontecer).
+x Kage do Som voltando como Sannin se perder o cargo.
+x entre outros
+
+V6.7
+x Novo KS: Líder do Som. Pra poder participar precisa ser desertor level 700+. Vai acontecer logo depois do lider da chuva
+x Pet mini manda pro kage do som baseado em NIN.
+x Liberado os chars normais(que podem ser escolhidos na criação do char) para os chars especiais. É só digitar /naruto, /sasuke,etc..
+x Char mei com dano baseado em NIN
+x Boss mei que fica na entrada de mizugakure e dropa o char dela
+x Comando /mei para o char supremo
+x Os drops de madara armor, bijuu, capacete e alguns chars foram difucultados por estarem muito desvalorizados.
+x Criado uma vila nova Hoshigakure que servirá para visitar tipo takigakure e tirar belas prints pq pqp, que praia gostosa.
+x Boss Akahoshi que fica na vila Hoshigakure
+x Item proteção estrelar dropado do boss Akahoshi. Vai precisa de muita sorte pra dropar. Ela da 255 de RES.
+x Item novo Armadura de ouro que da 200 de RES e AGI e é vendido na loja yen por 1 bilhão de yen. É TEMPORÁRIO.
+x Item novo Saitama Helmet vendido na loja yen por 30K ovos raros. É TEMPORÁRIO.
+x Novos ninjas da vila Hoshigakure
+x item sortear vila: Agora quem for desertor vai alterar entre as 2 vilas desertoras.
+x Será setado uma vila desertora aleatoriamente quando entrar numa org desertora.
+x Foi mudado o nome da renegados pra Elite Shinobi com cor branca.
+x arrumado alguns bugs
+
+V6.6.2
+x colocado o comando /mutarchat. Serve caso você não queira receber as mensagens vinda do global. Para desmutar é só digitar de novo /mutarchat.
+
+V6.6.1
+x arrumado o shift no chat
+x colocado o anti boot que vai aparecer a cada 20 minutos nos mapas de up
+
+V6.6
+x Summons chibis: Kyuubi pra tobis e hokages. Shukaku pra Kazekage, Salamander pra Lider da Chuva. Pra quem não tem sprite de bijuu chibi, eu peguei a sprite original e diminui o tamanho pra deixar temporariamente, ai quando eu tiver as versões chibi eu substituo. Kyuubi,Yonbi e Hachibi=tai. Salamander=Gen. Shukaku e Sanbi=Nin.
+x comando /verificarjutsus. Caso tu não tenha algum jutsu que deveria ter ele recupera o jutsu. Ex: os tobis agora vão ter o jutsu summon kyuubi mas os que já eram tobi só vão ganhar ao usar esse comando.
+x Foi colocado mais itens do evento semanal nas principais vilas pra incentivar mais a exploração e deixar o semanal mais disputado
+x criado mais areas de up free: Local akat(por ser menor tem menos npcs, é bom pra quem não é vip e upa solo)
+x Kai gastando menos chakra
+x Samehada tirando 5% do chakra total do inimigo
+x Proibido que char supremo use pergaminho de char pra não desperdiçar pergaminho(já que pode se tornar qualquer um)
+x Alguns bugs dos pets/summons arrumados. Noticia boa :D .
+x Proibido tobi teleportar pra mapas do desafio
+x Akat no key sendo dropada do sasuke, karin, juugo e suigetsu
+x Possivelmente foi arrumado o problema que algumas vezes mesmo usando kawarimi ainda recebia dano
+x bug ataca boss, vai pra outro mapa e sumona, volta pro mapa do boss, ele fica freezado. Tobirama e Guardião da ponte bugados
+x Ao derrotar o boss final dos desafios ou o madara no final da guerra será teleportado todos os players que participaram para o respawn(já que tinha viciado esperando horas até eles nascerem denovo)
+x jutsu de teleporte atrás do jogador, indo pra fora da tela
+x Personagem GAI disponível sendo dropado do boss(ele mesmo) localizado na entrada pra iwa.
+x comando /gai para os chars supremos
+x kimimaro agora recebe um pouco menos de dano pela defesa interna dele.
+x arrumado alguns problemas no anti afk. Agora o botão menu não vai mais kikar o jogador
+x Lendaria com dano baseado em NIN pelo mesmo valor da lendária TAI.
+
+
+V6.5
+x boss Tobirama
+x char Tobirama dropado do boss.
+x comando /tobirama para quem possui char supremo
+x Anti afk se não for 100% funcional é pelo menos quase isso. Tinha um botão do teclado que conseguia burlar isso e como não foi encontrado solução, quando teclar esse botão vai ser kikado do jogo. Isso não funciona nos mapas de torneio/evento então pode fica tranquilo.
+x criado o item "Karma invertido" vendido na loja cash. Quando você usa esse item, inverte o sinal do teu karma. Ex: Tu tem -100 de karma, quando usa o item ficaria +100 e vice-versa.
+x Aumentando o tempo pra digitar no global por mais 3 segundos pra aliviar um pouco o flood.
+
+
+V6.4
+x Evento Semanal no domingo as 18 horas. Funciona assim: Vai ser escolhido um item aleatório (entre erva medicinal, cogumelo venenoso, cogumelo vermelho, folha, girassol e ovo raro) e vai ser checado a quantidade desse item que cada jogador que está no mapa do evento possui. O jogador que tiver a maior quantidade do item escolhido, vai perder toda a quantidade que possui(é o preço para sempre variar o ganhador) e vai ganhar 7 dias VIP e 7 dias CT. Se não tiver VIP ou se for vip LIGHT,vai ser 7 dias LIGHT, se for vip ohyeh vai ser 7 dias OHYEH. OBS: Só level 200+ e 1 IP registrado pode participar(pra evitar mais de uma conta com o mesmo jogador. Quem tiver o mesmo ip infelizmente vai ter que ser na sorte de ir primeiro).
+x Evento exclusivo para level 5k+ no domingo as 18:05. Ao participar os jogadores são levados para um mapa onde precisarão derrotar Otsutsuki. Depois da Otsutsuki ter sido derrotada, todos os jogadores que participaram serão levados para a arena e vão ter que lutar entre si. O único que restar ganhará o rank 'Lendário' que ficará até a próxima semana e 3 dias de vip e ct.
+X Ao manter o rank KAGE, além dos 3k cash, vai ganhar 7 dias vip. Se não tiver VIP ou se for vip LIGHT,vai ser 7 dias LIGHT, se for vip ohyeh vai ser 7 dias OHYEH.
+x Proibido char especial se transformar em char que não seja especial. Isso evita que a pessoa use um char que não seja especial e assim perder o especial. 
+x Proibido o comando /desistirdokage no sabado e domingo. É sacanagem o cara ganhar e já desistir do cargo, vai ter que esperar pelo menos 2 dias.
+x Atualizada a foto dos kages. Fotos concedidos por Juan Kaell
+x Lutas de KS quase 100% automaticas e com uma espera de 10 segundos para cada luta.
+x PK3 adicionado e funcionará quando quem atacar estiver com o pk3. A diferença para o PK2 é que o PK3 não conta os karmas(se o atacante estiver com o pk3, o karma do atacante e da vitima não muda)
+x Agora em todos torneios de luta os jogadores vão ficar em pk3 então o Karma não será alterado.
+x Liberado o mapa de espera2 e mapas de espera da guerra do anti-afk
+x level máximo aumentado
+
+Alguns bugs arrumados:
+x melhorado o anti-afk
+x Dava pra mandar luta mesmo se o torneio tivesse ativado.
+x Small teleporte do tobi funcionava nos mapas de entrada do cs
+x Mochila cheia ao resetar.
+x Se tivesse um novo kage e o antigo kage desistisse do cargo, o novo kage perdia o cargo
+
+
+V6
+
+x proibido usar gm no nick
+x sprites de bijuus novas concedidas pelo itaxe otirra
+x atualizada as imagens das regras do jogo e o horario dos eventos
+x agora vai começar as lutas da arena fora da parede.
+x se deslogar de um ks, sai do torneio(evita malandro que tenta ficar sozinho pra passar a rodada sem lutar)
+x Limite de 1 ip por cada torneio do ks. Evita que loguem mais de uma conta pra eliminarem a concorrencia.
+x char Supremo. Com ele você pode se transformar em qualquer char do jogo quantas vezes quiser. ex: /naruto
+x comando de gm que organiza a luta  do ks automaticamente. É igual ao CS, se o numero de participantes for impar, a ultima luta vai ser com os 3 mais fortes. As lutas são organizadas automaticamente, os gms só vão clicar no botão pra enviar a luta. A luta final(com o kage) vai ser sempre 1x1
+x adicionado a proteção contra programas no gameloop ja que o timer pode ser desativado
+x Quando um kage desiste do cargo agora é liberado na lista dos kages(antes mesmo depois de desistir, o login ainda ficava gravado)
+x Evento dos desafios. É um evento onde todos os jogadores participam juntos contra todos os npcs de cada desafio. São 5 desafios normais e 1 desafio final que será aleatório(podendo ser juubi, tobi,nibi e pains)
+x evento dos desafios adicionado nos eventos automaticos.
+x Liberado o .(ponto) e o -(traço) para usar no nick. Ex: .NickName-
+x sprite alternativa para a ultima transformação do naruto e yondaime
+x Corrigido o requerimento de transformação pros jutsus finais do naruto(antes o 4 caldas não conseguia usar o jutsu Yonbiko Imari)
+x Foi tirado a mensagem "o jutsu ainda não está pronto para uso"
+x Yugito como personagem jogável. Vai ser dropado do Nibi
+x Boss Nibi que ficará no final do evento dos desafios caso seja sorteado o mapa dele
+x cor do chat dos kages diferenciado
+
+
+5.5
+
+x alguns Bugs corrigidos
+x Foi tirado a mensagem "Está é uma zona segura!" pra não atrapalhar o up
+x Proteção contra alguns programas proibidos..
+x Org nova Clã Renegado
+x Os lutadores do ks agora não ficam mais presos no muro
+x Jiroubou CS2 agora fica em FN2
+
+5.1
+-Foi liberado uma folga na proteção do nip
+
+V5
+-Area vip mudada
+-bugs corrigidoscorrigidos(equip/desequiptmr)
+-icones dos itens rikudou atualizados
+-atualização de proteção
+-Itachi,Deidara,Pain,jiraya,Yondaime,Orochimaru com graficos da trans aleatorios
+- Char Danzou dropado de boss(free)++
+- Boss danzou(jutsus)
+- top char reformulado
+-comando de puxar kage atual,evita problema
+- Desafio 2x 2 e 2x 1
+- se o player mudar o nick,muda nos top tbm
+-Bug do bunshin atacar de longe arrumado
+-Possivelmente foi melhorado a travada ao sumonar alguma coisa
+-Foi arrumado a cor dos kage: mizu,kaze e kumo
+
+##########SENDDATA
+
+4.9.1
+x Corrigido CT Kage livre do anti afk 
+
+Novidades 4.9
+x Zetsu na area vip(mesma exp que os espião)
+x Deidara dropando char
+x confirmação ao dropar e ao usar itens especiais(como chars)
+x Como gostavam do grafico do antigo tobi, foi colocado grafico aleatorio na transformação. Grafico do líder também é aleatório.
+x Hidan dropando char(boss Hidan the Immortal)
+x Char Sasori(ultimo dos chars especiais) e char Hidan dropado de boss.
+x O dano feito em guerra foi diminuido para deixar a guerra mais longa
+x Grafico do edo-tensei para deidara,itachi e sasori
+x CT exclusivo pros kages usando o comando /kage . Não precisa de ct para ir lá.
+x speed hack provavelmente arrumado
+x Novo tópico no 'Ajuda'. Mostra os horários dos eventos automaticos.
+x Eventos automaticos~Temos que pegar,TIP e GUERRA!
+x Evento semanal excluido. Sote OhYeh para substituir. Todo sábado as 20 horas é sorteado algum player. Ele pode ganhar 10K cash ou até mesmo algum char.
+x aumentado o tempo para falar no chat. Isso alivia o flood.
+######
+Bugs arrumados:
+x quando eh kikado por anti spam,ainda da para digitar no client
+x eh possivel dropar na sala de espera
+x player modo espectador que tiver na floresta da morte,é teleportado para o atendimento como se fosse concorrente
+x player continua modo espectador quando morre
+x desafio-quando começa a contagem da luta,o player ainda pode andar
+x quando muda o nick,o top lvl vai mudar junto
+x Grafico da transformação não aparecia se tivesse org(/semroupa arrumado)
+x Na guerra mesmo quem tinha morrido ia para o mapa da vitória
+x player que tava na luta conseguiu sair aceitando um desafio
+
+Novidades 4.8
+x arrumar as FACES do raikage,ele ta sem
+x evento temos que pegar(pokemon brbr)
+x Org vs Org retirado completamente(não tem como ser equilibrado)
+x Melhorar a inteligencia do pet(não ataca mais gm/ player em invisivel)
+x Resetados podem entrar na laços
+x Poça da vip3 dando 100 de chakra
+x Player resetado ta conseguindo entrar na laços
+x player resetado GENIN não ganha jutsu Chunin
+x teleporte do tobi sem erros. Não teleporta mais para cs,ct,vip,torneios,etc..
+x jutsu de org e jutsu de kage de acordo com o tipo de char
+x novos teleportes no painel vip
+x mensagem do vip anterior depois de colocar
+x tirar todos da floresta da morte quando der 18:10
+x quando o cara perde por W.O. não vai pra sala de espera
+x Proibir jutsu em zona segura
+x Arrumar o desafio,player sendo teleportado mesmo sem ter aceitado- luan henrique
+x Resetar stats ao trocar de char
+x Reset stats por 2k500 na loja
+x "modo ilegal"
+x aumento da area do mata mata(mapa da guerra agora)
+x jutsu da policia de konoha aumentado
+x yondaime jounin sem face
+x jutsu do zabuza linha reta era pra ser area
+x npcs importantes fixados nas vilas(parados)
+x sexta,sabado e domingo evento automatico de exp 3x
+x função recuperar senha atual usando a secreta e mudar a secreta usando a secreta atual.
+x otimizar o top lvl-deu uma trabalhera desgraçada
+x Opção de kage desistir do cargo. Comando /desistirdocargo
+x verificar o jutsu da katsuyu
+x arrumar bug do jutsu de puxar do pain
+x Manto de kage diferenciado para o lider da chuva
+x Char DARUI
+x Boss Darui
+x Projeto de torneio automatico
+
+
+Novidades 4.7~versão lançada para melhorar o lag dos jutus(tentar pelo menos)
+
+-alguns bugs corrigidos
+-alguns graficos novos-contribuição do nicolas
+-otimização da magia area/reta- Vamo torce para que tenha resolvido o lag pelos jutsus
+-no ks,ao ganhar ,vão ser teleportados de volta
+-transformação do kisame
+-rinnegan para tobi e pain
+-jutsu para manda/katsuyu
+-comando /painelvip e /painelextras para quem não consegue clicar(netbook)
+-Raikage~char tai para os chars especiais(de 50)
+bugs arrumados:
+ raikage sem bunshin
+x dojutsus 5-rinnegan,shark time- não acabam
+x defesa do raiton yoroi do raikage
+x mensagem +180
+x rinnegan pro madara
+x quando for kikar player,não volta pra tela inicial
+
+Novidades 4.6
+
+-Novo char: KONAN(dropada do boss). Chance 1 em 10
+-Defesa fixa do gaara,diminui um pouco o dano
+-aumentado o alcance de alguns jutsus
+-Quando estiver em uma guerra e relogar,sairá da guerra e irá ser teleportado para o atendimento. NUNCA RELOGUE SE QUIZER PARTICIPAR DA GUERRA
+-Caverna do deidara e hiruko como area segura
+-Poças de chakras colocadas na cav. deidara,area vip e floresta negra3
+-4 novos graficos de personagens
+-Agora caso o player esteja com os jutsus lotados,vai poder excluir 1
+-Chefe Konan usando jutsu
+-Checagem de kages-se não for kage,é tirado o rank
+-Corrigido o 'mudar senha'-limite de caractere
+-Colocado o 'esc' para sair na mensagem 'recebendo os dados do game'
+-Arrumado reset
+-Confirmação ao usar pergaminho de personagem. Só é avisado uma vez. Caso queira ser avisado denovo,relogue.
+-Criado o item por tempo LIMITADO-'Proteção Vital'. Vai ser vendida com o npc 'ARMAS NINJA'. Preço: 10K ervas medicinais.
+-divisão por level no cs
+-proibir a entrada de gennin+ no mapa dos bunshins(centro acadêmico)
+-Org x Org individual,atualizar o top manualmente
+-Evento de EXP automatico. 1 hora de evento nas 2 da madrugada e as 14 e 2 horas de evento as 20 horas.
+-comando /semroupa . desativa a roupa da org
+-Arrumado player sem vila com rank normal(pelas missoes de rank)
+-Kick forçado- o player pode kikar a conta usando login e senha
+-Excluido alguns jutsus(do sasuke,itachi e mizu no kinobori) para não bugar o pergaminho de char
+-Players em modo spectador não podem dropar/pegar itens
+-No meio de uma troca,quando alguem tira um item,tem um tempo de alguns segundos antes de poder clicar em 'aceitar'
+-Arrumado pontos bugados
+calculo: 
+player resetado:Level atual x 10 + 630(são os pontos que ganha ateh chegar no lvl 180+os pontos iniciais)
+player sem reset:Level atual x 5 + 615(são os pontos que ganha ateh chegar no lvl 180+os pontos iniciais)
+
+
+Novidades 4.5
+
+-Bugs arrumados(AFK 100%,agora vai ser possivel usar o F10 sem problemas,etc..)
+-Não vai ser mais possivel dropar(jogar fora) itens valiosos direto da mochila. Apenas usando o troca ou no caso dos itens cash,vendendo em loja.
+-Novos chars: Hashirama e Yamato(OBS: Os 2 possuem os MESMOS jutsus ou seja,só muda o gráfico)
+-Hashirama é ganho com doação direta no valor de 50,assim como itachi,madara e pain.
+-Yamato é vendido na loja cash
+-Novos lugares(shimogakure)
+-Novos npcs(samurais)
+-Novo Item(Capacete Samurai-200 all stat- dropado direto do Guardião Samurai)
+-Pergaminhos de personagens novos(quando doar para pegar um itachi por ex,vai ser dado o pergaminho do itachi para usar quando quizer)
+-Agora não é possivel mais mudar nick com caractere especial ou com espaço
+-Organização Esquadrão Shinobi liderada pelo GM_ETERNAL
+-Agora não vai ter como matar player sucessivamente assim evitando o ban desnecessario por fk
+-Missão sannin mudou itachi susanoo para itachi normal
+-Player que possue o char itachi ou madara ou pain ou hashirama pode usar os comandos /pain,/itachi,/madara,/hashirama para se transformar neles livremente.Foi colocado isso exclusivamente para eles para compensar a doação direta no valor de 50.
+~
+Melhoras na loja
+-Agora vai ser possivel vender itens cash comprados direto da loja pela metade do preço
+-Quando estiver em uma loja,ao clicar em um item da mochila ,ele diz se a loja quer aquele item e o preço que ele vai pagar
+~
+
+futuro:
+-reiniciamento toda 6 da manhã e programa que religa o game caso caia
+-atualizar grafico susanoo
