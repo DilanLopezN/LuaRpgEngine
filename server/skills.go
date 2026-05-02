@@ -207,7 +207,15 @@ func parseEnemyDef(raw interface{}, fallbackID string) (*EnemyDef, error) {
 	if name == "" {
 		name = id
 	}
-	return &EnemyDef{ID: id, Name: name, HP: hp, Speed: speed}, nil
+	xp := asInt(m["xp"])
+	if xp < 0 {
+		xp = 0
+	}
+	dmg := asInt(m["damage"])
+	if dmg < 0 {
+		dmg = 0
+	}
+	return &EnemyDef{ID: id, Name: name, HP: hp, Speed: speed, XP: xp, Damage: dmg}, nil
 }
 
 // parseSkillTree fills `out` from a table of the form

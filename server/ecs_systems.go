@@ -66,39 +66,103 @@ func (HealthSystem) Tick(w *ECSWorld, _ time.Time, _ time.Duration) {
 	})
 }
 
-// AISystem walks the AI component into the next State based on the
-// shipped enemy archetypes. Phase 3 only ships a placeholder
-// transition table (idle ⇄ chase) so we can prove the seam compiles
-// and exercises every component pointer; real behaviour lives in
-// data/scripts/enemies/* once Phase 4 hooks it up.
+// AISystem walks every enemy entity's AI: pick the closest player as
+// target, step toward them while out of range, and trigger a contact
+// attack when adjacent. The host wires the actual mutations through
+// callbacks so the system stays decoupled from gameplay state.
 type AISystem struct {
-	// Cb is invoked when the AI decides to act. The host wires this
-	// to gameplay primitives (move toward target, attack, etc.).
-	Cb func(self *Entity, action string)
+	// Targets is invoked once per tick to retrieve the targetable
+	// entities (typically: alive named players). Returning a fresh
+	// slice keeps the system free of locking concerns.
+	Targets func() []*Entity
+	// Step asks the host to move `self` one tile toward (tx, ty). The
+	// host enforces walkability; AISystem doesn't care whether the
+	// step actually landed.
+	Step func(self *Entity, tx, ty int)
+	// Attack asks the host to deliver one tick of contact damage from
+	// `self` to `target`.
+	Attack func(self, target *Entity)
+	// SightRange is the Chebyshev distance at which an idle enemy
+	// notices a player.
+	SightRange int
+	// AttackRange is the Chebyshev distance at which the AI attacks
+	// instead of stepping closer.
+	AttackRange int
 }
 
 func (s AISystem) Tick(w *ECSWorld, _ time.Time, _ time.Duration) {
+	if s.SightRange == 0 {
+		s.SightRange = 8
+	}
+	if s.AttackRange == 0 {
+		s.AttackRange = 1
+	}
+	var targets []*Entity
+	if s.Targets != nil {
+		targets = s.Targets()
+	}
+
 	w.Each(func(e *Entity) {
 		ai := e.AI
-		if ai == nil {
+		if ai == nil || ai.Kind == "" || e.Kind != KindEnemy {
 			return
 		}
-		switch ai.State {
-		case "":
+		if ai.State == "" {
 			ai.State = "idle"
-		case "idle":
-			if ai.Target != 0 {
-				ai.State = "chase"
-				if s.Cb != nil {
-					s.Cb(e, "engage")
-				}
+		}
+
+		// Refresh target: nearest visible candidate, or 0 when none.
+		var (
+			nearest *Entity
+			bestD   int
+		)
+		for _, t := range targets {
+			if t == nil || t.Position == nil {
+				continue
 			}
-		case "chase":
-			if ai.Target == 0 {
-				ai.State = "idle"
+			d := chebyshev(e.Position, t.Position)
+			if d > s.SightRange {
+				continue
+			}
+			if nearest == nil || d < bestD {
+				nearest = t
+				bestD = d
 			}
 		}
+		if nearest == nil {
+			ai.Target = 0
+			ai.State = "idle"
+			return
+		}
+		ai.Target = nearest.ID
+
+		if bestD <= s.AttackRange {
+			ai.State = "attack"
+			if s.Attack != nil {
+				s.Attack(e, nearest)
+			}
+			return
+		}
+		ai.State = "chase"
+		if s.Step != nil {
+			s.Step(e, nearest.Position.X, nearest.Position.Y)
+		}
 	})
+}
+
+func chebyshev(a, b *CPosition) int {
+	dx := a.X - b.X
+	if dx < 0 {
+		dx = -dx
+	}
+	dy := a.Y - b.Y
+	if dy < 0 {
+		dy = -dy
+	}
+	if dx > dy {
+		return dx
+	}
+	return dy
 }
 
 // SystemPipeline runs a fixed list of systems in order on every tick
@@ -111,6 +175,10 @@ type SystemPipeline struct {
 // NewDefaultPipeline returns the Phase-3 baseline order: movement
 // settles step animations first so HealthSystem sees the new tile,
 // AISystem reacts last so it always operates on freshly clamped HP.
+//
+// The default pipeline ships with an inert AISystem (no callbacks set);
+// the live game replaces it with a bound system that knows how to move
+// and attack via the host. Tests can keep using the inert default.
 func NewDefaultPipeline() *SystemPipeline {
 	return &SystemPipeline{
 		Systems: []System{
