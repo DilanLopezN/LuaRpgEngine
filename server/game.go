@@ -143,6 +143,16 @@ type Player struct {
 
 	NextShout time.Time
 
+	// Phase 5 — per-connection input throttle. nil for tests that
+	// bypass addPlayer; the helpers in input.go nil-check before use.
+	Throttle *inputThrottle
+
+	// Phase 5 — per-player AoI / snapshot diff state. The host fills
+	// LastSeen each tick with the entities the client now knows about
+	// so the next tick can emit only what changed.
+	LastSeen map[snapKey]snapState
+	LastFull time.Time
+
 	Out chan<- string
 
 	// Phase 3 — ECS mirror. Components live on the entity; the
@@ -199,11 +209,6 @@ type Game struct {
 	ecs      *ECSWorld
 	pipeline *SystemPipeline
 	tickN    int64
-
-	// snapBuf is reused across ticks to avoid allocating a fresh
-	// strings.Builder backing slice every 33ms. Mutated only under
-	// g.mu inside buildSnapshotLocked.
-	snapBuf strings.Builder
 
 	// aiOutbox queues wire frames produced by the AISystem callbacks
 	// while g.mu is held; the host flushes it after releasing the
@@ -389,6 +394,8 @@ func (g *Game) addPlayer(out chan<- string) *Player {
 		Stats:        &CStats{Level: 1, NextX: defaultProgression().XPBase},
 		Equipped:     make(EquippedSet),
 		Quests:       make(map[string]*QuestState),
+		Throttle:     newInputThrottle(),
+		LastSeen:     make(map[snapKey]snapState),
 		Out:          out,
 	}
 	g.players[p.ID] = p
@@ -530,6 +537,12 @@ func (g *Game) removePlayer(id int) {
 }
 
 func (g *Game) handleLine(p *Player, line string) {
+	if p != nil && p.Throttle != nil && !p.Throttle.allowGlobal(time.Now()) {
+		// Drop this command entirely. Legitimate clients never trip the
+		// global bucket; floods are absorbed silently to avoid feeding
+		// any signal back to the attacker.
+		return
+	}
 	if strings.HasPrefix(line, "SAVE_MAP ") {
 		g.handleSaveMap(p, strings.TrimPrefix(line, "SAVE_MAP "))
 		return
@@ -575,17 +588,18 @@ func (g *Game) handleLine(p *Player, line string) {
 			g.sendMapTo(bound)
 			g.sendCharacterState(bound)
 		}
-	case "MOVE":
+	case "MOVE", "WSAD":
 		if len(parts) != 3 {
 			return
 		}
-		dx := parseDir(parts[1])
-		dy := parseDir(parts[2])
-		g.mu.Lock()
-		p.DirX, p.DirY = dx, dy
-		g.mu.Unlock()
+		dx, ok1 := parseDirToken(parts[1])
+		dy, ok2 := parseDirToken(parts[2])
+		if !ok1 || !ok2 {
+			return
+		}
+		g.applyMoveIntent(p, dx, dy)
 	case "ATTACK":
-		g.handleAttack(p)
+		g.applyAttackIntent(p)
 	case "REGSPELL":
 		g.handleRegSpell(p, parts[1:])
 	case "DELSPELL":
@@ -961,16 +975,6 @@ func (g *Game) handleCast(p *Player, spellID string) {
 	g.creditKills(pid, out)
 }
 
-func parseDir(s string) int {
-	switch s {
-	case "-1":
-		return -1
-	case "1":
-		return 1
-	}
-	return 0
-}
-
 func sanitizeName(s string) string {
 	var b strings.Builder
 	for _, r := range s {
@@ -1013,12 +1017,16 @@ func (g *Game) snapshotOutsLocked() []chan<- string {
 }
 
 func (g *Game) broadcast(outs []chan<- string, msg string) {
+	if msg == "" {
+		return
+	}
 	for _, out := range outs {
 		select {
 		case out <- msg:
 		default:
 		}
 	}
+	metricsBroadcastObserved(len(outs))
 }
 
 func (g *Game) tick(now time.Time) {
@@ -1039,13 +1047,38 @@ func (g *Game) tick(now time.Time) {
 		g.pipeline.Tick(g.ecs, now, dt)
 	}
 
-	msg := g.buildSnapshotLocked(now)
+	// Phase 5 — per-player AoI + snapshot diff. Each named player gets
+	// only the entities within their interest radius, and only the
+	// ones whose state changed since the last tick.
+	type perPlayer struct {
+		out chan<- string
+		msg string
+	}
+	frames := make([]perPlayer, 0, len(g.players))
+	for _, p := range g.players {
+		if p.Name == "" {
+			continue
+		}
+		frames = append(frames, perPlayer{
+			out: p.Out,
+			msg: g.buildPlayerSnapshot(p, now),
+		})
+	}
 	outs := g.snapshotOutsLocked()
 	flush := append([]string(nil), g.aiOutbox...)
 
 	g.mu.Unlock()
 
-	g.broadcast(outs, msg)
+	for _, f := range frames {
+		if f.msg == "" {
+			continue
+		}
+		select {
+		case f.out <- f.msg:
+		default:
+		}
+	}
+	metricsTickObserved(len(frames))
 	for _, e := range deadEnemies {
 		g.broadcast(outs, fmt.Sprintf("EDIE %d\n", e.ID))
 	}
@@ -1055,55 +1088,6 @@ func (g *Game) tick(now time.Time) {
 	for _, m := range flush {
 		g.broadcast(outs, m)
 	}
-}
-
-// buildSnapshotLocked emits the per-tick "P"/"E"/"N" wire frame.
-// Caller must hold g.mu.
-//
-// Phase 3 — gameplay code still owns Player / Enemy structs (the
-// network IDs come from there to keep wire-protocol stability), but
-// the field values come exclusively from the ECS Entity components
-// that syncECSLocked freshly populated. New component kinds appear in
-// the snapshot without touching this loop.
-func (g *Game) buildSnapshotLocked(now time.Time) string {
-	if len(g.players) == 0 && len(g.enemies) == 0 && g.ecs == nil {
-		return ""
-	}
-	g.snapBuf.Reset()
-	for _, p := range g.players {
-		if p.Name == "" || p.Entity == nil || p.Entity.Position == nil || p.Entity.Health == nil {
-			continue
-		}
-		pos := p.Entity.Position
-		hp := p.Entity.Health
-		x, y := positionInterpolated(pos, now)
-		atk := 0
-		if p.Entity.Combat != nil && now.Before(p.Entity.Combat.AttackUntil) {
-			atk = 1
-		}
-		fmt.Fprintf(&g.snapBuf, "P %d %.3f %.3f %d %d %d %d %d %d %d %s\n",
-			p.ID, x, y, pos.FaceX, pos.FaceY,
-			hp.HP, hp.MaxHP, hp.MP, hp.MaxMP, atk, p.Name)
-	}
-	for _, e := range g.enemies {
-		if e.Entity == nil || e.Entity.Position == nil || e.Entity.Health == nil {
-			continue
-		}
-		pos := e.Entity.Position
-		hp := e.Entity.Health
-		fmt.Fprintf(&g.snapBuf, "E %d %s %d %d %d %d\n",
-			e.ID, e.Kind, pos.X, pos.Y, hp.HP, hp.MaxHP)
-	}
-	if g.ecs != nil {
-		g.ecs.Each(func(en *Entity) {
-			if en.Kind != KindNPC || en.Position == nil {
-				return
-			}
-			fmt.Fprintf(&g.snapBuf, "N %d %s %d %d\n",
-				en.ID, en.Name, en.Position.X, en.Position.Y)
-		})
-	}
-	return g.snapBuf.String()
 }
 
 // positionInterpolated mirrors Player.interpolated but runs on a

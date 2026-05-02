@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"net"
 	"os"
 )
@@ -24,10 +23,13 @@ func main() {
 
 	ln, err := net.Listen("tcp", listenAddr)
 	if err != nil {
-		log.Fatalf("listen: %v", err)
+		mlog.Error("listen failed", "addr", listenAddr, "err", err.Error())
+		os.Exit(1)
 	}
 	defer ln.Close()
-	log.Printf("LuaRpgEngine server listening on %s", listenAddr)
+	mlog.Info("LuaRpgEngine server listening", "addr", listenAddr)
+
+	startMetricsServer()
 
 	game := NewGame(db, cache)
 	go game.Loop()
@@ -35,7 +37,7 @@ func main() {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Printf("accept: %v", err)
+			mlog.Warn("accept failed", "err", err.Error())
 			continue
 		}
 		go game.HandleConn(conn)

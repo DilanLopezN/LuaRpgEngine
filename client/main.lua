@@ -1,17 +1,21 @@
 -- Entry point. Wires LÖVE callbacks into the engine modules and keeps the
 -- per-frame loop minimal. Every responsibility lives in src/:
---   network.lua   – TCP transport
---   protocol.lua  – wire-format parser
---   state.lua     – shared mutable state
---   spells.lua    – dynamic spell registry (created via the editor)
---   editor.lua    – F1 in-game editor (Spell Creator tab)
---   skillbar.lua  – 5 hot slots, drag/drop, casting
---   render.lua    – world drawing (floor, players, enemies, spell FX)
---   hud.lua       – HP/MP bars and status
---   input.lua     – keyboard/mouse dispatch and movement
---   scenes.lua    – non-gameplay scenes (name entry, connecting)
---   world.lua     – tile maths
---   icons.lua     – spell icon rendering shared by skillbar + editor
+--   network.lua    – TCP transport
+--   protocol.lua   – wire-format parser
+--   state.lua      – shared mutable state
+--   spells.lua     – dynamic spell registry (created via the editor)
+--   editor.lua     – F1 in-game editor (Spell Creator tab)
+--   skillbar.lua   – 5 hot slots, drag/drop, casting
+--   render.lua     – world drawing (floor, players, enemies, NPCs, FX)
+--   hud.lua        – HP/MP bars, character header
+--   charpanel.lua  – F2 character panel (stats/inventory/quests)
+--   chatui.lua     – chat overlay (T to open)
+--   dialogui.lua   – NPC dialog modal
+--   toasts.lua     – transient notifications (loot, XP, level)
+--   input.lua      – keyboard/mouse dispatch and movement
+--   scenes.lua     – non-gameplay scenes (name entry, connecting)
+--   world.lua      – tile maths
+--   icons.lua      – spell icon rendering shared by skillbar + editor
 
 local State    = require("src.state")
 local World    = require("src.world")
@@ -26,6 +30,10 @@ local Scenes   = require("src.scenes")
 local Input    = require("src.input")
 local Map      = require("src.map")
 local Tooltip  = require("src.tooltip")
+local CharPanel = require("src.charpanel")
+local Chat     = require("src.chatui")
+local Dialog   = require("src.dialogui")
+local Toasts   = require("src.toasts")
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
@@ -65,6 +73,7 @@ function love.update(dt)
         State.activeSpells = kept
     end
 
+    Toasts.update()
     Input.update(dt)
 
     if State.scene == State.SCENE_PLAYING then
@@ -93,6 +102,10 @@ function love.draw()
     HUD.draw()
     Editor.draw()
     Skillbar.draw()
+    CharPanel.draw()
+    Chat.draw()
+    Dialog.draw()
+    Toasts.draw()
     Tooltip.draw()
 end
 

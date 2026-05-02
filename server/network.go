@@ -2,19 +2,27 @@ package main
 
 import (
 	"bufio"
-	"log"
 	"net"
 )
+
+// Per-connection wire size cap. The largest legitimate payload is a
+// SAVE_MAP JSON blob; anything beyond saveMapMaxPayload is malformed
+// or hostile and gets dropped at the scanner.
+const networkMaxLineBytes = saveMapMaxPayload + 64*1024
 
 func (g *Game) HandleConn(conn net.Conn) {
 	defer conn.Close()
 
 	out := make(chan string, 64)
 	p := g.addPlayer(out)
-	log.Printf("player %d connected from %s", p.ID, conn.RemoteAddr())
+	metricsConnOpened()
+	mlog.Info("player connected",
+		"id", p.ID,
+		"remote", conn.RemoteAddr().String())
 	defer func() {
 		g.removePlayer(p.ID)
-		log.Printf("player %d disconnected", p.ID)
+		metricsConnClosed()
+		mlog.Info("player disconnected", "id", p.ID)
 	}()
 
 	writeDone := make(chan struct{})
@@ -32,7 +40,9 @@ func (g *Game) HandleConn(conn net.Conn) {
 	}()
 
 	scanner := bufio.NewScanner(conn)
+	scanner.Buffer(make([]byte, 64*1024), networkMaxLineBytes)
 	for scanner.Scan() {
+		metricsLineObserved()
 		g.handleLine(p, scanner.Text())
 	}
 
