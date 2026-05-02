@@ -102,11 +102,19 @@ local function handleSnapshot(line)
             end
         end
     elseif kind == "N" then
-        local id, name, x, y = rest:match("^(%-?%d+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)$")
+        -- Sprite token is optional. Servers running the new wire format
+        -- ship "N <id> <name> <x> <y> <sprite>" — older builds stop at y.
+        local id, name, x, y, sprite =
+            rest:match("^(%-?%d+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+(%S+)$")
+        if not id then
+            id, name, x, y = rest:match("^(%-?%d+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)$")
+        end
         if id then
             id = tonumber(id)
+            if sprite == "-" or sprite == "" then sprite = nil end
             State.npcs[id] = {
                 id = id, name = name,
+                sprite = sprite,
                 x = tonumber(x), y = tonumber(y),
             }
         end

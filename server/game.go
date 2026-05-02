@@ -269,19 +269,22 @@ func (g *Game) spawnNPCsFromMap() {
 		if ent.Type != "npc" {
 			continue
 		}
-		g.spawnNPC(ent.Kind, ent.X, ent.Y)
+		g.spawnNPC(ent.Kind, ent.Sprite, ent.X, ent.Y)
 	}
 }
 
 // spawnNPC adds an NPC entity to the ECS world. NPCs do not move and
-// have no Health component — talking to them ignores HP.
-func (g *Game) spawnNPC(kind string, x, y int) *Entity {
+// have no Health component — talking to them ignores HP. Sprite is the
+// client-side artwork id chosen in the "Criar NPCs" editor; an empty
+// string means "use the default look".
+func (g *Game) spawnNPC(kind, sprite string, x, y int) *Entity {
 	if g.ecs == nil {
 		return nil
 	}
 	return g.ecs.Add(&Entity{
-		Kind: KindNPC,
-		Name: kind,
+		Kind:   KindNPC,
+		Name:   kind,
+		Sprite: sprite,
 		Position: &CPosition{
 			X: x, Y: y, FromX: x, FromY: y,
 		},

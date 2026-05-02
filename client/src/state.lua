@@ -25,7 +25,7 @@ M.drag        = nil
 M.mouse       = { x = 0, y = 0 }
 
 M.editorOpen     = false
-M.editorTab      = "map"
+M.editorTab      = "map"   -- "map" | "spells" | "npcs"
 M.editorSelected = nil
 M.editorFocus    = nil
 
@@ -58,6 +58,18 @@ M.mapEditor = {
     history       = {},          -- undo stack of map snapshots
     redo          = {},
     activeStroke  = nil,         -- snapshot pushed at drag start
+}
+
+-- NPC editor (Criar NPCs tab). Tracks the selected sprite, the kind/name to
+-- assign to placed instances, and the save status. Placement itself writes
+-- straight into Map.current.entities and is persisted via SAVE_MAP, sharing
+-- the map editor's pipeline.
+M.npcEditor = {
+    spriteId    = "npc_knight",  -- id from Sprites.npcSprites
+    npcKind     = "guard",       -- script id (data/scripts/npcs/<id>.lua) used for dialog
+    saveStatus  = "",
+    listScroll  = 0,             -- placed-NPC list scroll offset (px)
+    paletteScroll = 0,           -- sprite picker scroll offset (px)
 }
 
 -- Phase 4 — character sheet. Populated by STATS / SKILL_POINTS frames.

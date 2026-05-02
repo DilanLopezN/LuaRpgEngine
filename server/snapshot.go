@@ -55,6 +55,7 @@ type snapState struct {
 	atk         bool   // player attack flag
 	name        string // player name / npc kind
 	kind        string // enemy kind (sprite hint)
+	sprite      string // npc sprite id (Sprites.npcSprites key)
 	missingKey  bool   // sentinel: never written, used as zero-value check
 }
 
@@ -157,9 +158,20 @@ func (g *Game) buildPlayerSnapshot(viewer *Player, now time.Time) string {
 			if !inAoI(cx, cy, en.Position.X, en.Position.Y) {
 				return
 			}
-			st := snapState{x: en.Position.X, y: en.Position.Y, name: en.Name}
-			line := fmt.Sprintf("N %d %s %d %d\n",
-				en.ID, en.Name, en.Position.X, en.Position.Y)
+			sprite := en.Sprite
+			if sprite == "" {
+				sprite = "-"
+			}
+			st := snapState{
+				x: en.Position.X, y: en.Position.Y,
+				name:   en.Name,
+				sprite: en.Sprite,
+			}
+			// Wire format: `N <id> <name> <x> <y> <sprite>`. The trailing
+			// sprite token is "-" when no artwork is assigned so older
+			// clients (which stop parsing at y) keep working unchanged.
+			line := fmt.Sprintf("N %d %s %d %d %s\n",
+				en.ID, en.Name, en.Position.X, en.Position.Y, sprite)
 			emit(snapKey{'N', int(en.ID)}, st, line)
 		})
 	}

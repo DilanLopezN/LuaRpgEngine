@@ -128,7 +128,10 @@ function M.snapshot()
         copy.layers[name] = dst
     end
     for i, e in ipairs(m.entities) do
-        copy.entities[i] = { type = e.type, kind = e.kind, x = e.x, y = e.y }
+        copy.entities[i] = {
+            type = e.type, kind = e.kind, sprite = e.sprite,
+            x = e.x, y = e.y,
+        }
     end
     return copy
 end
@@ -149,7 +152,10 @@ function M.restore(snap)
     end
     m.entities = {}
     for i, e in ipairs(snap.entities) do
-        m.entities[i] = { type = e.type, kind = e.kind, x = e.x, y = e.y }
+        m.entities[i] = {
+            type = e.type, kind = e.kind, sprite = e.sprite,
+            x = e.x, y = e.y,
+        }
     end
 end
 

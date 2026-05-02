@@ -11,6 +11,41 @@ M.animations = {}
 local CHAR = "assets/Pixel Crawler - Free Pack/Entities/Characters/Body_A/Animations"
 local ORC  = "assets/Pixel Crawler - Free Pack/Entities/Mobs/Orc Crew/Orc"
 
+-- NPC sprite catalog. Each entry registers an "<id>_idle" animation pulled
+-- from the Pixel Crawler pack and a label/category used by the NPC editor's
+-- sprite picker. Sheets in this pack are 128x32 (4 frames of 32x32) for the
+-- idle pose, so we hardcode that shape — adding new sprites with a different
+-- frame size means extending this list, not the loader.
+local NPC_SPRITE_DEFS = {
+    -- Friendly NPCs.
+    { id = "npc_knight",  label = "Cavaleiro", category = "NPC",
+      path = "assets/Pixel Crawler - Free Pack/Entities/Npc's/Knight/Idle/Idle-Sheet.png" },
+    { id = "npc_rogue",   label = "Ladina",    category = "NPC",
+      path = "assets/Pixel Crawler - Free Pack/Entities/Npc's/Rogue/Idle/Idle-Sheet.png" },
+    { id = "npc_wizzard", label = "Mago",      category = "NPC",
+      path = "assets/Pixel Crawler - Free Pack/Entities/Npc's/Wizzard/Idle/Idle-Sheet.png" },
+    -- Mobs reusable as quest givers / hostile NPCs.
+    { id = "mob_orc",          label = "Orc",          category = "Orc",
+      path = ORC .. "/Idle/Idle-Sheet.png" },
+    { id = "mob_orc_warrior",  label = "Orc Guerreiro", category = "Orc",
+      path = "assets/Pixel Crawler - Free Pack/Entities/Mobs/Orc Crew/Orc - Warrior/Idle/Idle-Sheet.png" },
+    { id = "mob_orc_rogue",    label = "Orc Ladino",    category = "Orc",
+      path = "assets/Pixel Crawler - Free Pack/Entities/Mobs/Orc Crew/Orc - Rogue/Idle/Idle-Sheet.png" },
+    { id = "mob_orc_shaman",   label = "Orc Xamã",      category = "Orc",
+      path = "assets/Pixel Crawler - Free Pack/Entities/Mobs/Orc Crew/Orc - Shaman/Idle/Idle-Sheet.png" },
+    { id = "mob_skeleton",         label = "Esqueleto",          category = "Esqueleto",
+      path = "assets/Pixel Crawler - Free Pack/Entities/Mobs/Skeleton Crew/Skeleton - Base/Idle/Idle-Sheet.png" },
+    { id = "mob_skeleton_warrior", label = "Esqueleto Guerreiro", category = "Esqueleto",
+      path = "assets/Pixel Crawler - Free Pack/Entities/Mobs/Skeleton Crew/Skeleton - Warrior/Idle/Idle-Sheet.png" },
+    { id = "mob_skeleton_rogue",   label = "Esqueleto Ladino",    category = "Esqueleto",
+      path = "assets/Pixel Crawler - Free Pack/Entities/Mobs/Skeleton Crew/Skeleton - Rogue/Idle/Idle-Sheet.png" },
+    { id = "mob_skeleton_mage",    label = "Esqueleto Mago",      category = "Esqueleto",
+      path = "assets/Pixel Crawler - Free Pack/Entities/Mobs/Skeleton Crew/Skeleton - Mage/Idle/Idle-Sheet.png" },
+}
+
+M.npcSprites = {}     -- list of { id, label, category, animName }
+M.npcSpritesById = {} -- id -> npcSprite entry
+
 local function loadImage(path)
     if M.images[path] then return M.images[path] end
     local ok, img = pcall(love.graphics.newImage, path)
@@ -56,6 +91,33 @@ function M.init()
 
     defAnim("orc_idle", ORC .. "/Idle/Idle-Sheet.png", 4, 32, 32, 0.18)
     defAnim("orc_run",  ORC .. "/Run/Run-Sheet.png",   6, 64, 64, 0.10)
+
+    -- NPC catalog. Animations are registered as "<id>_idle"; the editor's
+    -- sprite picker consumes M.npcSprites to render thumbnails. Each entry
+    -- only loads if the underlying sheet is found, so a missing asset just
+    -- drops the option from the picker instead of crashing on boot.
+    M.npcSprites = {}
+    M.npcSpritesById = {}
+    for _, def in ipairs(NPC_SPRITE_DEFS) do
+        local animName = def.id .. "_idle"
+        defAnim(animName, def.path, 4, 32, 32, 0.18)
+        if M.animations[animName] then
+            local entry = {
+                id = def.id, label = def.label, category = def.category,
+                animName = animName,
+            }
+            M.npcSprites[#M.npcSprites + 1] = entry
+            M.npcSpritesById[def.id] = entry
+        end
+    end
+end
+
+-- Returns the NPC sprite entry for the given id, or nil. Renderers fall back
+-- to a placeholder when the sprite is missing so saved maps from older builds
+-- still load.
+function M.npcSprite(id)
+    if not id or id == "" then return nil end
+    return M.npcSpritesById[id]
 end
 
 function M.frame(name, t)
