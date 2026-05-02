@@ -74,12 +74,7 @@ func (g *Game) DamageEntity(id, amount int) bool {
 		p.HP -= amount
 		hitPlayerID = p.ID
 		if p.HP <= 0 {
-			p.HP = p.MaxHP
-			p.Stepping = false
-			p.DirX, p.DirY = 0, 0
-			sx, sy := g.findSpawn(p.ID)
-			p.TileX, p.TileY = sx, sy
-			p.FromX, p.FromY = sx, sy
+			g.respawnPlayer(p)
 			killedID = p.ID
 		}
 	} else {
@@ -384,12 +379,7 @@ func (g *Game) applyEffects(caster *Player, sk *Skill, targets []skillTarget) (h
 					t.player.HP -= value
 					pHits = append(pHits, t.player.ID)
 					if t.player.HP <= 0 {
-						t.player.HP = t.player.MaxHP
-						t.player.Stepping = false
-						t.player.DirX, t.player.DirY = 0, 0
-						sx, sy := g.findSpawn(t.player.ID)
-						t.player.TileX, t.player.TileY = sx, sy
-						t.player.FromX, t.player.FromY = sx, sy
+						g.respawnPlayer(t.player)
 						pKilled = append(pKilled, t.player.ID)
 					}
 				}
@@ -488,12 +478,7 @@ func (g *Game) tickStatuses(now time.Time) (deadEnemies []*Enemy, deadPlayers []
 		}
 		p.Statuses = next
 		if p.HP <= 0 {
-			p.HP = p.MaxHP
-			p.Stepping = false
-			p.DirX, p.DirY = 0, 0
-			sx, sy := g.findSpawn(p.ID)
-			p.TileX, p.TileY = sx, sy
-			p.FromX, p.FromY = sx, sy
+			g.respawnPlayer(p)
 			p.Statuses = nil
 			deadPlayers = append(deadPlayers, p.ID)
 		}
