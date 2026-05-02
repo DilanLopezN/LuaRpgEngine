@@ -192,6 +192,104 @@ func (g *Game) ScheduleEvent(name string, delayMs int, payload string) {
 		name, delayMs, payload)
 }
 
+// DropItem is the ScriptHost surface for loot. It defers to rollDrop.
+func (g *Game) DropItem(killerID int, itemID string, qty, chance int) bool {
+	return g.rollDrop(killerID, itemID, qty, chance)
+}
+
+// GiveItem grants qty of itemID to a player by ID. Returns the actual
+// quantity added (capped by inventory capacity). Safe to call from
+// anywhere — acquires g.mu internally.
+func (g *Game) GiveItem(playerID int, itemID string, qty int) int {
+	if g.scripts == nil {
+		return 0
+	}
+	def, ok := g.scripts.Item(itemID)
+	if !ok {
+		return 0
+	}
+	g.mu.Lock()
+	p, ok := g.players[playerID]
+	if !ok || p.Name == "" {
+		g.mu.Unlock()
+		return 0
+	}
+	added := g.addItem(p, def, qty)
+	wire := inventoryWire(p)
+	out := p.Out
+	character := p.Name
+	g.mu.Unlock()
+	if added <= 0 {
+		return 0
+	}
+	if g.db != nil {
+		g.db.SaveInventory(character, p)
+	}
+	sendNow(out, wire)
+	sendNow(out, fmt.Sprintf("LOOT %s %d\n", itemID, added))
+	return added
+}
+
+// GiveXP awards XP and rolls level-ups. Returns the number of levels
+// gained, so Lua callers can branch on the result.
+func (g *Game) GiveXP(playerID, amount int) int {
+	if amount <= 0 {
+		return 0
+	}
+	g.mu.Lock()
+	p, ok := g.players[playerID]
+	if !ok || p.Name == "" {
+		g.mu.Unlock()
+		return 0
+	}
+	gained := g.awardXP(p, amount)
+	wire := characterStatsLocked(p)
+	out := p.Out
+	character := p.Name
+	hp, maxHp, mp, maxMp, kills, x, y := p.HP, p.MaxHP, p.MP, p.MaxMP, p.Kills, p.TileX, p.TileY
+	st := *p.Stats
+	gold := p.Gold
+	g.mu.Unlock()
+	if g.db != nil && character != "" {
+		g.db.Save(character, hp, maxHp, mp, maxMp, kills, x, y)
+		g.db.SaveProgression(character, st.Level, st.XP, st.Str, st.Dex, st.Int, st.Vit, gold)
+	}
+	sendNow(out, wire)
+	sendNow(out, fmt.Sprintf("XP_GAIN %d\n", amount))
+	if gained > 0 {
+		sendNow(out, fmt.Sprintf("LEVELUP %d\n", gained))
+	}
+	return gained
+}
+
+// GiveGold credits gold and pushes a fresh STATS frame.
+func (g *Game) GiveGold(playerID, amount int) int {
+	if amount == 0 {
+		return 0
+	}
+	g.mu.Lock()
+	p, ok := g.players[playerID]
+	if !ok || p.Name == "" {
+		g.mu.Unlock()
+		return 0
+	}
+	p.Gold += amount
+	if p.Gold < 0 {
+		p.Gold = 0
+	}
+	gold := p.Gold
+	wire := characterStatsLocked(p)
+	out := p.Out
+	character := p.Name
+	st := *p.Stats
+	g.mu.Unlock()
+	if g.db != nil && character != "" {
+		g.db.SaveProgression(character, st.Level, st.XP, st.Str, st.Dex, st.Int, st.Vit, gold)
+	}
+	sendNow(out, wire)
+	return amount
+}
+
 // --- skill casting ---------------------------------------------------------
 
 // handleCastSkill resolves a global, data-driven skill cast. Validation
@@ -252,6 +350,7 @@ func (g *Game) handleCastSkill(p *Player, skillID string) {
 		outs = append(outs, op.Out)
 	}
 	playerName := p.Name
+	pid := p.ID
 	g.mu.Unlock()
 
 	g.broadcast(outs, wire)
@@ -270,6 +369,7 @@ func (g *Game) handleCastSkill(p *Player, skillID string) {
 			g.cache.RecordKill(playerName)
 		}
 	}
+	g.creditKills(pid, combatOutcome{enemyKilled: killed})
 }
 
 // skillTarget bundles a candidate together with whether it is the
@@ -363,6 +463,9 @@ func (g *Game) applyEffects(caster *Player, sk *Skill, targets []skillTarget) (h
 			}
 			if eff.Scale > 0 && eff.Value > 0 {
 				value = int(float64(eff.Value) * eff.Scale)
+			}
+			if eff.Type == "damage" || eff.Type == "heal" {
+				value = applyStatScaling(value, sk.Scaling, caster.Stats)
 			}
 			switch eff.Type {
 			case "damage":

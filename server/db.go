@@ -54,6 +54,34 @@ func initSchema(conn *sql.DB) error {
 		`ALTER TABLE players ADD COLUMN IF NOT EXISTS mp     INTEGER NOT NULL DEFAULT 100`,
 		`ALTER TABLE players ADD COLUMN IF NOT EXISTS max_mp INTEGER NOT NULL DEFAULT 100`,
 		`ALTER TABLE players ADD COLUMN IF NOT EXISTS skill_points INTEGER NOT NULL DEFAULT 3`,
+		`ALTER TABLE players ADD COLUMN IF NOT EXISTS level INTEGER NOT NULL DEFAULT 1`,
+		`ALTER TABLE players ADD COLUMN IF NOT EXISTS xp    INTEGER NOT NULL DEFAULT 0`,
+		`ALTER TABLE players ADD COLUMN IF NOT EXISTS str   INTEGER NOT NULL DEFAULT 1`,
+		`ALTER TABLE players ADD COLUMN IF NOT EXISTS dex   INTEGER NOT NULL DEFAULT 1`,
+		`ALTER TABLE players ADD COLUMN IF NOT EXISTS intel INTEGER NOT NULL DEFAULT 1`,
+		`ALTER TABLE players ADD COLUMN IF NOT EXISTS vit   INTEGER NOT NULL DEFAULT 1`,
+		`ALTER TABLE players ADD COLUMN IF NOT EXISTS gold  INTEGER NOT NULL DEFAULT 0`,
+		`CREATE TABLE IF NOT EXISTS character_inventory (
+			character_name TEXT NOT NULL,
+			slot_index     INTEGER NOT NULL,
+			item_id        TEXT NOT NULL,
+			qty            INTEGER NOT NULL,
+			PRIMARY KEY (character_name, slot_index)
+		)`,
+		`CREATE TABLE IF NOT EXISTS character_equipped (
+			character_name TEXT NOT NULL,
+			slot           TEXT NOT NULL,
+			item_id        TEXT NOT NULL,
+			PRIMARY KEY (character_name, slot)
+		)`,
+		`CREATE TABLE IF NOT EXISTS character_quests (
+			character_name TEXT NOT NULL,
+			quest_id       TEXT NOT NULL,
+			stage          TEXT NOT NULL DEFAULT 'active',
+			kill_count     INTEGER NOT NULL DEFAULT 0,
+			done           BOOLEAN NOT NULL DEFAULT FALSE,
+			PRIMARY KEY (character_name, quest_id)
+		)`,
 		`CREATE TABLE IF NOT EXISTS character_learned_skills (
 			character_name TEXT NOT NULL,
 			skill_id       TEXT NOT NULL,
@@ -92,6 +120,12 @@ type PlayerRecord struct {
 	Kills       int
 	X, Y        int
 	SkillPoints int
+	// Phase 4 — character sheet.
+	Level    int
+	XP       int
+	Str, Dex int
+	Int, Vit int
+	Gold     int
 }
 
 func (d *DB) LoadOrCreate(name string) PlayerRecord {
@@ -100,14 +134,19 @@ func (d *DB) LoadOrCreate(name string) PlayerRecord {
 		MP: 100, MaxMP: 100,
 		Kills: 0, X: 10, Y: 10,
 		SkillPoints: 3,
+		Level:       1,
+		Str:         1, Dex: 1, Int: 1, Vit: 1,
 	}
 	if d.conn == nil {
 		return rec
 	}
 	err := d.conn.QueryRow(
-		`SELECT hp, max_hp, mp, max_mp, kills, last_x, last_y, skill_points
+		`SELECT hp, max_hp, mp, max_mp, kills, last_x, last_y, skill_points,
+		        level, xp, str, dex, intel, vit, gold
 		   FROM players WHERE name=$1`, name,
-	).Scan(&rec.HP, &rec.MaxHP, &rec.MP, &rec.MaxMP, &rec.Kills, &rec.X, &rec.Y, &rec.SkillPoints)
+	).Scan(&rec.HP, &rec.MaxHP, &rec.MP, &rec.MaxMP, &rec.Kills,
+		&rec.X, &rec.Y, &rec.SkillPoints,
+		&rec.Level, &rec.XP, &rec.Str, &rec.Dex, &rec.Int, &rec.Vit, &rec.Gold)
 	if err == sql.ErrNoRows {
 		_, _ = d.conn.Exec(`INSERT INTO players(name) VALUES($1)`, name)
 		return rec
@@ -116,6 +155,155 @@ func (d *DB) LoadOrCreate(name string) PlayerRecord {
 		log.Printf("postgres load %s: %v", name, err)
 	}
 	return rec
+}
+
+func (d *DB) SaveProgression(name string, level, xp, str, dex, intel, vit, gold int) {
+	if d.conn == nil {
+		return
+	}
+	_, err := d.conn.Exec(
+		`UPDATE players SET level=$2, xp=$3, str=$4, dex=$5, intel=$6, vit=$7, gold=$8,
+		                    updated_at=NOW()
+		   WHERE name=$1`,
+		name, level, xp, str, dex, intel, vit, gold)
+	if err != nil {
+		log.Printf("postgres save progression %s: %v", name, err)
+	}
+}
+
+// LoadInventory returns the persisted inventory for a character. Slots
+// preserve insertion order via slot_index.
+func (d *DB) LoadInventory(name string) []ItemRef {
+	if d.conn == nil {
+		return nil
+	}
+	rows, err := d.conn.Query(
+		`SELECT item_id, qty FROM character_inventory
+		  WHERE character_name=$1 ORDER BY slot_index`, name)
+	if err != nil {
+		log.Printf("postgres load inventory %s: %v", name, err)
+		return nil
+	}
+	defer rows.Close()
+	var out []ItemRef
+	for rows.Next() {
+		var ref ItemRef
+		if err := rows.Scan(&ref.ID, &ref.Qty); err == nil && ref.Qty > 0 {
+			out = append(out, ref)
+		}
+	}
+	return out
+}
+
+// SaveInventory replaces the persisted inventory + equipped set for a
+// character with the live snapshot. Cheap to call after every change
+// because the dataset is tiny.
+func (d *DB) SaveInventory(name string, p *Player) {
+	if d.conn == nil || p == nil {
+		return
+	}
+	tx, err := d.conn.Begin()
+	if err != nil {
+		log.Printf("postgres save inventory tx %s: %v", name, err)
+		return
+	}
+	if _, err := tx.Exec(`DELETE FROM character_inventory WHERE character_name=$1`, name); err != nil {
+		_ = tx.Rollback()
+		log.Printf("postgres save inventory clear %s: %v", name, err)
+		return
+	}
+	if p.Entity != nil && p.Entity.Inventory != nil {
+		for i, it := range p.Entity.Inventory.Items {
+			if _, err := tx.Exec(
+				`INSERT INTO character_inventory (character_name, slot_index, item_id, qty)
+				 VALUES ($1,$2,$3,$4)`,
+				name, i, it.ID, it.Qty); err != nil {
+				_ = tx.Rollback()
+				log.Printf("postgres save inventory item %s: %v", name, err)
+				return
+			}
+		}
+	}
+	if _, err := tx.Exec(`DELETE FROM character_equipped WHERE character_name=$1`, name); err != nil {
+		_ = tx.Rollback()
+		log.Printf("postgres save equipped clear %s: %v", name, err)
+		return
+	}
+	for slot, ref := range p.Equipped {
+		if _, err := tx.Exec(
+			`INSERT INTO character_equipped (character_name, slot, item_id)
+			 VALUES ($1,$2,$3)`,
+			name, slot, ref.ID); err != nil {
+			_ = tx.Rollback()
+			log.Printf("postgres save equipped %s: %v", name, err)
+			return
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		log.Printf("postgres save inventory commit %s: %v", name, err)
+	}
+}
+
+// LoadEquipped returns the equipped slot map for a character.
+func (d *DB) LoadEquipped(name string) map[string]ItemRef {
+	out := make(map[string]ItemRef)
+	if d.conn == nil {
+		return out
+	}
+	rows, err := d.conn.Query(
+		`SELECT slot, item_id FROM character_equipped WHERE character_name=$1`, name)
+	if err != nil {
+		log.Printf("postgres load equipped %s: %v", name, err)
+		return out
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var slot, id string
+		if err := rows.Scan(&slot, &id); err == nil {
+			out[slot] = ItemRef{ID: id, Qty: 1}
+		}
+	}
+	return out
+}
+
+// LoadQuests returns the persisted quest states for a character.
+func (d *DB) LoadQuests(name string) []*QuestState {
+	if d.conn == nil {
+		return nil
+	}
+	rows, err := d.conn.Query(
+		`SELECT quest_id, stage, kill_count, done
+		   FROM character_quests WHERE character_name=$1`, name)
+	if err != nil {
+		log.Printf("postgres load quests %s: %v", name, err)
+		return nil
+	}
+	defer rows.Close()
+	var out []*QuestState
+	for rows.Next() {
+		var qs QuestState
+		if err := rows.Scan(&qs.ID, &qs.Stage, &qs.KillCount, &qs.Done); err == nil {
+			cp := qs
+			out = append(out, &cp)
+		}
+	}
+	return out
+}
+
+// SaveQuest upserts a single quest state.
+func (d *DB) SaveQuest(name string, qs *QuestState) {
+	if d.conn == nil || qs == nil {
+		return
+	}
+	_, err := d.conn.Exec(`
+		INSERT INTO character_quests (character_name, quest_id, stage, kill_count, done)
+		VALUES ($1,$2,$3,$4,$5)
+		ON CONFLICT (character_name, quest_id) DO UPDATE SET
+			stage=$3, kill_count=$4, done=$5
+	`, name, qs.ID, qs.Stage, qs.KillCount, qs.Done)
+	if err != nil {
+		log.Printf("postgres save quest %s/%s: %v", name, qs.ID, err)
+	}
 }
 
 func (d *DB) LoadLearnedSkills(character string) []string {

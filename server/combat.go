@@ -56,10 +56,19 @@ func (g *Game) damageEnemy(e *Enemy, amount int, out *combatOutcome) {
 }
 
 // damagePlayer applies raw damage to a player; lethal damage triggers
-// respawn. Caller must hold g.mu.
+// respawn. Caller must hold g.mu. Defence (Vit + equipped def) softens
+// the blow but never reduces it below 1 — taking a hit must always
+// matter even with full plate.
 func (g *Game) damagePlayer(p *Player, amount int, out *combatOutcome) {
 	if amount <= 0 || p.HP <= 0 {
 		return
+	}
+	def := g.derivedDefense(p)
+	if def > 0 {
+		amount -= def
+		if amount < 1 {
+			amount = 1
+		}
 	}
 	p.HP -= amount
 	killed := p.HP <= 0
@@ -100,11 +109,13 @@ func (g *Game) runMeleeAttack(p *Player, now time.Time) (out combatOutcome, atkM
 	ty := float64(p.TileY) + float64(p.FaceY)
 	rangeSq := attackRange * attackRange
 
+	dmg := attackDamage + g.derivedAttack(p)
+
 	for _, e := range g.enemies {
 		dx := float64(e.X) - tx
 		dy := float64(e.Y) - ty
 		if dx*dx+dy*dy <= rangeSq {
-			g.damageEnemy(e, attackDamage, &out)
+			g.damageEnemy(e, dmg, &out)
 		}
 	}
 	for _, op := range g.players {
@@ -114,7 +125,7 @@ func (g *Game) runMeleeAttack(p *Player, now time.Time) (out combatOutcome, atkM
 		dx := float64(op.TileX) - tx
 		dy := float64(op.TileY) - ty
 		if dx*dx+dy*dy <= rangeSq {
-			g.damagePlayer(op, attackDamage, &out)
+			g.damagePlayer(op, dmg, &out)
 		}
 	}
 
@@ -147,6 +158,49 @@ func (g *Game) broadcastCombat(outs []chan<- string, prefix string, out combatOu
 		g.broadcast(outs, fmt.Sprintf("EDIE %d\n", e.ID))
 		if g.cache != nil && playerName != "" {
 			g.cache.RecordKill(playerName)
+		}
+	}
+}
+
+// creditKills awards XP, advances quest objectives, and fires the
+// enemy_killed hook for every kill recorded in `out`. Must be called
+// outside g.mu — XP rolling acquires the lock internally.
+func (g *Game) creditKills(killerID int, out combatOutcome) {
+	if len(out.enemyKilled) == 0 {
+		return
+	}
+	for _, e := range out.enemyKilled {
+		xp := 0
+		if g.scripts != nil {
+			if def, ok := g.scripts.Enemy(e.Kind); ok {
+				xp = def.XP
+			}
+		}
+		if xp <= 0 {
+			xp = 5 // floor so kills always feel rewarding
+		}
+		g.GiveXP(killerID, xp)
+
+		var updates []string
+		var out chan<- string
+		g.mu.Lock()
+		if p, ok := g.players[killerID]; ok {
+			updates = g.trackKillForQuests(p, e.Kind)
+			out = p.Out
+		}
+		g.mu.Unlock()
+		for _, w := range updates {
+			sendNow(out, w)
+		}
+
+		if g.scripts != nil {
+			payload := map[string]interface{}{
+				"kind":   e.Kind,
+				"x":      e.X,
+				"y":      e.Y,
+				"killer": killerID,
+			}
+			g.scripts.FireHook("enemy_killed", payload)
 		}
 	}
 }

@@ -54,7 +54,17 @@ type ScriptHost interface {
 	GetPlayerInfo(name string) (id, x, y, hp int, ok bool)
 	ApplyStatus(targetID int, status string, durationMs int, power int)
 	ScheduleEvent(name string, delayMs int, payload string)
+	// Phase 4 — inventory + progression hooks reachable from Lua.
+	DropItem(killerID int, itemID string, qty, chance int) bool
+	GiveItem(playerID int, itemID string, qty int) int
+	GiveXP(playerID int, amount int) int
+	GiveGold(playerID int, amount int) int
 }
+
+// globalScripts is the singleton view used by helpers that don't have
+// a Game pointer (item lookups in stats.go, etc.). It's set by NewGame
+// once the engine has loaded.
+var globalScripts *ScriptEngine
 
 // ScriptEngine owns the data-driven content loaded from disk and the
 // long-lived sandboxed VM that executes hook callbacks.
@@ -63,9 +73,13 @@ type ScriptEngine struct {
 	rootDir string
 	host    ScriptHost
 
-	skills  map[string]*Skill
-	tree    map[string]*SkillTreeNode
-	enemies map[string]*EnemyDef
+	skills      map[string]*Skill
+	tree        map[string]*SkillTreeNode
+	enemies     map[string]*EnemyDef
+	items       map[string]*ItemDef
+	npcs        map[string]*NPCDef
+	quests      map[string]*QuestDef
+	progression *ProgressionDef
 
 	// hooksVM holds parsed hook callbacks keyed by event name. It lives
 	// across the server's lifetime and is rebuilt on /reload hooks.
@@ -76,21 +90,27 @@ type ScriptEngine struct {
 // EnemyDef is a data-driven enemy template loaded from
 // data/scripts/enemies/<id>.lua.
 type EnemyDef struct {
-	ID    string
-	Name  string
-	HP    int
-	Speed float64
+	ID     string
+	Name   string
+	HP     int
+	Speed  float64
+	XP     int // award on kill (Phase 4)
+	Damage int // contact damage tick (Phase 4 AI)
 }
 
 // NewScriptEngine returns an engine rooted at data/scripts/. It does
 // not load anything; call LoadAll once a host is wired.
 func NewScriptEngine(root string) *ScriptEngine {
 	return &ScriptEngine{
-		rootDir: root,
-		skills:  make(map[string]*Skill),
-		tree:    make(map[string]*SkillTreeNode),
-		enemies: make(map[string]*EnemyDef),
-		hooks:   make(map[string]*lua.LFunction),
+		rootDir:     root,
+		skills:      make(map[string]*Skill),
+		tree:        make(map[string]*SkillTreeNode),
+		enemies:     make(map[string]*EnemyDef),
+		items:       make(map[string]*ItemDef),
+		npcs:        make(map[string]*NPCDef),
+		quests:      make(map[string]*QuestDef),
+		progression: defaultProgression(),
+		hooks:       make(map[string]*lua.LFunction),
 	}
 }
 
@@ -106,7 +126,7 @@ func (e *ScriptEngine) SetHost(h ScriptHost) {
 // LoadAll reloads every domain. Errors are logged but never returned —
 // the server keeps running with whatever loaded successfully.
 func (e *ScriptEngine) LoadAll() {
-	for _, d := range []string{"skills", "enemies", "items", "hooks"} {
+	for _, d := range []string{"skills", "enemies", "items", "npcs", "quests", "progression", "hooks"} {
 		if err := e.LoadDomain(d); err != nil {
 			log.Printf("scripts: load %s: %v", d, err)
 		}
@@ -124,10 +144,13 @@ func (e *ScriptEngine) LoadDomain(domain string) error {
 	case "enemies":
 		return e.loadEnemies()
 	case "items":
-		// Reserved for Phase 4 — accept the command so /reload items
-		// is forward-compatible without lying about what happened.
-		log.Printf("scripts: items domain reserved for Phase 4")
-		return nil
+		return e.loadItems()
+	case "npcs":
+		return e.loadNPCs()
+	case "quests":
+		return e.loadQuests()
+	case "progression":
+		return e.loadProgression()
 	case "hooks":
 		return e.loadHooks()
 	}
@@ -168,6 +191,67 @@ func (e *ScriptEngine) Enemy(id string) (*EnemyDef, bool) {
 	defer e.mu.Unlock()
 	d, ok := e.enemies[id]
 	return d, ok
+}
+
+func (e *ScriptEngine) Item(id string) (*ItemDef, bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	d, ok := e.items[id]
+	return d, ok
+}
+
+func (e *ScriptEngine) Items() map[string]*ItemDef {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	out := make(map[string]*ItemDef, len(e.items))
+	for k, v := range e.items {
+		out[k] = v
+	}
+	return out
+}
+
+func (e *ScriptEngine) NPC(id string) (*NPCDef, bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	d, ok := e.npcs[id]
+	return d, ok
+}
+
+func (e *ScriptEngine) NPCs() map[string]*NPCDef {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	out := make(map[string]*NPCDef, len(e.npcs))
+	for k, v := range e.npcs {
+		out[k] = v
+	}
+	return out
+}
+
+func (e *ScriptEngine) Quest(id string) (*QuestDef, bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	d, ok := e.quests[id]
+	return d, ok
+}
+
+func (e *ScriptEngine) Quests() map[string]*QuestDef {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	out := make(map[string]*QuestDef, len(e.quests))
+	for k, v := range e.quests {
+		out[k] = v
+	}
+	return out
+}
+
+func (e *ScriptEngine) Progression() *ProgressionDef {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.progression == nil {
+		return defaultProgression()
+	}
+	cp := *e.progression
+	return &cp
 }
 
 // FireHook invokes the hook function registered under name with a
@@ -263,6 +347,113 @@ func (e *ScriptEngine) loadEnemies() error {
 	e.enemies = enemies
 	e.mu.Unlock()
 	log.Printf("scripts: loaded %d enemy defs", len(enemies))
+	return nil
+}
+
+func (e *ScriptEngine) loadItems() error {
+	dir := filepath.Join(e.rootDir, "items")
+	files, err := listLuaFiles(dir)
+	if err != nil {
+		return err
+	}
+	items := make(map[string]*ItemDef)
+	for _, f := range files {
+		base := strings.TrimSuffix(filepath.Base(f), ".lua")
+		val, err := evalScript(f)
+		if err != nil {
+			log.Printf("scripts: item %s: %v", base, err)
+			continue
+		}
+		def, err := parseItemDef(val, base)
+		if err != nil {
+			log.Printf("scripts: item %s invalid: %v", base, err)
+			continue
+		}
+		items[def.ID] = def
+	}
+	e.mu.Lock()
+	e.items = items
+	e.mu.Unlock()
+	log.Printf("scripts: loaded %d items", len(items))
+	return nil
+}
+
+func (e *ScriptEngine) loadNPCs() error {
+	dir := filepath.Join(e.rootDir, "npcs")
+	files, err := listLuaFiles(dir)
+	if err != nil {
+		return err
+	}
+	npcs := make(map[string]*NPCDef)
+	for _, f := range files {
+		base := strings.TrimSuffix(filepath.Base(f), ".lua")
+		val, err := evalScript(f)
+		if err != nil {
+			log.Printf("scripts: npc %s: %v", base, err)
+			continue
+		}
+		def, err := parseNPCDef(val, base)
+		if err != nil {
+			log.Printf("scripts: npc %s invalid: %v", base, err)
+			continue
+		}
+		npcs[def.ID] = def
+	}
+	e.mu.Lock()
+	e.npcs = npcs
+	e.mu.Unlock()
+	log.Printf("scripts: loaded %d npcs", len(npcs))
+	return nil
+}
+
+func (e *ScriptEngine) loadQuests() error {
+	dir := filepath.Join(e.rootDir, "quests")
+	files, err := listLuaFiles(dir)
+	if err != nil {
+		return err
+	}
+	quests := make(map[string]*QuestDef)
+	for _, f := range files {
+		base := strings.TrimSuffix(filepath.Base(f), ".lua")
+		val, err := evalScript(f)
+		if err != nil {
+			log.Printf("scripts: quest %s: %v", base, err)
+			continue
+		}
+		def, err := parseQuestDef(val, base)
+		if err != nil {
+			log.Printf("scripts: quest %s invalid: %v", base, err)
+			continue
+		}
+		quests[def.ID] = def
+	}
+	e.mu.Lock()
+	e.quests = quests
+	e.mu.Unlock()
+	log.Printf("scripts: loaded %d quests", len(quests))
+	return nil
+}
+
+func (e *ScriptEngine) loadProgression() error {
+	p := filepath.Join(e.rootDir, "progression.lua")
+	if _, err := os.Stat(p); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			e.mu.Lock()
+			e.progression = defaultProgression()
+			e.mu.Unlock()
+			return nil
+		}
+		return err
+	}
+	val, err := evalScript(p)
+	if err != nil {
+		return err
+	}
+	pd := parseProgressionDef(val)
+	e.mu.Lock()
+	e.progression = pd
+	e.mu.Unlock()
+	log.Printf("scripts: loaded progression (xp_base=%d curve=%.2f)", pd.XPBase, pd.XPCurve)
 	return nil
 }
 
@@ -622,6 +813,57 @@ func (e *ScriptEngine) installAPI(L *lua.LState) {
 			host.ScheduleEvent(name, delay, payload)
 		}
 		return 0
+	})
+
+	bind("drop_item", func(L *lua.LState) int {
+		killer := L.CheckInt(1)
+		id := L.CheckString(2)
+		qty := L.OptInt(3, 1)
+		chance := L.OptInt(4, 1000)
+		host := e.currentHost()
+		if host == nil {
+			L.Push(lua.LBool(false))
+			return 1
+		}
+		L.Push(lua.LBool(host.DropItem(killer, id, qty, chance)))
+		return 1
+	})
+
+	bind("give_item", func(L *lua.LState) int {
+		pid := L.CheckInt(1)
+		id := L.CheckString(2)
+		qty := L.OptInt(3, 1)
+		host := e.currentHost()
+		if host == nil {
+			L.Push(lua.LNumber(0))
+			return 1
+		}
+		L.Push(lua.LNumber(host.GiveItem(pid, id, qty)))
+		return 1
+	})
+
+	bind("give_xp", func(L *lua.LState) int {
+		pid := L.CheckInt(1)
+		amount := L.CheckInt(2)
+		host := e.currentHost()
+		if host == nil {
+			L.Push(lua.LNumber(0))
+			return 1
+		}
+		L.Push(lua.LNumber(host.GiveXP(pid, amount)))
+		return 1
+	})
+
+	bind("give_gold", func(L *lua.LState) int {
+		pid := L.CheckInt(1)
+		amount := L.CheckInt(2)
+		host := e.currentHost()
+		if host == nil {
+			L.Push(lua.LNumber(0))
+			return 1
+		}
+		L.Push(lua.LNumber(host.GiveGold(pid, amount)))
+		return 1
 	})
 
 	// Convenience: log to the server log. Also respects the no-`os`

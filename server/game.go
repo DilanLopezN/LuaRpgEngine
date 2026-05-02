@@ -131,6 +131,18 @@ type Player struct {
 
 	Statuses []Status
 
+	// Phase 4 — character sheet / inventory / quest tracking. Pointers
+	// stay non-nil after addPlayer, so the per-tick code never has to
+	// nil-check.
+	Stats     *CStats
+	Gold      int
+	Equipped  EquippedSet
+	Quests    map[string]*QuestState
+	NPCDialog string // active npc id; empty when no dialog is open
+	NPCNode   string // current dialog node within that npc
+
+	NextShout time.Time
+
 	Out chan<- string
 
 	// Phase 3 — ECS mirror. Components live on the entity; the
@@ -159,6 +171,11 @@ type Enemy struct {
 	HP, MaxHP int
 	Statuses  []Status
 
+	// Phase 3 — AI throttling lives next to gameplay state so the
+	// AISystem callbacks can refer to it without a separate registry.
+	LastStep   time.Time
+	LastAttack time.Time
+
 	// Phase 3 — see Player.Entity.
 	Entity *Entity
 }
@@ -173,6 +190,7 @@ type Game struct {
 	cache       *Cache
 	world       *Map
 	scripts     *ScriptEngine
+	progression *ProgressionDef
 
 	// Phase 3 — ECS world. Player and Enemy keep their gameplay
 	// fields (the legacy tick still drives them), but each one also
@@ -186,17 +204,22 @@ type Game struct {
 	// strings.Builder backing slice every 33ms. Mutated only under
 	// g.mu inside buildSnapshotLocked.
 	snapBuf strings.Builder
+
+	// aiOutbox queues wire frames produced by the AISystem callbacks
+	// while g.mu is held; the host flushes it after releasing the
+	// lock. Owned by Game.tick — never read/written outside that path.
+	aiOutbox []string
 }
 
 func NewGame(db *DB, cache *Cache) *Game {
 	g := &Game{
-		players:  make(map[int]*Player),
-		enemies:  make(map[int]*Enemy),
-		db:       db,
-		cache:    cache,
-		ecs:      NewECSWorld(),
-		pipeline: NewDefaultPipeline(),
+		players: make(map[int]*Player),
+		enemies: make(map[int]*Enemy),
+		db:      db,
+		cache:   cache,
+		ecs:     NewECSWorld(),
 	}
+	g.pipeline = g.buildPipeline()
 	m, err := LoadMap(defaultMapName)
 	if err != nil {
 		log.Printf("map load failed (%v); starting from blank map", err)
@@ -210,10 +233,44 @@ func NewGame(db *DB, cache *Cache) *Game {
 	g.scripts = NewScriptEngine(scriptsRoot())
 	g.scripts.SetHost(g)
 	g.scripts.LoadAll()
+	globalScripts = g.scripts
+	g.progression = g.scripts.Progression()
 
 	g.spawnEnemy("orc", 1, 1)
 	g.spawnEnemy("orc", 6, 6)
+	g.spawnNPCsFromMap()
 	return g
+}
+
+// spawnNPCsFromMap walks the active map's entities and turns every
+// type=npc record into a live NPC entity in the ECS world. Caller does
+// not need to hold g.mu — NewGame is single-threaded.
+func (g *Game) spawnNPCsFromMap() {
+	if g.world == nil {
+		return
+	}
+	for _, ent := range g.world.Entities {
+		if ent.Type != "npc" {
+			continue
+		}
+		g.spawnNPC(ent.Kind, ent.X, ent.Y)
+	}
+}
+
+// spawnNPC adds an NPC entity to the ECS world. NPCs do not move and
+// have no Health component — talking to them ignores HP.
+func (g *Game) spawnNPC(kind string, x, y int) *Entity {
+	if g.ecs == nil {
+		return nil
+	}
+	return g.ecs.Add(&Entity{
+		Kind: KindNPC,
+		Name: kind,
+		Position: &CPosition{
+			X: x, Y: y, FromX: x, FromY: y,
+		},
+		AI: &CAI{Kind: kind, State: "npc"},
+	})
 }
 
 // scriptsRoot returns the directory tree for data-driven content. The
@@ -329,6 +386,9 @@ func (g *Game) addPlayer(out chan<- string) *Player {
 		Spells:       make(map[string]*Spell),
 		Learned:      make(map[string]bool),
 		SkillCDs:     make(map[string]time.Time),
+		Stats:        &CStats{Level: 1, NextX: defaultProgression().XPBase},
+		Equipped:     make(EquippedSet),
+		Quests:       make(map[string]*QuestState),
 		Out:          out,
 	}
 	g.players[p.ID] = p
@@ -380,6 +440,32 @@ func (g *Game) bindName(id int, name string) *Player {
 		p.SkillPoints = rec.SkillPoints
 		for _, id := range g.db.LoadLearnedSkills(name) {
 			p.Learned[id] = true
+		}
+		// Stats / progression.
+		if rec.Level > 0 {
+			p.Stats.Level = rec.Level
+		}
+		p.Stats.XP = rec.XP
+		p.Stats.Str = rec.Str
+		p.Stats.Dex = rec.Dex
+		p.Stats.Int = rec.Int
+		p.Stats.Vit = rec.Vit
+		p.Gold = rec.Gold
+		pd := g.progression
+		if pd == nil {
+			pd = defaultProgression()
+		}
+		p.Stats.NextX = pd.xpForLevel(p.Stats.Level)
+		// Inventory + equipment.
+		if p.Entity != nil && p.Entity.Inventory != nil {
+			p.Entity.Inventory.Items = g.db.LoadInventory(name)
+		}
+		for slot, ref := range g.db.LoadEquipped(name) {
+			p.Equipped[slot] = ref
+		}
+		// Quest progress.
+		for _, qs := range g.db.LoadQuests(name) {
+			p.Quests[qs.ID] = qs
 		}
 		if g.world.InBounds(rec.X, rec.Y) && g.world.IsWalkable(rec.X, rec.Y) &&
 			!g.tileOccupied(rec.X, rec.Y, p.ID) {
@@ -448,6 +534,25 @@ func (g *Game) handleLine(p *Player, line string) {
 		g.handleSaveMap(p, strings.TrimPrefix(line, "SAVE_MAP "))
 		return
 	}
+	// Chat commands carry free-form text after the verb; tokenise the
+	// first word and pass the rest through verbatim.
+	if strings.HasPrefix(line, "SAY ") {
+		g.handleSay(p, strings.TrimPrefix(line, "SAY "))
+		return
+	}
+	if strings.HasPrefix(line, "SHOUT ") {
+		g.handleShout(p, strings.TrimPrefix(line, "SHOUT "))
+		return
+	}
+	if strings.HasPrefix(line, "WHISPER ") {
+		rest := strings.TrimPrefix(line, "WHISPER ")
+		i := strings.IndexByte(rest, ' ')
+		if i <= 0 {
+			return
+		}
+		g.handleWhisper(p, rest[:i], rest[i+1:])
+		return
+	}
 	parts := strings.Fields(line)
 	if len(parts) == 0 {
 		return
@@ -505,6 +610,43 @@ func (g *Game) handleLine(p *Player, line string) {
 		g.handleLearn(p, parts[1])
 	case "RESETTREE":
 		g.handleResetTree(p)
+	case "EQUIP":
+		if len(parts) < 2 {
+			return
+		}
+		g.handleEquip(p, parts[1])
+	case "UNEQUIP":
+		if len(parts) < 2 {
+			return
+		}
+		g.handleUnequip(p, parts[1])
+	case "DROP":
+		if len(parts) < 2 {
+			return
+		}
+		qty := 1
+		if len(parts) >= 3 {
+			if n, err := strconv.Atoi(parts[2]); err == nil && n > 0 {
+				qty = n
+			}
+		}
+		g.handleDropItem(p, parts[1], qty)
+	case "TALK":
+		if len(parts) < 2 {
+			return
+		}
+		g.handleTalk(p, parts[1])
+	case "DIALOG_PICK":
+		if len(parts) < 2 {
+			return
+		}
+		idx, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return
+		}
+		g.handleDialogPick(p, idx)
+	case "DIALOG_END":
+		g.handleDialogEnd(p)
 	case "RELOAD":
 		domain := "all"
 		if len(parts) >= 2 {
@@ -522,7 +664,7 @@ func (g *Game) sendCharacterState(p *Player) {
 	g.mu.Lock()
 	welcome := fmt.Sprintf("WELCOME %d %d %d %s\n",
 		p.ID, g.mapWidth(), g.mapHeight(), p.Name)
-	stats := fmt.Sprintf("STATS %d %d %d %d\n", p.HP, p.MaxHP, p.MP, p.MaxMP)
+	stats := characterStatsLocked(p)
 	defs := make([]string, 0, len(p.Spells))
 	for _, sp := range p.Spells {
 		defs = append(defs, formatSpellDef(sp))
@@ -533,6 +675,14 @@ func (g *Game) sendCharacterState(p *Player) {
 	}
 	sort.Strings(learned)
 	sp := p.SkillPoints
+	invWire := inventoryWire(p)
+	eqWire := equippedWire(p)
+	questWires := make([]string, 0, len(p.Quests))
+	for _, qs := range p.Quests {
+		questWires = append(questWires,
+			fmt.Sprintf("QUEST_STATE %s %s %d %s\n",
+				qs.ID, qs.Stage, qs.KillCount, boolToFlag(qs.Done)))
+	}
 	out := p.Out
 	g.mu.Unlock()
 
@@ -555,11 +705,25 @@ func (g *Game) sendCharacterState(p *Player) {
 		for _, sk := range g.scripts.Skills() {
 			send(formatSkillDef(sk))
 		}
+		for _, it := range g.scripts.Items() {
+			send(formatItemDef(it))
+		}
+		for _, npc := range g.scripts.NPCs() {
+			send(formatNPCDef(npc))
+		}
+		for _, q := range g.scripts.Quests() {
+			send(formatQuestDef(q))
+		}
 	}
 	for _, id := range learned {
 		send(fmt.Sprintf("SKILL_LEARNED %s\n", id))
 	}
 	send(fmt.Sprintf("SKILL_POINTS %d\n", sp))
+	send(invWire)
+	send(eqWire)
+	for _, w := range questWires {
+		send(w)
+	}
 }
 
 func absInt(v int) int {
@@ -790,9 +954,11 @@ func (g *Game) handleCast(p *Player, spellID string) {
 		p.Kills++
 	}
 	playerName := p.Name
+	pid := p.ID
 	g.mu.Unlock()
 
 	g.broadcastCombat(outs, spellMsg, out, playerName)
+	g.creditKills(pid, out)
 }
 
 func parseDir(s string) int {
@@ -828,9 +994,11 @@ func (g *Game) handleAttack(p *Player) {
 	}
 	outs := g.snapshotOutsLocked()
 	playerName := p.Name
+	pid := p.ID
 	g.mu.Unlock()
 
 	g.broadcastCombat(outs, atkMsg, out, playerName)
+	g.creditKills(pid, out)
 }
 
 // snapshotOutsLocked returns a fresh slice of every connected player's
@@ -860,20 +1028,20 @@ func (g *Game) tick(now time.Time) {
 	deadEnemies, deadPlayers := g.tickStatuses(now)
 	g.runMovement(now)
 
-	msg := g.buildSnapshotLocked(now)
-	outs := g.snapshotOutsLocked()
-
-	// Phase 3 — push the legacy struct fields onto each entity, drop
-	// orphans (whose Player/Enemy was deleted mid-tick), then run the
-	// system pipeline. The pipeline is read-mostly today, but it is
-	// the seam new gameplay code is supposed to extend rather than
-	// adding more ad-hoc loops to tick().
+	// Phase 3 — sync legacy structs into entities first, then run the
+	// system pipeline (movement settle, health clamp, AI step+attack).
+	// The snapshot is built afterward so it observes the post-AI state.
+	g.aiOutbox = g.aiOutbox[:0]
 	if g.ecs != nil {
 		g.syncECSLocked(now)
 		g.tickN++
 		dt := time.Second / tickRate
 		g.pipeline.Tick(g.ecs, now, dt)
 	}
+
+	msg := g.buildSnapshotLocked(now)
+	outs := g.snapshotOutsLocked()
+	flush := append([]string(nil), g.aiOutbox...)
 
 	g.mu.Unlock()
 
@@ -884,32 +1052,74 @@ func (g *Game) tick(now time.Time) {
 	for _, id := range deadPlayers {
 		g.broadcast(outs, fmt.Sprintf("PDIE %d\n", id))
 	}
+	for _, m := range flush {
+		g.broadcast(outs, m)
+	}
 }
 
-// buildSnapshotLocked emits the per-tick "P"/"E" wire frame consumed
-// by Protocol.handleSnapshot on the client. Caller must hold g.mu.
+// buildSnapshotLocked emits the per-tick "P"/"E"/"N" wire frame.
+// Caller must hold g.mu.
+//
+// Phase 3 — gameplay code still owns Player / Enemy structs (the
+// network IDs come from there to keep wire-protocol stability), but
+// the field values come exclusively from the ECS Entity components
+// that syncECSLocked freshly populated. New component kinds appear in
+// the snapshot without touching this loop.
 func (g *Game) buildSnapshotLocked(now time.Time) string {
-	if len(g.players) == 0 && len(g.enemies) == 0 {
+	if len(g.players) == 0 && len(g.enemies) == 0 && g.ecs == nil {
 		return ""
 	}
 	g.snapBuf.Reset()
 	for _, p := range g.players {
-		if p.Name == "" {
+		if p.Name == "" || p.Entity == nil || p.Entity.Position == nil || p.Entity.Health == nil {
 			continue
 		}
-		x, y := p.interpolated(now)
+		pos := p.Entity.Position
+		hp := p.Entity.Health
+		x, y := positionInterpolated(pos, now)
 		atk := 0
-		if now.Before(p.AttackUntil) {
+		if p.Entity.Combat != nil && now.Before(p.Entity.Combat.AttackUntil) {
 			atk = 1
 		}
 		fmt.Fprintf(&g.snapBuf, "P %d %.3f %.3f %d %d %d %d %d %d %d %s\n",
-			p.ID, x, y, p.FaceX, p.FaceY, p.HP, p.MaxHP, p.MP, p.MaxMP, atk, p.Name)
+			p.ID, x, y, pos.FaceX, pos.FaceY,
+			hp.HP, hp.MaxHP, hp.MP, hp.MaxMP, atk, p.Name)
 	}
 	for _, e := range g.enemies {
+		if e.Entity == nil || e.Entity.Position == nil || e.Entity.Health == nil {
+			continue
+		}
+		pos := e.Entity.Position
+		hp := e.Entity.Health
 		fmt.Fprintf(&g.snapBuf, "E %d %s %d %d %d %d\n",
-			e.ID, e.Kind, e.X, e.Y, e.HP, e.MaxHP)
+			e.ID, e.Kind, pos.X, pos.Y, hp.HP, hp.MaxHP)
+	}
+	if g.ecs != nil {
+		g.ecs.Each(func(en *Entity) {
+			if en.Kind != KindNPC || en.Position == nil {
+				return
+			}
+			fmt.Fprintf(&g.snapBuf, "N %d %s %d %d\n",
+				en.ID, en.Name, en.Position.X, en.Position.Y)
+		})
 	}
 	return g.snapBuf.String()
+}
+
+// positionInterpolated mirrors Player.interpolated but runs on a
+// CPosition snapshot so the network layer doesn't need a Player
+// pointer.
+func positionInterpolated(p *CPosition, now time.Time) (float64, float64) {
+	if !p.Stepping {
+		return float64(p.X), float64(p.Y)
+	}
+	t := float64(now.Sub(p.StepStart)) / float64(p.StepDur)
+	if t >= 1 {
+		t = 1
+	}
+	x := float64(p.FromX) + (float64(p.X)-float64(p.FromX))*t
+	y := float64(p.FromY) + (float64(p.Y)-float64(p.FromY))*t
+	return x, y
 }
 
 // syncECSLocked mirrors the gameplay structs into their entity

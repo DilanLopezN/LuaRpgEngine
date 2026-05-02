@@ -221,17 +221,25 @@ Unificar player, NPC e inimigos.
       `MovementSystem`, `HealthSystem`, `AISystem`, `SystemPipeline`)
 - [x] Serialização de estado para rede (`Snapshot` / `EntitySnapshot` em
       JSON, com componentes ausentes omitidos)
-
-> Status: base pronta. Player/Enemy ainda hospedam o gameplay legado;
-> cada um agora possui um `*Entity` espelhado a cada tick, e o pipeline
-> roda dentro de `Game.tick`. As próximas fases migram lógica
-> incrementalmente (combate, AI, inventário) para os sistemas.
+- [x] AI viva: `server/ai_runtime.go` liga callbacks (Targets/Step/Attack)
+      ao `AISystem` para inimigos perseguirem e atacarem players via
+      pipeline ECS, sem laços ad-hoc em `Game.tick`.
+- [x] Snapshot por componente: `buildSnapshotLocked` lê posição/HP/MP
+      dos componentes (`Entity.Position`/`Entity.Health`/`Entity.Combat`)
+      ao invés de campos do `Player`/`Enemy`. NPCs já aparecem no
+      frame `N` automaticamente via ECS.
 
 ### Benefícios esperados
 
-- [ ] Eliminar duplicação
-- [ ] Facilitar expansão de mecânicas
-- [ ] Reduzir acoplamento entre gameplay e rede
+- [x] Eliminar duplicação (combate, AI e snapshot convergem em
+      primitivas compartilhadas: `combatOutcome`, `pipeline.Tick`,
+      `creditKills`).
+- [x] Facilitar expansão de mecânicas (novos sistemas plugam no
+      `SystemPipeline`; novos kinds aparecem no snapshot sem alterar
+      a wire format dos legados).
+- [x] Reduzir acoplamento entre gameplay e rede (a serialização lê
+      apenas componentes do ECS; gameplay continua em `Player`/`Enemy`
+      mas a rede já não depende do layout deles).
 
 ---
 
@@ -239,31 +247,47 @@ Unificar player, NPC e inimigos.
 
 ### Inventário
 
-- [ ] Itens definidos em Lua/JSON
-- [ ] Drops via script
-- [ ] Regras de stack, raridade e bound
+- [x] Itens definidos em Lua/JSON (`data/scripts/items/*.lua`,
+      parser em `server/items.go`).
+- [x] Drops via script (Lua API `drop_item(killer, id, qty, chance)`
+      consumida pelo hook `enemy_killed` em
+      `data/scripts/hooks/loot.lua`).
+- [x] Regras de stack, raridade e bound (`ItemDef.Stack`,
+      `ItemDef.Rarity`, `ItemDef.Bound`; aplicadas em `addItem`,
+      `handleDropItem` recusa dropar bound items).
 
 ### Stats
 
-- [ ] Level, XP e atributos
-- [ ] Scaling usado nas skills
-- [ ] Regras de progressão configuráveis
+- [x] Level, XP e atributos (`server/stats.go`: `CStats`, `awardXP`,
+      `derivedAttack`/`derivedDefense`).
+- [x] Scaling usado nas skills (`applyStatScaling` lido por
+      `applyEffects` no cast de skill; `scaling = { int = 1.2 }` agora
+      consulta o atributo do caster).
+- [x] Regras de progressão configuráveis (`data/scripts/progression.lua`,
+      curva XP + ganhos por level).
 
 ### Chat
 
-- [ ] SAY (raio)
-- [ ] WHISPER
-- [ ] SHOUT
-- [ ] Canal de sistema/admin
+- [x] SAY (raio) — `chatSayRadius` em `server/chat.go`.
+- [x] WHISPER — entrega 1:1 com fallback `_offline` para alvo ausente.
+- [x] SHOUT — global ao mapa com cooldown anti-spam.
+- [x] Canal de sistema/admin — `SYS` continua sendo a saída do
+      `BroadcastSystem` exposto a scripts.
 
 ### NPC
 
-- [ ] Diálogo via Lua
-- [ ] Quests básicas orientadas a dados
+- [x] Diálogo via Lua (`data/scripts/npcs/<id>.lua`, runtime em
+      `server/npc_runtime.go`, `TALK`/`DIALOG_PICK`/`DIALOG_END`).
+- [x] Quests básicas orientadas a dados (`data/scripts/quests/<id>.lua`,
+      objetivos kill/item, recompensa em XP/gold/item, persistência
+      em `character_quests`).
 
 ### Critério de pronto
 
-- [ ] Loop completo: matar → loot → equipar → evoluir → interagir
+- [x] Loop completo: matar → loot → equipar → evoluir → interagir
+      (orc dropa `orc_tooth` + `health_potion` via hook; jogador
+      equipa `rusty_sword`; XP avança nível por `awardXP`; NPC `elder`
+      entrega `orc_hunt` e fecha o ciclo).
 
 ---
 
