@@ -40,12 +40,16 @@ type Tileset struct {
 
 // MapEntity is anything the map editor can drop on a tile: spawn points,
 // NPCs, triggers. Phase 1 stores raw values; later phases will hand these
-// over to the gameplay/scripting systems.
+// over to the gameplay/scripting systems. Sprite is optional and used by
+// NPC entities so the client renders the placement with the artwork chosen
+// in the "Criar NPCs" editor tab — older maps without the field fall back
+// to the engine's default NPC sprite.
 type MapEntity struct {
-	Type string `json:"type"`
-	Kind string `json:"kind,omitempty"`
-	X    int    `json:"x"`
-	Y    int    `json:"y"`
+	Type   string `json:"type"`
+	Kind   string `json:"kind,omitempty"`
+	Sprite string `json:"sprite,omitempty"`
+	X      int    `json:"x"`
+	Y      int    `json:"y"`
 }
 
 // Map is the in-memory representation of a single tilemap. All access goes

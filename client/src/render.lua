@@ -136,6 +136,35 @@ local function drawFloor()
         end
     end
 
+    -- NPC tab: highlight every authored NPC entity on the map so the user
+    -- can spot what's already placed before laying down more. We don't
+    -- pre-render the sprite here because the server-spawned NPC entity
+    -- already does that; the marker just calls out the *authoring* row.
+    if State.editorOpen and State.editorTab == "npcs"
+            and m and m.entities then
+        love.graphics.setFont(State.fonts.name)
+        for _, e in ipairs(m.entities) do
+            if e.type == "npc" then
+                local ex = e.x * TILE_W + TILE_W * 0.5
+                local ey = e.y * TILE_H + TILE_H * 0.5
+                love.graphics.setColor(0.45, 0.78, 1.0, 0.85)
+                love.graphics.setLineWidth(2)
+                love.graphics.rectangle("line",
+                    e.x * TILE_W, e.y * TILE_H, TILE_W, TILE_H, 2, 2)
+                love.graphics.setLineWidth(1)
+                love.graphics.setColor(0, 0, 0, 0.55)
+                local label = e.kind or "npc"
+                local lblW = State.fonts.name:getWidth(label)
+                love.graphics.rectangle("fill",
+                    ex - lblW / 2 - 3, ey - TILE_H * 0.7,
+                    lblW + 6, 14, 4, 4)
+                love.graphics.setColor(0.95, 0.97, 1.0)
+                love.graphics.print(label,
+                    ex - lblW / 2, ey - TILE_H * 0.7 + 1)
+            end
+        end
+    end
+
     love.graphics.setColor(0.08, 0.04, 0.02)
     love.graphics.setLineWidth(6)
     love.graphics.rectangle("line", 0, 0, boardW, boardH)
@@ -371,6 +400,8 @@ local function drawSpellEffect(eff)
     end
 end
 
+local NPC_SPRITE_SCALE = 1.6
+
 local function drawNPC(id, n)
     local sx, sy = n.x * TILE_W + TILE_W / 2, n.y * TILE_H + TILE_H / 2
     drawShadow(sx, sy, 14)
@@ -379,13 +410,31 @@ local function drawNPC(id, n)
     love.graphics.setColor(1.0, 0.85, 0.30, 0.20)
     love.graphics.circle("fill", sx, sy - 16, 22)
 
-    love.graphics.setColor(0.95, 0.85, 0.55)
-    love.graphics.rectangle("fill", sx - 8, sy - 28, 16, 24)
-    love.graphics.setColor(0.96, 0.85, 0.72)
-    love.graphics.circle("fill", sx, sy - 32, 7)
-    love.graphics.setColor(0, 0, 0, 0.6)
-    love.graphics.rectangle("line", sx - 8, sy - 28, 16, 24)
-    love.graphics.circle("line", sx, sy - 32, 7)
+    -- Try the chosen sprite first; fall back to the placeholder figure if
+    -- the artwork is missing or none was configured.
+    local sprite = n.sprite and Sprites.npcSprite(n.sprite) or nil
+    local headTopY
+    if sprite then
+        local img, quad, fw, fh = Sprites.frame(sprite.animName,
+            love.timer.getTime())
+        if img then
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.draw(img, quad, sx, sy + 4,
+                0, NPC_SPRITE_SCALE, NPC_SPRITE_SCALE,
+                fw / 2, fh - 4)
+            headTopY = sy + 4 - fh * NPC_SPRITE_SCALE + fh * 0.18 * NPC_SPRITE_SCALE
+        end
+    end
+    if not headTopY then
+        love.graphics.setColor(0.95, 0.85, 0.55)
+        love.graphics.rectangle("fill", sx - 8, sy - 28, 16, 24)
+        love.graphics.setColor(0.96, 0.85, 0.72)
+        love.graphics.circle("fill", sx, sy - 32, 7)
+        love.graphics.setColor(0, 0, 0, 0.6)
+        love.graphics.rectangle("line", sx - 8, sy - 28, 16, 24)
+        love.graphics.circle("line", sx, sy - 32, 7)
+        headTopY = sy - 32 - 7
+    end
 
     love.graphics.setFont(State.fonts.name)
     local def  = State.npcDefs[n.name] or {}
@@ -393,12 +442,13 @@ local function drawNPC(id, n)
     local title = def.title or ""
     local lblW = State.fonts.name:getWidth(label)
     love.graphics.setColor(0, 0, 0, 0.55)
-    love.graphics.rectangle("fill", sx - lblW / 2 - 3, sy - 56, lblW + 6, 16, 4, 4)
+    love.graphics.rectangle("fill", sx - lblW / 2 - 3, headTopY - 18,
+        lblW + 6, 16, 4, 4)
     love.graphics.setColor(1.0, 0.95, 0.55)
-    love.graphics.print(label, sx - lblW / 2, sy - 55)
+    love.graphics.print(label, sx - lblW / 2, headTopY - 17)
     if title ~= "" then
         love.graphics.setColor(1, 1, 1, 0.7)
-        love.graphics.printf(title, sx - 80, sy - 70, 160, "center")
+        love.graphics.printf(title, sx - 80, headTopY - 32, 160, "center")
     end
 end
 

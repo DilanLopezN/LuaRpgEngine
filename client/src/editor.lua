@@ -11,6 +11,7 @@
 local State        = require("src.state")
 local EditorSpells = require("src.editor_spells")
 local EditorMap    = require("src.editor_map")
+local EditorNPCs   = require("src.editor_npcs")
 local Map          = require("src.map")
 local Layout       = require("src.editor_layout")
 local Tooltip      = require("src.tooltip")
@@ -18,15 +19,17 @@ local Tooltip      = require("src.tooltip")
 local M = {}
 
 local TABS = {
-    { id = "map",    label = "Editor de Mapa",
+    { id = "map",    label = "Editor de Mapa", icon = "M",
       tip = "Editor de mapa: pintar tiles, marcar colisão, posicionar entidades. (Tab para alternar abas)" },
-    { id = "spells", label = "Criador de Spells",
+    { id = "npcs",   label = "Criar NPCs", icon = "N",
+      tip = "Posicione NPCs no mapa e escolha seu sprite. (Tab para alternar abas)" },
+    { id = "spells", label = "Criador de Spells", icon = "S",
       tip = "Crie e edite spells dinamicamente: tipo, efeito, dano, cooldown, cor. (Tab para alternar abas)" },
 }
 
-local TAB_PADDING_X = 18
-local TAB_GAP       = 6
-local CLOSE_SIZE    = 22
+local TAB_PADDING_X = 22
+local TAB_GAP       = 4
+local CLOSE_SIZE    = 28
 
 local TIP_HEADER = "Arraste para mover a janela em qualquer ponto do monitor.\n" ..
                    "Home ou Ctrl+R recentraliza. Esc fecha o editor."
@@ -38,6 +41,7 @@ end
 
 local function activeTab()
     if State.editorTab == "spells" then return EditorSpells end
+    if State.editorTab == "npcs"   then return EditorNPCs   end
     return EditorMap
 end
 
@@ -68,54 +72,91 @@ end
 -- Drawing
 -- ---------------------------------------------------------------------------
 
+-- Vertical "gradient" emulated by a stack of solid bands. LÖVE doesn't ship
+-- a gradient primitive and a mesh would be overkill here — 12 bands is
+-- plenty smooth at the editor's draw scale.
+local function drawVerticalGradient(x, y, w, h, top, bot, steps)
+    steps = steps or 12
+    for i = 0, steps - 1 do
+        local t = i / (steps - 1)
+        love.graphics.setColor(
+            top[1] + (bot[1] - top[1]) * t,
+            top[2] + (bot[2] - top[2]) * t,
+            top[3] + (bot[3] - top[3]) * t,
+            (top[4] or 1) + ((bot[4] or 1) - (top[4] or 1)) * t)
+        local ys = y + math.floor(h * i / steps)
+        local ye = y + math.floor(h * (i + 1) / steps)
+        love.graphics.rectangle("fill", x, ys, w, ye - ys)
+    end
+end
+
 local function drawHeader()
     local hx, hy, hw, hh = Layout.headerRect()
     local mx, my = State.mouse.x or 0, State.mouse.y or 0
 
-    love.graphics.setColor(0.16, 0.20, 0.30)
-    love.graphics.rectangle("fill", hx, hy, hw, hh, 8, 8)
-    love.graphics.setColor(0.16, 0.20, 0.30)
-    love.graphics.rectangle("fill", hx, hy + hh - 8, hw, 8)
-    love.graphics.setColor(0.05, 0.06, 0.10, 0.8)
-    love.graphics.rectangle("fill", hx, hy + hh - 1, hw, 1)
+    -- Glossy gradient + accent bar bottom — reads as "title bar" without
+    -- the flat slab look the previous design had.
+    drawVerticalGradient(hx, hy, hw, hh,
+        { 0.20, 0.26, 0.40, 1 }, { 0.10, 0.13, 0.20, 1 }, 14)
+    love.graphics.setColor(0.45, 0.78, 1.00, 0.95)
+    love.graphics.rectangle("fill", hx + 12, hy + hh - 3, hw - 24, 2)
 
-    -- "Grip" para sinalizar que o cabeçalho é arrastável.
-    love.graphics.setColor(0.55, 0.65, 0.85, 0.7)
+    -- Drag-handle dots (top-left).
+    love.graphics.setColor(0.55, 0.70, 0.95, 0.8)
     for i = 0, 2 do
-        love.graphics.circle("fill", hx + 12 + i * 5, hy + 12, 1.5)
-        love.graphics.circle("fill", hx + 12 + i * 5, hy + 22, 1.5)
+        love.graphics.circle("fill", hx + 14 + i * 6, hy + 16, 1.6)
+        love.graphics.circle("fill", hx + 14 + i * 6, hy + 28, 1.6)
     end
+
+    -- Title block: app icon + name + subtitle hinting at the active tab.
+    love.graphics.setColor(0.45, 0.78, 1.00, 0.18)
+    love.graphics.rectangle("fill", hx + 38, hy + 8, hh - 16, hh - 16, 6, 6)
+    love.graphics.setColor(0.85, 0.95, 1.0)
+    love.graphics.setFont(State.fonts.title)
+    love.graphics.print("⚙",
+        hx + 38 + (hh - 16) / 2 - State.fonts.title:getWidth("⚙") / 2,
+        hy + 8 + (hh - 16) / 2 - State.fonts.title:getHeight() / 2 - 2)
 
     love.graphics.setFont(State.fonts.title)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.print("Editor da Engine",
-        hx + 32, hy + (hh - State.fonts.title:getHeight()) / 2 - 2)
+    love.graphics.print("Engine Editor",
+        hx + 38 + (hh - 16) + 12, hy + 6)
+
+    local subtitle = "Mapa · NPCs · Spells — F1 alterna · Tab troca aba · Esc fecha"
+    if State.editorTab == "map"    then subtitle = "Editor de Mapa — pinte tiles, defina colisão, posicione entidades" end
+    if State.editorTab == "npcs"   then subtitle = "Criar NPCs — escolha o sprite e clique no mapa para posicionar" end
+    if State.editorTab == "spells" then subtitle = "Criador de Spells — crie spells dinamicamente e arraste à skillbar" end
+    love.graphics.setFont(State.fonts.name)
+    love.graphics.setColor(0.65, 0.78, 0.95, 0.95)
+    love.graphics.print(subtitle, hx + 38 + (hh - 16) + 12, hy + 6 + State.fonts.title:getHeight() - 4)
 
     local cx, cy, cw, ch = closeBtnRect()
     local hoverClose = pointIn(mx, my, cx, cy, cw, ch)
     if hoverClose then
-        love.graphics.setColor(0.75, 0.25, 0.25)
+        love.graphics.setColor(0.85, 0.30, 0.30)
         Tooltip.hover(TIP_CLOSE)
     else
-        love.graphics.setColor(0.45, 0.18, 0.18)
+        love.graphics.setColor(0.42, 0.16, 0.18)
         if pointIn(mx, my, hx, hy, hw, hh) then
             Tooltip.hover(TIP_HEADER)
         end
     end
-    love.graphics.rectangle("fill", cx, cy, cw, ch, 4, 4)
+    love.graphics.rectangle("fill", cx, cy, cw, ch, 6, 6)
+    love.graphics.setColor(1, 1, 1, 0.15)
+    love.graphics.rectangle("line", cx, cy, cw, ch, 6, 6)
     love.graphics.setFont(State.fonts.ui)
     love.graphics.setColor(1, 1, 1)
-    local lblW = State.fonts.ui:getWidth("X")
-    love.graphics.print("X",
+    local lblW = State.fonts.ui:getWidth("✕")
+    love.graphics.print("✕",
         cx + (cw - lblW) / 2,
-        cy + (ch - State.fonts.ui:getHeight()) / 2)
+        cy + (ch - State.fonts.ui:getHeight()) / 2 - 1)
 end
 
 local function drawTabStrip()
     local tx, ty, tw, th = Layout.tabBarRect()
-    love.graphics.setColor(0.07, 0.09, 0.13)
-    love.graphics.rectangle("fill", tx, ty, tw, th)
-    love.graphics.setColor(0.4, 0.5, 0.7, 0.5)
+    drawVerticalGradient(tx, ty, tw, th,
+        { 0.10, 0.13, 0.19, 1 }, { 0.05, 0.07, 0.11, 1 }, 8)
+    love.graphics.setColor(0.4, 0.55, 0.78, 0.45)
     love.graphics.rectangle("fill", tx, ty + th - 1, tw, 1)
 
     love.graphics.setFont(State.fonts.ui)
@@ -126,11 +167,13 @@ local function drawTabStrip()
         if hover then Tooltip.hover(r.tip) end
 
         if active then
-            love.graphics.setColor(0.13, 0.18, 0.26)
-            love.graphics.rectangle("fill", r.x, r.y + 3, r.w, r.h - 3, 4, 4)
+            drawVerticalGradient(r.x, r.y + 4, r.w, r.h - 4,
+                { 0.18, 0.24, 0.36, 1 }, { 0.10, 0.14, 0.22, 1 }, 6)
+            love.graphics.setColor(0.45, 0.78, 1.0, 0.35)
+            love.graphics.rectangle("line", r.x, r.y + 4, r.w, r.h - 4, 4, 4)
         elseif hover then
-            love.graphics.setColor(0.10, 0.13, 0.19)
-            love.graphics.rectangle("fill", r.x, r.y + 3, r.w, r.h - 3, 4, 4)
+            love.graphics.setColor(0.13, 0.17, 0.24, 0.85)
+            love.graphics.rectangle("fill", r.x, r.y + 4, r.w, r.h - 4, 4, 4)
         end
 
         if active then
@@ -138,7 +181,7 @@ local function drawTabStrip()
         elseif hover then
             love.graphics.setColor(0.95, 0.97, 1.0)
         else
-            love.graphics.setColor(0.65, 0.72, 0.84)
+            love.graphics.setColor(0.62, 0.70, 0.84)
         end
         love.graphics.print(r.label,
             r.x + TAB_PADDING_X,
@@ -146,17 +189,25 @@ local function drawTabStrip()
 
         if active then
             love.graphics.setColor(0.45, 0.78, 1.0)
-            love.graphics.rectangle("fill", r.x + 6, r.y + r.h - 3, r.w - 12, 2)
+            love.graphics.rectangle("fill", r.x + 8, r.y + r.h - 3, r.w - 16, 2)
         end
     end
 end
 
 local function drawPanelFrame()
     local px, py, pw, ph = Layout.panelRect()
-    love.graphics.setColor(0.10, 0.12, 0.16, 0.97)
-    love.graphics.rectangle("fill", px, py, pw, ph, 8, 8)
-    love.graphics.setColor(0.4, 0.5, 0.7)
-    love.graphics.rectangle("line", px, py, pw, ph, 8, 8)
+    -- Drop shadow.
+    love.graphics.setColor(0, 0, 0, 0.35)
+    love.graphics.rectangle("fill", px + 4, py + 6, pw, ph, 10, 10)
+    -- Body with a soft top→bottom darkening.
+    drawVerticalGradient(px, py, pw, ph,
+        { 0.11, 0.13, 0.18, 0.98 }, { 0.07, 0.08, 0.12, 0.98 }, 16)
+    -- Inner highlight + outer outline give the panel a "card" feel.
+    love.graphics.setColor(0.45, 0.55, 0.78, 0.85)
+    love.graphics.setLineWidth(1)
+    love.graphics.rectangle("line", px, py, pw, ph, 10, 10)
+    love.graphics.setColor(1, 1, 1, 0.05)
+    love.graphics.rectangle("line", px + 1, py + 1, pw - 2, ph - 2, 9, 9)
 end
 
 function M.draw()
@@ -165,6 +216,8 @@ function M.draw()
 
     if State.editorTab == "map" and EditorMap.drawCursor then
         EditorMap.drawCursor()
+    elseif State.editorTab == "npcs" and EditorNPCs.drawCursor then
+        EditorNPCs.drawCursor()
     end
 
     drawPanelFrame()
@@ -219,9 +272,11 @@ function M.mousepressed(x, y, button)
 
     local px, py, pw, ph = Layout.panelRect()
     if not pointIn(x, y, px, py, pw, ph) then
-        -- Cliques fora da janela vão para o mundo (aba Mapa) ou caem.
-        if State.editorTab == "map" and Map.current and EditorMap.worldClick then
-            EditorMap.worldClick(x, y, button)
+        -- Cliques fora da janela vão para a aba ativa para dispatch no
+        -- mundo (Mapa = pintar/posicionar; NPCs = colocar/remover NPC).
+        local tab = activeTab()
+        if Map.current and tab and tab.worldClick then
+            tab.worldClick(x, y, button)
             return true
         end
         return false
@@ -244,11 +299,11 @@ function M.mousemoved(x, y, dx, dy)
         return true
     end
     if State.scene ~= State.SCENE_PLAYING then return false end
-    if State.editorTab ~= "map" then return false end
     if love.mouse.isDown(1) or love.mouse.isDown(2) then
+        local tab = activeTab()
         local px, py, pw, ph = Layout.panelRect()
-        if not pointIn(x, y, px, py, pw, ph) and EditorMap.worldDrag then
-            EditorMap.worldDrag(x, y)
+        if not pointIn(x, y, px, py, pw, ph) and tab and tab.worldDrag then
+            tab.worldDrag(x, y)
         end
     end
     return false
@@ -260,9 +315,8 @@ function M.mousereleased(x, y, button)
         return true
     end
     if not State.editorOpen then return false end
-    if State.editorTab == "map" and EditorMap.worldRelease then
-        EditorMap.worldRelease()
-    end
+    local tab = activeTab()
+    if tab and tab.worldRelease then tab.worldRelease() end
     return false
 end
 

@@ -84,10 +84,16 @@ type ItemRef struct {
 
 // Entity bundles components. Nil pointers mean "this entity does not
 // have that component"; systems must always nil-check before touching.
+//
+// Sprite is an optional artwork id (matching a key in the client's
+// Sprites.npcSprites table). It is purely cosmetic on the server side —
+// the gameplay layer never reads it — but is forwarded to clients so the
+// "Criar NPCs" editor's sprite selection survives the round trip.
 type Entity struct {
-	ID   EntityID
-	Kind string
-	Name string
+	ID     EntityID
+	Kind   string
+	Name   string
+	Sprite string
 
 	Position  *CPosition
 	Health    *CHealth

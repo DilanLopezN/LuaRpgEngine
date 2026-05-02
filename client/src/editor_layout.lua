@@ -6,12 +6,16 @@ local State = require("src.state")
 
 local M = {}
 
-M.HEADER_H  = 36
-M.TAB_H     = 28
-M.MIN_W     = 480
-M.MIN_H     = 320
-M.DEFAULT_W = 820
-M.DEFAULT_H = 540
+M.HEADER_H  = 48
+M.TAB_H     = 36
+M.MIN_W     = 720
+M.MIN_H     = 480
+M.DEFAULT_W = 1120
+M.DEFAULT_H = 720
+-- The editor used to ship at 820x540. We bumped both axes ~36% so the new
+-- NPC tab (sprite picker + form + placement list) and the redesigned
+-- header have room to breathe; smaller monitors still get clamped to
+-- screen size minus a 40 px gutter via recenter().
 
 local function clamp(v, lo, hi)
     if v < lo then return lo end
