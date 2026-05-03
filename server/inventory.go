@@ -134,17 +134,28 @@ func equippedWire(p *Player) string {
 
 // handleEquip moves an inventory item into the matching slot. If the
 // slot is occupied the previous item swaps back into the inventory.
+// Two-handed weapons additionally vacate the offhand slot so a player
+// can't dual-wield a greatsword and a shield.
 func (g *Game) handleEquip(p *Player, itemID string) {
 	if g.scripts == nil {
 		return
 	}
 	def, ok := g.scripts.Item(itemID)
-	if !ok || def.Slot == "" || def.Slot == "none" {
+	if !ok || !def.IsEquippable() {
 		return
 	}
 	g.mu.Lock()
 	if p.Name == "" {
 		g.mu.Unlock()
+		return
+	}
+	// Level gate. Mirrors the client's UI hint so a malicious EQUIP
+	// cannot bypass it.
+	if def.LevelReq > 0 && (p.Stats == nil || p.Stats.Level < def.LevelReq) {
+		out := p.Out
+		g.mu.Unlock()
+		sendNow(out, fmt.Sprintf("SYS Você precisa do nível %d para equipar %s.\n",
+			def.LevelReq, def.Name))
 		return
 	}
 	if g.removeItem(p, itemID, 1) <= 0 {
@@ -154,13 +165,29 @@ func (g *Game) handleEquip(p *Player, itemID string) {
 	if p.Equipped == nil {
 		p.Equipped = make(EquippedSet)
 	}
-	prev, hasPrev := p.Equipped[def.Slot]
-	p.Equipped[def.Slot] = ItemRef{ID: itemID, Qty: 1}
-	if hasPrev {
-		if pdef, ok := g.scripts.Item(prev.ID); ok {
-			g.addItem(p, pdef, prev.Qty)
+	// Slots that conflict with the new item — same slot, plus the
+	// offhand if the new piece is two-handed (or the new piece IS the
+	// offhand and the equipped weapon is two-handed).
+	conflicts := []string{def.Slot}
+	if def.TwoHanded && def.Slot == "weapon" {
+		conflicts = append(conflicts, "offhand")
+	}
+	if def.Slot == "offhand" {
+		if w, has := p.Equipped["weapon"]; has {
+			if wdef, ok := g.scripts.Item(w.ID); ok && wdef.TwoHanded {
+				conflicts = append(conflicts, "weapon")
+			}
 		}
 	}
+	for _, slot := range conflicts {
+		if prev, hasPrev := p.Equipped[slot]; hasPrev {
+			if pdef, ok := g.scripts.Item(prev.ID); ok {
+				g.addItem(p, pdef, prev.Qty)
+			}
+			delete(p.Equipped, slot)
+		}
+	}
+	p.Equipped[def.Slot] = ItemRef{ID: itemID, Qty: 1}
 	invWire := inventoryWire(p)
 	eqWire := equippedWire(p)
 	statsWire := characterStatsLocked(p)
@@ -234,6 +261,67 @@ func (g *Game) handleDropItem(p *Player, itemID string, qty int) {
 		g.db.SaveInventory(character, p)
 	}
 	sendNow(out, wire)
+}
+
+// handleUseItem consumes one stack of an item and applies its OnUse
+// payload (heal HP/MP, apply buff). Non-consumable items silently no-op.
+func (g *Game) handleUseItem(p *Player, itemID string) {
+	if g.scripts == nil {
+		return
+	}
+	def, ok := g.scripts.Item(itemID)
+	if !ok || !def.IsConsumable() {
+		return
+	}
+	g.mu.Lock()
+	if p.Name == "" || p.HP <= 0 {
+		g.mu.Unlock()
+		return
+	}
+	if def.LevelReq > 0 && (p.Stats == nil || p.Stats.Level < def.LevelReq) {
+		out := p.Out
+		g.mu.Unlock()
+		sendNow(out, fmt.Sprintf("SYS Você precisa do nível %d para usar %s.\n",
+			def.LevelReq, def.Name))
+		return
+	}
+	if g.removeItem(p, itemID, 1) <= 0 {
+		g.mu.Unlock()
+		return
+	}
+	healHP := def.OnUse.HealHP
+	healMP := def.OnUse.HealMP
+	if healHP > 0 {
+		p.HP += healHP
+		if p.HP > p.MaxHP {
+			p.HP = p.MaxHP
+		}
+	}
+	if healMP > 0 {
+		p.MP += healMP
+		if p.MP > p.MaxMP {
+			p.MP = p.MaxMP
+		}
+	}
+	pid := p.ID
+	buffID := def.OnUse.Buff
+	buffMs := def.OnUse.BuffMs
+	invWire := inventoryWire(p)
+	statsWire := characterStatsLocked(p)
+	out := p.Out
+	character := p.Name
+	g.mu.Unlock()
+
+	if g.db != nil {
+		g.db.SaveInventory(character, p)
+	}
+	sendNow(out, invWire)
+	sendNow(out, statsWire)
+	if buffID != "" && buffMs > 0 {
+		// ApplyStatus reaches gameplay state through its own locks —
+		// safe to fire after dropping g.mu.
+		g.ApplyStatus(pid, buffID, buffMs, 0)
+	}
 }
 
 // rollDrop is the host-side primitive Lua scripts call to grant loot.
