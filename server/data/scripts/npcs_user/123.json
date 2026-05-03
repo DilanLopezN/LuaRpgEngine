@@ -1,0 +1,23 @@
+{
+  "aggro": 4,
+  "damage": 15,
+  "dialog": {
+    "start": {
+      "options": [
+        {
+          "next_node": "end",
+          "text": "Adeus."
+        }
+      ],
+      "text": "Um inimigo te observa..."
+    }
+  },
+  "faction": "neutral",
+  "hp": 100,
+  "id": "123",
+  "name": "Novo NPC",
+  "role": "enemy",
+  "speed": 1,
+  "sprite": "mob_skeleton",
+  "title": "esqu"
+}

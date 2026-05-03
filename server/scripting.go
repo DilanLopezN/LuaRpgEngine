@@ -218,6 +218,46 @@ func (e *ScriptEngine) NPC(id string) (*NPCDef, bool) {
 	return d, ok
 }
 
+// RootDir exposes the scripts directory so callers (handlers writing
+// user-authored NPCs) can compose paths without re-deriving the root.
+func (e *ScriptEngine) RootDir() string {
+	return e.rootDir
+}
+
+// SaveUserNPC persists def to data/scripts/npcs_user/<id>.json AND
+// updates the in-memory registry so the next snapshot tick sees the
+// new behaviour without forcing a /reload. Hostile NPCs also re-enter
+// the enemy registry. Returns the resolved id (sanitised) and any
+// write error.
+func (e *ScriptEngine) SaveUserNPC(def *NPCDef) error {
+	if err := SaveUserNPCDef(e.rootDir, def); err != nil {
+		return err
+	}
+	e.mu.Lock()
+	e.npcs[def.ID] = def
+	if def.IsHostile() {
+		e.enemies[def.ID] = npcDefToEnemyDef(def)
+	} else {
+		delete(e.enemies, def.ID)
+	}
+	e.mu.Unlock()
+	return nil
+}
+
+// DeleteUserNPC removes the JSON file AND drops the def from the live
+// registry. After this returns, NPC lookups for the id miss as if the
+// file had never existed.
+func (e *ScriptEngine) DeleteUserNPC(id string) error {
+	if err := DeleteUserNPCDef(e.rootDir, id); err != nil {
+		return err
+	}
+	e.mu.Lock()
+	delete(e.npcs, id)
+	delete(e.enemies, id)
+	e.mu.Unlock()
+	return nil
+}
+
 func (e *ScriptEngine) NPCs() map[string]*NPCDef {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -423,11 +463,67 @@ func (e *ScriptEngine) loadNPCs() error {
 		}
 		npcs[def.ID] = def
 	}
+	// User-authored JSON NPCs (data/scripts/npcs_user/) sit alongside the
+	// canonical Lua bucket. The editor writes here, so reloading picks
+	// up the freshly-saved content immediately. If both surfaces define
+	// the same id, the user file wins so live edits are not blocked
+	// by a Lua file with the same name.
+	jsonFiles, err := listUserNPCFiles(e.rootDir)
+	if err != nil {
+		log.Printf("scripts: npcs_user: %v", err)
+	}
+	for _, f := range jsonFiles {
+		def, err := LoadUserNPCJSON(f)
+		if err != nil {
+			log.Printf("scripts: user npc %s: %v", filepath.Base(f), err)
+			continue
+		}
+		npcs[def.ID] = def
+	}
 	e.mu.Lock()
 	e.npcs = npcs
+	// Promote hostile NPCs into the enemy registry so spawnEnemy can
+	// look them up by ID without the gameplay layer needing to know
+	// whether the kind came from data/scripts/enemies/ or from an
+	// authored NPC. The synthetic def is regenerated on every reload
+	// so live edits to HP/Damage/Speed land without a server restart.
+	for id, def := range npcs {
+		if !def.IsHostile() {
+			delete(e.enemies, id)
+			continue
+		}
+		e.enemies[id] = npcDefToEnemyDef(def)
+	}
 	e.mu.Unlock()
-	log.Printf("scripts: loaded %d npcs", len(npcs))
+	log.Printf("scripts: loaded %d npcs (%d user)", len(npcs), len(jsonFiles))
 	return nil
+}
+
+// npcDefToEnemyDef projects an NPCDef onto the EnemyDef shape so a
+// hostile NPC fights with the existing enemy AI code path. HP/Damage
+// fall back to sane defaults so the editor doesn't have to remember
+// to fill them in for every guardian.
+func npcDefToEnemyDef(def *NPCDef) *EnemyDef {
+	hp := def.HP
+	if hp <= 0 {
+		hp = 30
+	}
+	dmg := def.Damage
+	if dmg <= 0 {
+		dmg = 5
+	}
+	sp := def.Speed
+	if sp <= 0 {
+		sp = 1
+	}
+	return &EnemyDef{
+		ID:     def.ID,
+		Name:   def.Name,
+		HP:     hp,
+		Speed:  sp,
+		XP:     def.XP,
+		Damage: dmg,
+	}
 }
 
 func (e *ScriptEngine) loadQuests() error {

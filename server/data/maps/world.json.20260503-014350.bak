@@ -1802,34 +1802,6 @@
       "sprite": "npc_wizzard",
       "x": 4,
       "y": 7
-    },
-    {
-      "type": "npc",
-      "kind": "123",
-      "sprite": "mob_skeleton",
-      "x": 7,
-      "y": 6
-    },
-    {
-      "type": "npc",
-      "kind": "123",
-      "sprite": "mob_skeleton",
-      "x": 7,
-      "y": 5
-    },
-    {
-      "type": "npc",
-      "kind": "123",
-      "sprite": "mob_skeleton",
-      "x": 6,
-      "y": 4
-    },
-    {
-      "type": "npc",
-      "kind": "123",
-      "sprite": "mob_skeleton",
-      "x": 16,
-      "y": 15
     }
   ]
 }

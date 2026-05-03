@@ -190,3 +190,83 @@ func TestParseNPCDefRequiresStart(t *testing.T) {
 		t.Fatalf("options not parsed: %+v", def.Nodes["start"])
 	}
 }
+
+// A user-authored NPC carrying a quest binding but no dialog should
+// auto-generate the four-node tree (offer / accept / in-progress /
+// turn-in) so the editor can produce a working quest giver in one
+// click. Catches a regression where the synthesizer only fired for
+// completely empty defs.
+func TestParseNPCDefSynthesizesQuestDialog(t *testing.T) {
+	raw := map[string]interface{}{
+		"id":    "merch",
+		"name":  "Mercante",
+		"role":  "quest_giver",
+		"quest": "orc_hunt",
+	}
+	def, err := parseNPCDef(raw, "merch")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, want := range []string{"start", "more", "accepted", "return_in_progress", "return_done"} {
+		if _, ok := def.Nodes[want]; !ok {
+			t.Fatalf("missing synthesized node %q", want)
+		}
+	}
+	if def.Faction != NPCFactionAlly {
+		t.Fatalf("quest_giver should default to ally faction, got %q", def.Faction)
+	}
+}
+
+// Hostile NPCs (role=enemy or role=guardian, or any def with HP > 0)
+// must report IsHostile so the spawner routes them through the enemy
+// AI path.
+func TestNPCDefIsHostile(t *testing.T) {
+	cases := []struct {
+		role string
+		hp   int
+		want bool
+	}{
+		{"friendly", 0, false},
+		{"merchant", 0, false},
+		{"quest_giver", 0, false},
+		{"guardian", 0, true},
+		{"enemy", 0, true},
+		{"friendly", 50, true}, // HP overrides role
+	}
+	for _, c := range cases {
+		d := &NPCDef{Role: c.role, HP: c.hp}
+		if got := d.IsHostile(); got != c.want {
+			t.Errorf("role=%s hp=%d: got %v want %v", c.role, c.hp, got, c.want)
+		}
+	}
+}
+
+// Round-trip a JSON document through SaveUserNPCDef + LoadUserNPCJSON
+// to verify serialisation preserves the rich fields.
+func TestUserNPCJSONRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	def := &NPCDef{
+		ID: "boss", Name: "Chefe Final", Title: "Sombra",
+		Role: NPCRoleEnemy, Faction: NPCFactionHostile,
+		Sprite: "mob_skeleton_mage",
+		HP:     200, Damage: 20, Speed: 1.2, Aggro: 6, XP: 500,
+		Loot: []NPCLootEntry{{Item: "rusty_sword", Qty: 1, Chance: 1000}},
+	}
+	if err := SaveUserNPCDef(dir, def); err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	loaded, err := LoadUserNPCJSON(filepath.Join(dir, "npcs_user", "boss.json"))
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if loaded.ID != "boss" || loaded.Role != NPCRoleEnemy ||
+		loaded.HP != 200 || loaded.Damage != 20 || loaded.Sprite != "mob_skeleton_mage" {
+		t.Fatalf("round trip mismatch: %+v", loaded)
+	}
+	if !loaded.IsHostile() {
+		t.Fatal("hostile NPC lost its hostility through the round trip")
+	}
+	if len(loaded.Loot) != 1 || loaded.Loot[0].Item != "rusty_sword" {
+		t.Fatalf("loot lost: %+v", loaded.Loot)
+	}
+}

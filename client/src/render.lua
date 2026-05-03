@@ -306,7 +306,15 @@ local function drawEnemy(id, e)
     local since = love.timer.getTime() - (e.hitTime or -1)
     local flash = (since >= 0 and since < 0.18) and (1 - since / 0.18) or 0
 
-    local img, quad, fw, fh = Sprites.frame("orc_idle", love.timer.getTime())
+    -- Custom artwork wins when the server pinned a sprite (hostile-NPC
+    -- promotions through editor_npcs). Otherwise fall back to the
+    -- default orc artwork the legacy bestiary expects.
+    local animName = "orc_idle"
+    if e.sprite then
+        local sp = Sprites.npcSprite(e.sprite)
+        if sp then animName = sp.animName end
+    end
+    local img, quad, fw, fh = Sprites.frame(animName, love.timer.getTime())
     local headTopY
     if img and quad then
         local r = 1
@@ -402,12 +410,30 @@ end
 
 local NPC_SPRITE_SCALE = 1.6
 
+-- Cor do halo/etiqueta por papel ou facção. Quest givers brilham dourado;
+-- guardiões puxam pra azul-piscina; inimigos pra vermelho. Mantém o
+-- snapshot wire format imutável — a info vem do NPC_DEF cacheado.
+local function npcAura(def)
+    local role    = def and def.role
+    local faction = def and def.faction
+    if role == "enemy"   then return { 0.95, 0.40, 0.35 } end
+    if role == "guardian" then return { 0.45, 0.85, 1.00 } end
+    if role == "merchant" then return { 0.60, 0.95, 0.55 } end
+    if role == "quest_giver" then return { 1.00, 0.85, 0.30 } end
+    if faction == "hostile" then return { 0.90, 0.50, 0.40 } end
+    return { 1.00, 0.85, 0.30 } -- friendly default
+end
+
 local function drawNPC(id, n)
     local sx, sy = n.x * TILE_W + TILE_W / 2, n.y * TILE_H + TILE_H / 2
     drawShadow(sx, sy, 14)
 
-    -- Subtle glow halo so NPCs read as "interactable" at a glance.
-    love.graphics.setColor(1.0, 0.85, 0.30, 0.20)
+    local def = State.npcDefs[n.name]
+    local aura = npcAura(def)
+
+    -- Subtle glow halo so NPCs read as "interactable" at a glance — and
+    -- the colour hints at their disposition before the player gets close.
+    love.graphics.setColor(aura[1], aura[2], aura[3], 0.22)
     love.graphics.circle("fill", sx, sy - 16, 22)
 
     -- Try the chosen sprite first; fall back to the placeholder figure if
@@ -437,18 +463,26 @@ local function drawNPC(id, n)
     end
 
     love.graphics.setFont(State.fonts.name)
-    local def  = State.npcDefs[n.name] or {}
+    def = def or {}
     local label = def.name or n.name or "?"
     local title = def.title or ""
     local lblW = State.fonts.name:getWidth(label)
     love.graphics.setColor(0, 0, 0, 0.55)
     love.graphics.rectangle("fill", sx - lblW / 2 - 3, headTopY - 18,
         lblW + 6, 16, 4, 4)
-    love.graphics.setColor(1.0, 0.95, 0.55)
+    love.graphics.setColor(aura[1], aura[2], aura[3])
     love.graphics.print(label, sx - lblW / 2, headTopY - 17)
     if title ~= "" then
         love.graphics.setColor(1, 1, 1, 0.7)
         love.graphics.printf(title, sx - 80, headTopY - 32, 160, "center")
+    end
+    if def.quest and def.quest ~= "" then
+        -- Pequeno marcador "!" tipo MMO, indicando NPC com missão.
+        love.graphics.setColor(1.0, 0.85, 0.30)
+        love.graphics.circle("fill", sx + lblW / 2 + 8, headTopY - 10, 4)
+        love.graphics.setColor(0, 0, 0)
+        love.graphics.printf("!",
+            sx + lblW / 2 + 4, headTopY - 16, 8, "center")
     end
 end
 

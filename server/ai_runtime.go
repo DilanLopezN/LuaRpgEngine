@@ -55,6 +55,24 @@ func (g *Game) aiTargetsLocked() []*Entity {
 	return out
 }
 
+// aiHostileToPlayers returns true when the enemy entity should treat
+// players as legitimate targets. Ally-faction NPCs (e.g. a "guardian"
+// spawned for the player's village) keep their HP and can be killed by
+// other hostiles, but never aggro the player themselves. Stock enemy
+// kinds (orc, troll, …) defined under data/scripts/enemies/ are not
+// in the npc registry and default to hostile so existing gameplay is
+// unaffected.
+func (g *Game) aiHostileToPlayers(kind string) bool {
+	if g.scripts == nil {
+		return true
+	}
+	def, ok := g.scripts.NPC(kind)
+	if !ok {
+		return true
+	}
+	return def.Faction != NPCFactionAlly
+}
+
 // aiStepLocked nudges an enemy one tile toward (tx, ty). Caller must
 // hold g.mu.
 func (g *Game) aiStepLocked(self *Entity, tx, ty int) {
@@ -107,6 +125,13 @@ func (g *Game) aiAttackLocked(self, target *Entity) {
 	}
 	enemy := g.enemyByEntityLocked(self)
 	if enemy == nil {
+		return
+	}
+	// Faction gate: a guardian whose NPC def declares ally faction
+	// will not attack players. The AI still targets and steps toward
+	// the player (so the encounter feels alive — they walk over to
+	// greet), but the contact damage is skipped.
+	if !g.aiHostileToPlayers(enemy.Kind) {
 		return
 	}
 	now := time.Now()

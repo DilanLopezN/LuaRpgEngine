@@ -18,6 +18,13 @@ const dialogTalkRange = 4
 
 // handleTalk opens a dialog with the NPC whose id is supplied. The NPC
 // must be on the map and within talk range of the player.
+//
+// Quest-aware routing: when the NPC declares a Quest, the entry node
+// is selected from the player's quest state — offer the quest if not
+// taken, gate progress if active-but-incomplete, walk into the
+// turn-in flow once the objective is satisfied. The NPC author can
+// still override any of those nodes by writing them; this only fires
+// when the matching node exists.
 func (g *Game) handleTalk(p *Player, npcID string) {
 	if g.scripts == nil {
 		return
@@ -35,10 +42,71 @@ func (g *Game) handleTalk(p *Player, npcID string) {
 		g.mu.Unlock()
 		return
 	}
+	entry := pickNPCEntryNode(def, p, g.scripts)
 	p.NPCDialog = npcID
-	p.NPCNode = "start"
+	p.NPCNode = entry
 	g.mu.Unlock()
-	g.enterDialogNode(p, def, "start")
+	g.enterDialogNode(p, def, entry)
+}
+
+// pickNPCEntryNode chooses which dialog node to enter based on the
+// player's progress against the NPC's quest. The function is total —
+// it always returns a node that exists in def.Nodes, falling back to
+// "start" when no specialised entry applies. Caller MUST hold g.mu so
+// p.Quests is observed consistently.
+func pickNPCEntryNode(def *NPCDef, p *Player, scripts *ScriptEngine) string {
+	if def == nil || def.Quest == "" {
+		return "start"
+	}
+	qs, taken := p.Quests[def.Quest]
+	hasNode := func(id string) bool { _, ok := def.Nodes[id]; return ok }
+	if !taken {
+		return "start"
+	}
+	if qs.Done {
+		// Quest already finished — fall back to "start" so designers
+		// can author a "thanks again" greeting without colliding
+		// with the turn-in path.
+		return "start"
+	}
+	// Active but unfinished: figure out whether the objective is
+	// satisfied. If yes, route to the turn-in node; otherwise the
+	// "still working on it" beat.
+	if scripts != nil {
+		if qdef, ok := scripts.Quest(def.Quest); ok {
+			if questObjectiveSatisfied(qdef, qs, p) && hasNode("return_done") {
+				return "return_done"
+			}
+		}
+	}
+	if hasNode("return_in_progress") {
+		return "return_in_progress"
+	}
+	return "start"
+}
+
+// questObjectiveSatisfied reports whether the player has met the
+// kill / item targets, the same checks completeQuest will repeat.
+// Splitting the predicate keeps the handleTalk routing in sync with
+// the actual completion gate.
+func questObjectiveSatisfied(qdef *QuestDef, qs *QuestState, p *Player) bool {
+	if qdef.KillCount > 0 && qs.KillCount < qdef.KillCount {
+		return false
+	}
+	if qdef.ItemTarget != "" && qdef.ItemCount > 0 {
+		have := 0
+		if p.Entity != nil && p.Entity.Inventory != nil {
+			for _, it := range p.Entity.Inventory.Items {
+				if it.ID == qdef.ItemTarget {
+					have += it.Qty
+				}
+			}
+		}
+		if have < qdef.ItemCount {
+			return false
+		}
+	}
+	return true
 }
 
 // handleDialogPick walks one option of the active node. Index is
@@ -308,13 +376,23 @@ func (g *Game) trackKillForQuests(p *Player, kind string) []string {
 
 // npcInRange returns true if there is an NPC entity with name == id
 // within talk range of (x, y). Caller must hold g.mu.
+//
+// Both pure NPCs (KindNPC) and hostile-NPC-promoted enemies (KindEnemy
+// whose .Name matches the NPC id) qualify — a guardian must remain
+// talkable even while it has HP and an AI tick. Stock enemies
+// (KindEnemy whose name is "orc" / "troll" / etc.) are not in the
+// NPC registry, so the lookup at handleTalk gates them out before
+// this function is called.
 func (g *Game) npcInRange(id string, x, y int) bool {
 	if g.ecs == nil {
 		return false
 	}
 	found := false
 	g.ecs.Each(func(e *Entity) {
-		if found || e.Kind != KindNPC || e.Position == nil || e.Name != id {
+		if found || e.Position == nil || e.Name != id {
+			return
+		}
+		if e.Kind != KindNPC && e.Kind != KindEnemy {
 			return
 		}
 		if absInt(e.Position.X-x) <= dialogTalkRange &&

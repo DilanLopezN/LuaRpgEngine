@@ -83,8 +83,17 @@ local function handleSnapshot(line)
             end
         end
     elseif kind == "E" then
-        local id, ekind, x, y, hp, maxHp = rest:match(
-            "^(%-?%d+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)$")
+        -- Wire format expanded: optional <sprite> token after maxHp
+        -- carries the custom artwork for hostile-NPC-promoted enemies
+        -- (a guardian or named enemy authored in npcs_user/). Older
+        -- builds without a sprite still parse via the fallback
+        -- pattern below.
+        local id, ekind, x, y, hp, maxHp, sprite =
+            rest:match("^(%-?%d+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%S+)$")
+        if not id then
+            id, ekind, x, y, hp, maxHp = rest:match(
+                "^(%-?%d+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)$")
+        end
         if id then
             id = tonumber(id)
             local e = State.enemies[id]
@@ -97,6 +106,8 @@ local function handleSnapshot(line)
             e.x, e.y   = tonumber(x), tonumber(y)
             e.hp       = tonumber(hp)
             e.maxHp    = tonumber(maxHp)
+            if sprite == "-" or sprite == "" then sprite = nil end
+            e.sprite   = sprite
             if prevHp and e.hp and e.hp < prevHp then
                 FX.spawn("dmg", e.x, e.y, prevHp - e.hp)
             end
@@ -437,15 +448,23 @@ handlers.SKILL = function(rest)
 end
 
 -- Phase 4 — NPCs / quests / dialog.
+-- NPC_DEF wire payload is a single-line JSON document. Decoding it into a
+-- table puts the full editor-authored shape (role, faction, sprite, hp,
+-- damage, quest binding, ...) within reach of every client surface that
+-- needs to render NPCs distinctly — no extra round-trip to the server.
 handlers.NPC_DEF = function(rest)
-    local id, name, title = rest:match("^(%S+)%s+(%S+)%s+(.+)$")
-    if id then
-        State.npcDefs[id] = {
-            id = id,
-            name = decodeText(name),
-            title = decodeText(title),
-        }
+    local ok, def = pcall(JSON.decode, rest)
+    if not ok or type(def) ~= "table" or not def.id then
+        return
     end
+    State.npcDefs[def.id] = def
+end
+
+-- A user-authored NPC was deleted. Drop it from the catalog so its name
+-- no longer appears in the editor's quest dropdowns or dialog labels.
+handlers.NPC_DEF_DELETE = function(rest)
+    local id = rest:match("^(%S+)")
+    if id then State.npcDefs[id] = nil end
 end
 
 handlers.QUEST_DEF = function(rest)

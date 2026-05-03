@@ -60,16 +60,22 @@ M.mapEditor = {
     activeStroke  = nil,         -- snapshot pushed at drag start
 }
 
--- NPC editor (Criar NPCs tab). Tracks the selected sprite, the kind/name to
--- assign to placed instances, and the save status. Placement itself writes
--- straight into Map.current.entities and is persisted via SAVE_MAP, sharing
--- the map editor's pipeline.
+-- NPC editor (Criar NPCs tab). Tem três regiões:
+--   draft        → o NPC sendo editado no formulário
+--   placement    → o que será posicionado ao clicar no mundo
+--   selectedId   → id do NPC selecionado no catálogo (esquerda)
+-- O catálogo em si (lista de NPCs) é alimentado por State.npcDefs, que o
+-- servidor envia via NPC_DEF.
 M.npcEditor = {
-    spriteId    = "npc_knight",  -- id from Sprites.npcSprites
-    npcKind     = "guard",       -- script id (data/scripts/npcs/<id>.lua) used for dialog
-    saveStatus  = "",
-    listScroll  = 0,             -- placed-NPC list scroll offset (px)
-    paletteScroll = 0,           -- sprite picker scroll offset (px)
+    spriteId      = "npc_knight",    -- legacy: usado como sprite default
+    saveStatus    = "",
+    formScroll    = 0,
+    catalogScroll = 0,
+    listScroll    = 0,
+    paletteScroll = 0,
+    selectedId    = nil,
+    placement     = { kind = "", sprite = "" },
+    draft         = nil,             -- preenchido por ensureEditorState()
 }
 
 -- Phase 4 — character sheet. Populated by STATS / SKILL_POINTS frames.

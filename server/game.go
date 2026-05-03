@@ -259,8 +259,14 @@ func NewGame(db *DB, cache *Cache) *Game {
 }
 
 // spawnNPCsFromMap walks the active map's entities and turns every
-// type=npc record into a live NPC entity in the ECS world. Caller does
-// not need to hold g.mu — NewGame is single-threaded.
+// type=npc record into a live entity. Friendly / merchant / quest_giver
+// NPCs go in as static dialog entities; guardian / enemy NPCs are
+// promoted to Enemy and join the AI / combat / loot pipeline so the
+// editor can drop a hostile NPC and watch it actually fight.
+//
+// Caller does not need to hold g.mu when called from NewGame
+// (single-threaded boot). When called from handleSaveMap, the caller
+// MUST hold g.mu — see reconcileMapNPCsLocked.
 func (g *Game) spawnNPCsFromMap() {
 	if g.world == nil {
 		return
@@ -269,8 +275,75 @@ func (g *Game) spawnNPCsFromMap() {
 		if ent.Type != "npc" {
 			continue
 		}
-		g.spawnNPC(ent.Kind, ent.Sprite, ent.X, ent.Y)
+		def, _ := g.npcDefFor(ent.Kind)
+		sprite := ent.Sprite
+		if sprite == "" && def != nil {
+			sprite = def.Sprite
+		}
+		if def != nil && def.IsHostile() {
+			// Hostile NPCs reuse the enemy spawning path so they
+			// inherit the AI tick, attack callbacks, and loot
+			// hook. The synthetic EnemyDef installed by
+			// loadNPCs makes the kind lookup succeed.
+			e := g.spawnEnemy(ent.Kind, ent.X, ent.Y)
+			if e != nil && e.Entity != nil {
+				e.Entity.Sprite = sprite
+			}
+			continue
+		}
+		g.spawnNPC(ent.Kind, sprite, ent.X, ent.Y)
 	}
+}
+
+// npcDefFor looks up an NPC definition without holding g.mu. The
+// scripts subsystem keeps its own lock; callers must not pass g.mu in.
+func (g *Game) npcDefFor(id string) (*NPCDef, bool) {
+	if g.scripts == nil {
+		return nil, false
+	}
+	return g.scripts.NPC(id)
+}
+
+// reconcileMapNPCsLocked tears down NPC entities sourced from the map
+// (whether they ended up as KindNPC or KindEnemy via the hostile
+// promotion) and rebuilds them from the current g.world.Entities.
+// Used after SAVE_MAP so editor placements take effect immediately
+// without a server restart. Caller MUST hold g.mu.
+func (g *Game) reconcileMapNPCsLocked() {
+	if g.ecs == nil {
+		return
+	}
+	// Collect NPC entities — these are always map-sourced.
+	var dropEntities []EntityID
+	g.ecs.Each(func(e *Entity) {
+		if e.Kind == KindNPC {
+			dropEntities = append(dropEntities, e.ID)
+		}
+	})
+	for _, id := range dropEntities {
+		g.ecs.Remove(id)
+	}
+	// Drop enemies that originated from a hostile NPC kind. We treat
+	// any enemy whose kind matches a known hostile NPC as map-sourced.
+	// The two stock orcs spawned in NewGame keep ".Kind == orc"
+	// which is NOT in the npcs registry, so they survive.
+	hostile := make(map[string]bool)
+	if g.scripts != nil {
+		for id, def := range g.scripts.NPCs() {
+			if def.IsHostile() {
+				hostile[id] = true
+			}
+		}
+	}
+	for id, e := range g.enemies {
+		if hostile[e.Kind] {
+			if e.Entity != nil {
+				g.ecs.Remove(e.Entity.ID)
+			}
+			delete(g.enemies, id)
+		}
+	}
+	g.spawnNPCsFromMap()
 }
 
 // spawnNPC adds an NPC entity to the ECS world. NPCs do not move and
@@ -560,6 +633,17 @@ func (g *Game) handleLine(p *Player, line string) {
 	}
 	if strings.HasPrefix(line, "SAVE_MAP ") {
 		g.handleSaveMap(p, strings.TrimPrefix(line, "SAVE_MAP "))
+		return
+	}
+	// In-game NPC authoring. The editor sends the full NPCDef as a
+	// JSON document; we parse, persist to npcs_user/, and broadcast
+	// the new NPC_DEF so every player's UI updates without a /reload.
+	if strings.HasPrefix(line, "SAVE_NPC_DEF ") {
+		g.handleSaveNPCDef(p, strings.TrimPrefix(line, "SAVE_NPC_DEF "))
+		return
+	}
+	if strings.HasPrefix(line, "DELETE_NPC_DEF ") {
+		g.handleDeleteNPCDef(p, strings.TrimSpace(strings.TrimPrefix(line, "DELETE_NPC_DEF ")))
 		return
 	}
 	// Chat commands carry free-form text after the verb; tokenise the
@@ -1300,6 +1384,17 @@ func (g *Game) handleSaveMap(p *Player, payload string) {
 	}
 	g.mu.Lock()
 	g.world = &m
+	// Reconcile live NPC entities so the editor's placements (or
+	// removals) reflect on every player's screen on the next tick
+	// without needing a server restart. Reseting LastFull on each
+	// viewer forces the next snapshot to be a full one — that wipes
+	// the per-client AoI cache so a deleted NPC doesn't linger in
+	// LastSeen waiting for an X drop line that never comes.
+	g.reconcileMapNPCsLocked()
+	for _, op := range g.players {
+		op.LastSeen = nil
+		op.LastFull = time.Time{}
+	}
 	outs := make([]chan<- string, 0, len(g.players))
 	for _, op := range g.players {
 		outs = append(outs, op.Out)
@@ -1310,4 +1405,84 @@ func (g *Game) handleSaveMap(p *Player, payload string) {
 	log.Printf("map %q saved by player %d (%dx%d, %d entities)",
 		m.Name, p.ID, m.Width, m.Height, len(m.Entities))
 	g.broadcast(outs, "MAP "+string(data)+"\n")
+}
+
+// handleSaveNPCDef accepts a full NPCDef as JSON, persists it under
+// data/scripts/npcs_user/, refreshes the live registry (so live
+// instances of the NPC pick up new HP / dialog / role on next tick)
+// and rebroadcasts the NPC_DEF wire frame so every player's UI
+// catalog stays in sync. The hostile-promotion lookup happens
+// inside SaveUserNPC, so a freshly-authored guardian becomes a
+// spawnable enemy immediately.
+func (g *Game) handleSaveNPCDef(p *Player, payload string) {
+	if g.scripts == nil {
+		return
+	}
+	if len(payload) > 256*1024 {
+		log.Printf("save_npc_def from %d rejected: payload too large", p.ID)
+		return
+	}
+	var raw interface{}
+	if err := json.Unmarshal([]byte(payload), &raw); err != nil {
+		log.Printf("save_npc_def from %d: parse: %v", p.ID, err)
+		return
+	}
+	def, err := parseNPCDef(raw, "")
+	if err != nil {
+		log.Printf("save_npc_def from %d: invalid: %v", p.ID, err)
+		return
+	}
+	clean := sanitizeNPCID(def.ID)
+	if clean == "" {
+		log.Printf("save_npc_def from %d: invalid id", p.ID)
+		return
+	}
+	def.ID = clean
+	if err := g.scripts.SaveUserNPC(def); err != nil {
+		log.Printf("save_npc_def persist: %v", err)
+		return
+	}
+	// If the saved NPC is currently placed on the map, reconcile so
+	// its role / HP / sprite changes go live immediately.
+	g.mu.Lock()
+	g.reconcileMapNPCsLocked()
+	outs := make([]chan<- string, 0, len(g.players))
+	for _, op := range g.players {
+		op.LastSeen = nil
+		op.LastFull = time.Time{}
+		outs = append(outs, op.Out)
+	}
+	g.mu.Unlock()
+	log.Printf("npc def %q saved by player %d", def.ID, p.ID)
+	g.broadcast(outs, formatNPCDef(def))
+}
+
+// handleDeleteNPCDef drops a user-authored NPC. The on-disk JSON is
+// removed and the live registry forgets the id. Any map entity that
+// references the now-absent NPC will fall back to a placeholder
+// renderer client-side; deleting also removes the NPC from any
+// active dialog by re-running reconcile.
+func (g *Game) handleDeleteNPCDef(p *Player, id string) {
+	if g.scripts == nil {
+		return
+	}
+	clean := sanitizeNPCID(id)
+	if clean == "" {
+		return
+	}
+	if err := g.scripts.DeleteUserNPC(clean); err != nil {
+		log.Printf("delete_npc_def: %v", err)
+		return
+	}
+	g.mu.Lock()
+	g.reconcileMapNPCsLocked()
+	outs := make([]chan<- string, 0, len(g.players))
+	for _, op := range g.players {
+		op.LastSeen = nil
+		op.LastFull = time.Time{}
+		outs = append(outs, op.Out)
+	}
+	g.mu.Unlock()
+	log.Printf("npc def %q deleted by player %d", clean, p.ID)
+	g.broadcast(outs, "NPC_DEF_DELETE "+clean+"\n")
 }

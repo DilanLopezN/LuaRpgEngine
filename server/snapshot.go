@@ -140,13 +140,22 @@ func (g *Game) buildPlayerSnapshot(viewer *Player, now time.Time) string {
 			continue
 		}
 		hp := e.Entity.Health
+		sprite := e.Entity.Sprite
+		if sprite == "" {
+			sprite = "-"
+		}
 		st := snapState{
 			x: pos.X, y: pos.Y,
 			hp: hp.HP, maxHP: hp.MaxHP,
-			kind: e.Kind,
+			kind:   e.Kind,
+			sprite: e.Entity.Sprite,
 		}
-		line := fmt.Sprintf("E %d %s %d %d %d %d\n",
-			e.ID, e.Kind, pos.X, pos.Y, hp.HP, hp.MaxHP)
+		// Wire format: `E <id> <kind> <x> <y> <hp> <maxHp> <sprite>`.
+		// Sprite token is "-" when nothing was assigned so the
+		// pre-existing six-token parse path on older clients still
+		// matches via the regex's optional capture.
+		line := fmt.Sprintf("E %d %s %d %d %d %d %s\n",
+			e.ID, e.Kind, pos.X, pos.Y, hp.HP, hp.MaxHP, sprite)
 		emit(snapKey{'E', e.ID}, st, line)
 	}
 

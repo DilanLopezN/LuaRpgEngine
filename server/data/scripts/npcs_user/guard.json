@@ -1,0 +1,32 @@
+{
+  "id": "guard",
+  "name": "Guarda Aldrin",
+  "title": "Guarda da Vila",
+  "role": "guardian",
+  "faction": "ally",
+  "sprite": "npc_knight",
+  "hp": 80,
+  "damage": 8,
+  "speed": 1.0,
+  "aggro": 5,
+  "xp": 40,
+  "loot": [
+    { "item": "health_potion", "qty": 1, "chance": 400 }
+  ],
+  "dialog": {
+    "start": {
+      "text": "Mantenha-se calmo, viajante. A vila está sob minha vigilância.",
+      "options": [
+        { "text": "Como posso ajudar?",  "next_node": "more" },
+        { "text": "Adeus." ,             "next_node": "end" }
+      ]
+    },
+    "more": {
+      "text": "Cuidado com os orcs ao norte. Se sentir-se forte, lute por nós.",
+      "options": [
+        { "text": "Conte comigo.",       "next_node": "end" },
+        { "text": "Talvez depois.",      "next_node": "end" }
+      ]
+    }
+  }
+}
