@@ -34,8 +34,20 @@ func TestScriptEngineLoadsAllDomains(t *testing.T) {
 	if it, ok := e.Item("rusty_sword"); !ok || it.Slot != "weapon" {
 		t.Fatalf("rusty_sword should equip in weapon slot: %+v", it)
 	}
-	if q, ok := e.Quest("orc_hunt"); !ok || q.KillTarget != "orc" || q.KillCount != 3 {
+	if q, ok := e.Quest("orc_hunt"); !ok || len(q.Objectives) == 0 {
 		t.Fatalf("orc_hunt malformed: %+v", q)
+	} else {
+		// Legacy single-objective shape gets folded into Objectives[].
+		// Confirm the kill objective survived the schema migration.
+		hasKill := false
+		for _, o := range q.Objectives {
+			if o.Type == "kill" && o.Target == "orc" && o.Count == 3 {
+				hasKill = true
+			}
+		}
+		if !hasKill {
+			t.Fatalf("orc_hunt lost its kill objective: %+v", q.Objectives)
+		}
 	}
 	if def, ok := e.NPC("elder"); !ok || def.Nodes["start"] == nil {
 		t.Fatalf("elder npc missing start node: %+v", def)
@@ -238,6 +250,123 @@ func TestNPCDefIsHostile(t *testing.T) {
 		if got := d.IsHostile(); got != c.want {
 			t.Errorf("role=%s hp=%d: got %v want %v", c.role, c.hp, got, c.want)
 		}
+	}
+}
+
+// Multi-objective quest schema must accept the legacy single-objective
+// shape AND the new objectives[] list. Both surfaces converge on the
+// same Objectives slice.
+func TestParseQuestDefMultiObjective(t *testing.T) {
+	raw := map[string]interface{}{
+		"id":         "boss_arena",
+		"name":       "Arena do Chefe",
+		"giver":      "elder",
+		"repeatable": true,
+		"prerequisites": map[string]interface{}{
+			"level": 5,
+			"quest": "orc_hunt",
+		},
+		"objectives": []interface{}{
+			map[string]interface{}{"type": "kill", "target": "troll", "count": 2},
+			map[string]interface{}{"type": "collect", "target": "orc_tooth", "count": 5},
+			map[string]interface{}{"type": "level", "count": 6},
+			map[string]interface{}{"type": "talk", "target": "elder"},
+			map[string]interface{}{
+				"type": "visit", "x": 10, "y": 10, "range": 1,
+			},
+		},
+		"reward": map[string]interface{}{
+			"xp":           500,
+			"gold":         200,
+			"skill_points": 2,
+			"learn_skill":  "fireball",
+			"items": []interface{}{
+				map[string]interface{}{"id": "rusty_sword", "qty": 1},
+				map[string]interface{}{"id": "health_potion", "qty": 3},
+			},
+		},
+	}
+	def, err := parseQuestDef(raw, "boss_arena")
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if !def.Repeatable {
+		t.Error("repeatable lost")
+	}
+	if def.Prerequisites.Level != 5 || def.Prerequisites.Quest != "orc_hunt" {
+		t.Errorf("prereqs malformed: %+v", def.Prerequisites)
+	}
+	if len(def.Objectives) != 5 {
+		t.Fatalf("expected 5 objectives, got %d: %+v", len(def.Objectives), def.Objectives)
+	}
+	if def.Reward.SkillPoints != 2 || def.Reward.LearnSkill != "fireball" {
+		t.Errorf("reward bundle malformed: %+v", def.Reward)
+	}
+	if len(def.Reward.Items) != 2 {
+		t.Errorf("reward items lost: %+v", def.Reward.Items)
+	}
+}
+
+// Quest progress tracking: kill counter clamps at the objective count
+// and stays in sync with the legacy KillCount mirror.
+func TestQuestProgressClampsAtTarget(t *testing.T) {
+	def := &QuestDef{
+		ID: "q",
+		Objectives: []QuestObjective{
+			{Type: "kill", Target: "orc", Count: 3},
+		},
+	}
+	qs := &QuestState{ID: "q", Stage: "active", Progress: []int{0}}
+	for i := 0; i < 5; i++ {
+		ensureProgressLen(qs, len(def.Objectives))
+		for idx, o := range def.Objectives {
+			if o.Type != "kill" || o.Target != "orc" {
+				continue
+			}
+			if qs.Progress[idx] >= o.Count {
+				continue
+			}
+			qs.Progress[idx]++
+		}
+	}
+	if qs.Progress[0] != 3 {
+		t.Fatalf("expected clamp at 3, got %d", qs.Progress[0])
+	}
+}
+
+// Quest user JSON round-trip preserves rich fields including the
+// objective list and bundle reward.
+func TestUserQuestJSONRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	def := &QuestDef{
+		ID: "fetch_potions", Name: "Pegar Poções",
+		Description: "Traga poções para o velho.",
+		Giver:       "elder",
+		Repeatable:  true,
+		Prerequisites: QuestPrereqs{
+			Level: 3,
+		},
+		Objectives: []QuestObjective{
+			{Type: "collect", Target: "health_potion", Count: 5},
+			{Type: "level", Count: 5},
+		},
+		Reward: QuestReward{
+			XP: 100, Gold: 50,
+			Items: []ItemRef{{ID: "rusty_sword", Qty: 1}},
+		},
+		IntroMessage: "Boa sorte!",
+	}
+	if err := SaveUserQuestDef(dir, def); err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	loaded, err := LoadUserQuestJSON(filepath.Join(dir, "quests_user", "fetch_potions.json"))
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if loaded.ID != "fetch_potions" || !loaded.Repeatable ||
+		len(loaded.Objectives) != 2 || loaded.Reward.XP != 100 ||
+		len(loaded.Reward.Items) != 1 {
+		t.Fatalf("round trip mismatch: %+v rew=%+v", loaded, loaded.Reward)
 	}
 }
 

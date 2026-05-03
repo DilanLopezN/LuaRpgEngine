@@ -5,7 +5,8 @@
 return {
   id   = "orc_hunt",
   name = "Orc Hunt",
-  stages = { "active", "complete" },
+  description = "Os orcs voltaram da floresta — caçar 3 deles e trazer 3 dentes prova que a vila está protegida.",
+  giver = "elder",
   objective = {
     kill        = "orc",
     count       = 3,
@@ -18,4 +19,7 @@ return {
     item = "rusty_sword",
     qty  = 1,
   },
+  intro       = "A vila conta com você. Boa sorte na caçada.",
+  in_progress = "Os orcs ainda rondam o limite da floresta.",
+  complete    = "A vila te honra. Aceite esta espada como prova.",
 }

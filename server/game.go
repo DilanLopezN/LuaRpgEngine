@@ -557,8 +557,15 @@ func (g *Game) bindName(id int, name string) *Player {
 		for slot, ref := range g.db.LoadEquipped(name) {
 			p.Equipped[slot] = ref
 		}
-		// Quest progress.
+		// Quest progress. Progress slice is padded against the active
+		// QuestDef's objective list so a designer adding an objective
+		// to an existing quest doesn't break in-flight playthroughs.
 		for _, qs := range g.db.LoadQuests(name) {
+			if g.scripts != nil {
+				if def, ok := g.scripts.Quest(qs.ID); ok {
+					ensureProgressLen(qs, len(def.Objectives))
+				}
+			}
 			p.Quests[qs.ID] = qs
 		}
 		if g.world.InBounds(rec.X, rec.Y) && g.world.IsWalkable(rec.X, rec.Y) &&
@@ -644,6 +651,17 @@ func (g *Game) handleLine(p *Player, line string) {
 	}
 	if strings.HasPrefix(line, "DELETE_NPC_DEF ") {
 		g.handleDeleteNPCDef(p, strings.TrimSpace(strings.TrimPrefix(line, "DELETE_NPC_DEF ")))
+		return
+	}
+	// Quest authoring (Phase 4 — editor in-game). The payload is the
+	// full QuestDef as JSON; the server parses, persists to
+	// quests_user/<id>.json, and rebroadcasts QUEST_DEF.
+	if strings.HasPrefix(line, "SAVE_QUEST_DEF ") {
+		g.handleSaveQuestDef(p, strings.TrimPrefix(line, "SAVE_QUEST_DEF "))
+		return
+	}
+	if strings.HasPrefix(line, "DELETE_QUEST_DEF ") {
+		g.handleDeleteQuestDef(p, strings.TrimSpace(strings.TrimPrefix(line, "DELETE_QUEST_DEF ")))
 		return
 	}
 	// Chat commands carry free-form text after the verb; tokenise the
@@ -795,9 +813,7 @@ func (g *Game) sendCharacterState(p *Player) {
 	eqWire := equippedWire(p)
 	questWires := make([]string, 0, len(p.Quests))
 	for _, qs := range p.Quests {
-		questWires = append(questWires,
-			fmt.Sprintf("QUEST_STATE %s %s %d %s\n",
-				qs.ID, qs.Stage, qs.KillCount, boolToFlag(qs.Done)))
+		questWires = append(questWires, questProgressLine(qs))
 	}
 	out := p.Out
 	g.mu.Unlock()
@@ -1455,6 +1471,83 @@ func (g *Game) handleSaveNPCDef(p *Player, payload string) {
 	g.mu.Unlock()
 	log.Printf("npc def %q saved by player %d", def.ID, p.ID)
 	g.broadcast(outs, formatNPCDef(def))
+}
+
+// handleSaveQuestDef accepts a full QuestDef as JSON, persists it
+// under data/scripts/quests_user/, refreshes the live registry, and
+// rebroadcasts QUEST_DEF so every connected client's journal/editor
+// picks up the new quest. Players who already have an active state
+// for this quest get their Progress slice padded so a designer
+// adding a fifth objective doesn't break in-flight playthroughs.
+func (g *Game) handleSaveQuestDef(p *Player, payload string) {
+	if g.scripts == nil {
+		return
+	}
+	if len(payload) > 256*1024 {
+		log.Printf("save_quest_def from %d rejected: payload too large", p.ID)
+		return
+	}
+	var raw interface{}
+	if err := json.Unmarshal([]byte(payload), &raw); err != nil {
+		log.Printf("save_quest_def from %d: parse: %v", p.ID, err)
+		return
+	}
+	def, err := parseQuestDef(raw, "")
+	if err != nil {
+		log.Printf("save_quest_def from %d: invalid: %v", p.ID, err)
+		return
+	}
+	clean := sanitizeNPCID(def.ID)
+	if clean == "" {
+		log.Printf("save_quest_def from %d: invalid id", p.ID)
+		return
+	}
+	def.ID = clean
+	if err := g.scripts.SaveUserQuest(def); err != nil {
+		log.Printf("save_quest_def persist: %v", err)
+		return
+	}
+	g.mu.Lock()
+	outs := make([]chan<- string, 0, len(g.players))
+	updates := make([]string, 0)
+	for _, op := range g.players {
+		if qs, ok := op.Quests[def.ID]; ok {
+			ensureProgressLen(qs, len(def.Objectives))
+			updates = append(updates, questProgressLine(qs))
+		}
+		outs = append(outs, op.Out)
+	}
+	g.mu.Unlock()
+	log.Printf("quest def %q saved by player %d", def.ID, p.ID)
+	g.broadcast(outs, formatQuestDef(def))
+	for _, w := range updates {
+		g.broadcast(outs, w)
+	}
+}
+
+// handleDeleteQuestDef drops a user-authored quest. Live state for
+// players who have it accepted stays in their journal but turns into
+// a no-op (the def lookup at completion will miss).
+func (g *Game) handleDeleteQuestDef(p *Player, id string) {
+	if g.scripts == nil {
+		return
+	}
+	clean := sanitizeNPCID(id)
+	if clean == "" {
+		return
+	}
+	if err := g.scripts.DeleteUserQuest(clean); err != nil {
+		log.Printf("delete_quest_def: %v", err)
+		return
+	}
+	g.mu.Lock()
+	outs := make([]chan<- string, 0, len(g.players))
+	for _, op := range g.players {
+		outs = append(outs, op.Out)
+	}
+	g.mu.Unlock()
+	log.Printf("quest def %q deleted by player %d", clean, p.ID)
+	g.broadcast(outs, "QUEST_DEF_DELETE "+clean+"\n")
 }
 
 // handleDeleteNPCDef drops a user-authored NPC. The on-disk JSON is

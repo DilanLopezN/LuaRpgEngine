@@ -476,13 +476,74 @@ local function drawNPC(id, n)
         love.graphics.setColor(1, 1, 1, 0.7)
         love.graphics.printf(title, sx - 80, headTopY - 32, 160, "center")
     end
-    if def.quest and def.quest ~= "" then
-        -- Pequeno marcador "!" tipo MMO, indicando NPC com missão.
-        love.graphics.setColor(1.0, 0.85, 0.30)
-        love.graphics.circle("fill", sx + lblW / 2 + 8, headTopY - 10, 4)
-        love.graphics.setColor(0, 0, 0)
-        love.graphics.printf("!",
-            sx + lblW / 2 + 4, headTopY - 16, 8, "center")
+    -- Marcador de quest tipo MMO. O NPC pode estar como "giver" em
+    -- def.quest (modo legado: NPC tem 1 quest) OU como giver em alguma
+    -- QuestDef (modo novo: cruzamento via questDefs[id].giver = npcId).
+    -- Cor:
+    --   amarelo "!"  → quest disponível ainda não aceita
+    --   azul "?"     → quest aceita, ainda não pronta
+    --   verde "?"    → pronta para turn-in
+    local function questBadge(npcID)
+        local best
+        for qid, qdef in pairs(State.questDefs or {}) do
+            if (qdef.giver == npcID) or (def.quest and def.quest == qid) then
+                local qs = State.quests and State.quests[qid]
+                if not qs then
+                    return "available"
+                end
+                if qs.done then
+                    -- already finished; ignore unless repeatable + not active
+                    if qdef.repeatable then return best or "available" end
+                else
+                    -- Active: check if objectives are satisfied.
+                    local satisfied = true
+                    for idx, o in ipairs(qdef.objectives or {}) do
+                        local need = o.count or 1
+                        local cur = (qs.progress and qs.progress[idx]) or 0
+                        if o.type == "kill" or o.type == "talk" or o.type == "visit" then
+                            if cur < need then satisfied = false end
+                        elseif o.type == "level" then
+                            if ((State.character or {}).level or 0) < need then
+                                satisfied = false
+                            end
+                        elseif o.type == "collect" then
+                            local have = 0
+                            for _, it in ipairs(State.inventory or {}) do
+                                if it.id == o.target then have = have + (it.qty or 0) end
+                            end
+                            if have < need then satisfied = false end
+                        end
+                    end
+                    if satisfied then
+                        return "ready"
+                    else
+                        best = best or "active"
+                    end
+                end
+            end
+        end
+        return best
+    end
+    local badge = questBadge(n.name)
+    if badge then
+        local bx = sx + lblW / 2 + 10
+        local by = headTopY - 12
+        if badge == "available" then
+            love.graphics.setColor(1.0, 0.85, 0.30)
+            love.graphics.circle("fill", bx, by, 5)
+            love.graphics.setColor(0, 0, 0)
+            love.graphics.printf("!", bx - 5, by - 6, 10, "center")
+        elseif badge == "ready" then
+            love.graphics.setColor(0.55, 1.00, 0.55)
+            love.graphics.circle("fill", bx, by, 5)
+            love.graphics.setColor(0, 0, 0)
+            love.graphics.printf("?", bx - 5, by - 6, 10, "center")
+        else -- active
+            love.graphics.setColor(0.55, 0.78, 1.00, 0.85)
+            love.graphics.circle("line", bx, by, 5)
+            love.graphics.setColor(0.85, 0.92, 1.0)
+            love.graphics.printf("?", bx - 5, by - 6, 10, "center")
+        end
     end
 end
 

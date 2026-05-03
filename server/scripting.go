@@ -547,10 +547,50 @@ func (e *ScriptEngine) loadQuests() error {
 		}
 		quests[def.ID] = def
 	}
+	// User-authored JSON quests, mirroring the npcs_user/ flow. Editor
+	// writes here; reload picks them up. Same id from both surfaces:
+	// the user file wins so the editor can override a stock quest.
+	jsonFiles, err := listUserQuestFiles(e.rootDir)
+	if err != nil {
+		log.Printf("scripts: quests_user: %v", err)
+	}
+	for _, f := range jsonFiles {
+		def, err := LoadUserQuestJSON(f)
+		if err != nil {
+			log.Printf("scripts: user quest %s: %v", filepath.Base(f), err)
+			continue
+		}
+		quests[def.ID] = def
+	}
 	e.mu.Lock()
 	e.quests = quests
 	e.mu.Unlock()
-	log.Printf("scripts: loaded %d quests", len(quests))
+	log.Printf("scripts: loaded %d quests (%d user)", len(quests), len(jsonFiles))
+	return nil
+}
+
+// SaveUserQuest persists a quest to data/scripts/quests_user/<id>.json
+// AND updates the live registry so the next snapshot reflects the new
+// definition without forcing a /reload.
+func (e *ScriptEngine) SaveUserQuest(def *QuestDef) error {
+	if err := SaveUserQuestDef(e.rootDir, def); err != nil {
+		return err
+	}
+	e.mu.Lock()
+	e.quests[def.ID] = def
+	e.mu.Unlock()
+	return nil
+}
+
+// DeleteUserQuest removes the JSON file AND drops the def from the
+// live registry.
+func (e *ScriptEngine) DeleteUserQuest(id string) error {
+	if err := DeleteUserQuestDef(e.rootDir, id); err != nil {
+		return err
+	}
+	e.mu.Lock()
+	delete(e.quests, id)
+	e.mu.Unlock()
 	return nil
 }
 

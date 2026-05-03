@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"log"
 	"os"
 
@@ -82,6 +83,10 @@ func initSchema(conn *sql.DB) error {
 			done           BOOLEAN NOT NULL DEFAULT FALSE,
 			PRIMARY KEY (character_name, quest_id)
 		)`,
+		// Multi-objective progress lives in a JSON column. ALTER is
+		// idempotent so existing deployments pick it up without a
+		// migration step.
+		`ALTER TABLE character_quests ADD COLUMN IF NOT EXISTS progress JSONB NOT NULL DEFAULT '[]'::jsonb`,
 		`CREATE TABLE IF NOT EXISTS character_learned_skills (
 			character_name TEXT NOT NULL,
 			skill_id       TEXT NOT NULL,
@@ -267,12 +272,14 @@ func (d *DB) LoadEquipped(name string) map[string]ItemRef {
 }
 
 // LoadQuests returns the persisted quest states for a character.
+// The progress column is a JSONB-encoded []int; missing or malformed
+// values fall back to a fresh slice so an old row keeps loading.
 func (d *DB) LoadQuests(name string) []*QuestState {
 	if d.conn == nil {
 		return nil
 	}
 	rows, err := d.conn.Query(
-		`SELECT quest_id, stage, kill_count, done
+		`SELECT quest_id, stage, kill_count, done, COALESCE(progress::text, '[]')
 		   FROM character_quests WHERE character_name=$1`, name)
 	if err != nil {
 		log.Printf("postgres load quests %s: %v", name, err)
@@ -282,25 +289,35 @@ func (d *DB) LoadQuests(name string) []*QuestState {
 	var out []*QuestState
 	for rows.Next() {
 		var qs QuestState
-		if err := rows.Scan(&qs.ID, &qs.Stage, &qs.KillCount, &qs.Done); err == nil {
-			cp := qs
-			out = append(out, &cp)
+		var progRaw string
+		if err := rows.Scan(&qs.ID, &qs.Stage, &qs.KillCount, &qs.Done, &progRaw); err != nil {
+			continue
 		}
+		if progRaw != "" && progRaw != "[]" {
+			_ = json.Unmarshal([]byte(progRaw), &qs.Progress)
+		}
+		cp := qs
+		out = append(out, &cp)
 	}
 	return out
 }
 
-// SaveQuest upserts a single quest state.
+// SaveQuest upserts a single quest state including the multi-objective
+// progress vector.
 func (d *DB) SaveQuest(name string, qs *QuestState) {
 	if d.conn == nil || qs == nil {
 		return
 	}
-	_, err := d.conn.Exec(`
-		INSERT INTO character_quests (character_name, quest_id, stage, kill_count, done)
-		VALUES ($1,$2,$3,$4,$5)
+	progRaw, err := json.Marshal(qs.Progress)
+	if err != nil {
+		progRaw = []byte("[]")
+	}
+	_, err = d.conn.Exec(`
+		INSERT INTO character_quests (character_name, quest_id, stage, kill_count, done, progress)
+		VALUES ($1,$2,$3,$4,$5,$6::jsonb)
 		ON CONFLICT (character_name, quest_id) DO UPDATE SET
-			stage=$3, kill_count=$4, done=$5
-	`, name, qs.ID, qs.Stage, qs.KillCount, qs.Done)
+			stage=$3, kill_count=$4, done=$5, progress=$6::jsonb
+	`, name, qs.ID, qs.Stage, qs.KillCount, qs.Done, string(progRaw))
 	if err != nil {
 		log.Printf("postgres save quest %s/%s: %v", name, qs.ID, err)
 	}

@@ -25,7 +25,7 @@ M.drag        = nil
 M.mouse       = { x = 0, y = 0 }
 
 M.editorOpen     = false
-M.editorTab      = "map"   -- "map" | "spells" | "npcs"
+M.editorTab      = "map"   -- "map" | "spells" | "npcs" | "quests"
 M.editorSelected = nil
 M.editorFocus    = nil
 
@@ -76,6 +76,18 @@ M.npcEditor = {
     selectedId    = nil,
     placement     = { kind = "", sprite = "" },
     draft         = nil,             -- preenchido por ensureEditorState()
+}
+
+-- Quest editor (Criar Quests tab). Mesmo padrão do npcEditor: catálogo
+-- à esquerda alimentado por State.questDefs (servidor envia QUEST_DEF
+-- JSON), formulário central com a quest sendo editada, draft local
+-- até clicar Salvar (manda SAVE_QUEST_DEF).
+M.questEditor = {
+    saveStatus    = "",
+    formScroll    = 0,
+    catalogScroll = 0,
+    selectedId    = nil,
+    draft         = nil,
 }
 
 -- Phase 4 — character sheet. Populated by STATS / SKILL_POINTS frames.

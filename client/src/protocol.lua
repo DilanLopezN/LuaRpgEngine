@@ -467,39 +467,57 @@ handlers.NPC_DEF_DELETE = function(rest)
     if id then State.npcDefs[id] = nil end
 end
 
+-- QUEST_DEF agora é um JSON com schema rico (multi-objective, reward
+-- bundle, prereqs, mensagens). O cliente guarda tudo como uma tabela
+-- e a UI escolhe o que renderizar.
 handlers.QUEST_DEF = function(rest)
-    local id, name, killT, killC, itemT, itemC, xp, gold = rest:match(
-        "^(%S+)%s+(%S+)%s+(%S+)%s+(%-?%d+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)$")
-    if id then
-        State.questDefs[id] = {
-            id = id,
-            name = decodeText(name),
-            killTarget = killT ~= "-" and killT or nil,
-            killCount = tonumber(killC) or 0,
-            itemTarget = itemT ~= "-" and itemT or nil,
-            itemCount = tonumber(itemC) or 0,
-            rewardXP = tonumber(xp) or 0,
-            rewardGold = tonumber(gold) or 0,
-        }
+    local ok, def = pcall(JSON.decode, rest)
+    if not ok or type(def) ~= "table" or not def.id then
+        return
     end
+    State.questDefs[def.id] = def
 end
 
+-- Servidor avisou que uma quest foi excluída pelo editor.
+handlers.QUEST_DEF_DELETE = function(rest)
+    local id = rest:match("^(%S+)")
+    if id then State.questDefs[id] = nil end
+end
+
+-- QUEST_STATE: <id> <stage> <killCount> <done> <progress csv|->.
+-- O killCount fica por compat — todo cliente novo lê o vetor
+-- progress em vez. Quando o vetor é "-" caímos pro fallback antigo.
 handlers.QUEST_STATE = function(rest)
-    local id, stage, kills, done = rest:match(
-        "^(%S+)%s+(%S+)%s+(%-?%d+)%s+(%S+)$")
-    if id then
-        local prev = State.quests[id]
-        State.quests[id] = {
-            id = id,
-            stage = stage,
-            killCount = tonumber(kills) or 0,
-            done = (done == "1"),
-        }
-        if not prev then
-            local def = State.questDefs[id]
-            pushToast(string.format("Quest: %s", def and def.name or id),
-                { 1.0, 0.85, 0.55 })
+    local id, stage, kills, done, prog = rest:match(
+        "^(%S+)%s+(%S+)%s+(%-?%d+)%s+(%S+)%s+(%S+)$")
+    if not id then
+        id, stage, kills, done = rest:match(
+            "^(%S+)%s+(%S+)%s+(%-?%d+)%s+(%S+)$")
+        prog = "-"
+    end
+    if not id then return end
+    local progress = {}
+    if prog and prog ~= "-" and prog ~= "" then
+        for n in string.gmatch(prog, "([^,]+)") do
+            progress[#progress + 1] = tonumber(n) or 0
         end
+    end
+    local prev = State.quests[id]
+    State.quests[id] = {
+        id = id,
+        stage = stage,
+        killCount = tonumber(kills) or 0,
+        done = (done == "1"),
+        progress = progress,
+    }
+    if not prev then
+        local def = State.questDefs[id]
+        pushToast(string.format("Quest: %s", def and def.name or id),
+            { 1.0, 0.85, 0.55 })
+    elseif prev and (prev.killCount or 0) ~= (tonumber(kills) or 0) and not (done == "1") then
+        -- Bumped progress on an active quest — small toast so the
+        -- player notices their kill counted.
+        pushToast(string.format("%s: progresso", id), { 0.85, 0.95, 1.0 })
     end
 end
 

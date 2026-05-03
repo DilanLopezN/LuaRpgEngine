@@ -156,30 +156,94 @@ local function drawKeybinds(x, y, w, h)
     end
 end
 
+-- Renderiza uma linha por objetivo: tipo, alvo, progresso. Os números
+-- vêm de qs.progress (vetor multi-objetivo enviado pelo servidor); se
+-- estiver vazio, usamos qs.killCount como fallback compat para clientes
+-- antigos.
+local function objectiveLine(obj, qs, idx)
+    local need = obj.count or 1
+    if need < 1 then need = 1 end
+    local cur = (qs.progress and qs.progress[idx]) or 0
+    if obj.type == "kill" then
+        return string.format("⚔ Matar %s: %d/%d",
+            obj.target or "?", math.min(cur, need), need)
+    elseif obj.type == "collect" then
+        return string.format("⚒ Coletar %s × %d",
+            obj.target or "?", need)
+    elseif obj.type == "talk" then
+        local name = (State.npcDefs[obj.target] and
+                      State.npcDefs[obj.target].name) or obj.target or "?"
+        return string.format("✉ Conversar com %s (%d/%d)",
+            name, math.min(cur, need), need)
+    elseif obj.type == "level" then
+        local lvl = (State.character or {}).level or 1
+        return string.format("⬆ Atingir nível %d (atual: %d)", need, lvl)
+    elseif obj.type == "visit" then
+        return string.format("⚑ Ir a (%d, %d)%s",
+            obj.x or 0, obj.y or 0,
+            (obj.range or 0) > 0 and (" — raio " .. obj.range) or "")
+    end
+    return obj.note or obj.type or "?"
+end
+
 local function drawQuests(x, y, w, h)
     love.graphics.setFont(State.fonts.ui)
+    local cursor = y
     local i = 0
     for id, qs in pairs(State.quests) do
         i = i + 1
-        local row = y + (i - 1) * 44
-        if row > y + h - 48 then break end
         local def = State.questDefs[id] or {}
-        love.graphics.setColor(0.08, 0.08, 0.10, 0.6)
-        love.graphics.rectangle("fill", x + 8, row, w - 16, 40, 3, 3)
-        local title = string.format("%s [%s]", def.name or id, qs.stage)
+        local objs = def.objectives or {}
+        local rowH = 28 + 16 * math.max(1, #objs)
+        if cursor + rowH > y + h then break end
+
+        love.graphics.setColor(0.08, 0.08, 0.10, 0.7)
+        love.graphics.rectangle("fill", x + 8, cursor, w - 16, rowH - 4, 4, 4)
+        love.graphics.setColor(0.30, 0.42, 0.66, 0.5)
+        love.graphics.rectangle("line", x + 8, cursor, w - 16, rowH - 4, 4, 4)
+
+        love.graphics.setFont(State.fonts.ui)
+        local title = string.format("%s [%s]",
+            def.name or id, qs.done and "concluída" or qs.stage)
         love.graphics.setColor(qs.done and 0.55 or 1.0,
                                qs.done and 1.0  or 0.95,
                                qs.done and 0.55 or 0.55)
-        love.graphics.print(title, x + 14, row + 4)
-        local progress = ""
-        if def.killTarget then
-            progress = string.format("Kill %s: %d / %d",
-                def.killTarget, qs.killCount, def.killCount)
-        elseif def.itemTarget then
-            progress = string.format("Collect %s × %d", def.itemTarget, def.itemCount)
+        love.graphics.print(title, x + 14, cursor + 4)
+
+        love.graphics.setFont(State.fonts.name)
+        local oy = cursor + 22
+        if #objs == 0 then
+            -- Compat com servidor legado: mostra só o killCount.
+            love.graphics.setColor(1, 1, 1, 0.85)
+            love.graphics.print(
+                "Progresso: " .. (qs.killCount or 0), x + 22, oy)
+        else
+            for idx, o in ipairs(objs) do
+                local need = o.count or 1
+                local cur  = (qs.progress and qs.progress[idx]) or 0
+                local satisfied = false
+                if o.type == "kill" or o.type == "talk" or o.type == "visit" then
+                    satisfied = cur >= need
+                elseif o.type == "level" then
+                    satisfied = ((State.character or {}).level or 0) >= need
+                elseif o.type == "collect" then
+                    -- Só completa no turn-in; mostra quantos o player tem.
+                    local have = 0
+                    for _, it in ipairs(State.inventory or {}) do
+                        if it.id == o.target then have = have + (it.qty or 0) end
+                    end
+                    satisfied = have >= need
+                end
+                if satisfied then
+                    love.graphics.setColor(0.55, 1.0, 0.55)
+                else
+                    love.graphics.setColor(0.85, 0.92, 1.0)
+                end
+                love.graphics.print(objectiveLine(o, qs, idx), x + 22, oy)
+                oy = oy + 16
+            end
         end
-        love.graphics.setColor(1, 1, 1, 0.85)
-        love.graphics.print(progress, x + 14, row + 22)
+        cursor = cursor + rowH
     end
     if i == 0 then
         love.graphics.setColor(1, 1, 1, 0.6)

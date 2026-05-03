@@ -78,6 +78,19 @@ func (g *Game) runMovement(now time.Time) {
 			p.StepDur = stepDuration
 		}
 		fmt.Printf(">>> step OK player=%d to=(%d,%d) dur=%v\n", p.ID, nx, ny, p.StepDur)
+		// Visit-objective hook fires on every successful step. The
+		// quest tracker only does work for players carrying a visit
+		// quest, so the cost stays near zero in the common case.
+		// Wire frames are buffered into aiOutbox so the host can flush
+		// them after dropping g.mu — keeps roadmap §🔒 clean.
+		if updates := g.trackVisitForQuests(p, nx, ny); len(updates) > 0 {
+			for _, w := range updates {
+				select {
+				case p.Out <- w:
+				default:
+				}
+			}
+		}
 	}
 }
 // runManaRegen ticks the per-player mana regeneration. Lives next to

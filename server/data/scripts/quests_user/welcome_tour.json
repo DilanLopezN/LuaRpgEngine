@@ -1,0 +1,23 @@
+{
+  "id": "welcome_tour",
+  "name": "Tour de Boas-Vindas",
+  "description": "Conheça a vila falando com o ancião e dando uma volta pela praça antes de pegar uma poção da fonte.",
+  "giver": "elder",
+  "repeatable": false,
+  "objectives": [
+    { "type": "talk", "target": "elder", "count": 1, "note": "Cumprimente o ancião" },
+    { "type": "visit", "x": 10, "y": 10, "range": 2, "note": "Visite o centro da praça" },
+    { "type": "collect", "target": "health_potion", "count": 1, "note": "Pegue uma poção da fonte" }
+  ],
+  "reward": {
+    "xp": 75,
+    "gold": 25,
+    "skill_points": 1,
+    "items": [
+      { "id": "health_potion", "qty": 2 }
+    ]
+  },
+  "intro": "Bem-vindo à vila! Dê uma volta antes de partir em aventura.",
+  "in_progress": "Ainda há partes da vila para conhecer.",
+  "complete": "Excelente! Agora você conhece a vila como a palma da mão."
+}

@@ -141,6 +141,15 @@ func (g *Game) awardXP(p *Player, amount int) int {
 	if gained > 0 {
 		p.HP = p.MaxHP
 		p.MP = p.MaxMP
+		// Level-objective hook: bump every quest watching for the
+		// new level. Wire frames are sent best-effort so a wedged
+		// peer doesn't block awardXP.
+		for _, w := range g.trackLevelForQuests(p) {
+			select {
+			case p.Out <- w:
+			default:
+			}
+		}
 	}
 	return gained
 }

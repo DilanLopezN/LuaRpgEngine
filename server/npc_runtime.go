@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -45,68 +46,149 @@ func (g *Game) handleTalk(p *Player, npcID string) {
 	entry := pickNPCEntryNode(def, p, g.scripts)
 	p.NPCDialog = npcID
 	p.NPCNode = entry
+	// Talk-objective hook fires on every dialog open. Multiple talks
+	// to the same NPC re-bump the counter up to its target — the
+	// ceiling clamp inside trackTalkForQuests prevents over-counting.
+	talkUpdates := g.trackTalkForQuests(p, npcID)
+	out := p.Out
 	g.mu.Unlock()
+	for _, w := range talkUpdates {
+		select {
+		case out <- w:
+		default:
+		}
+	}
 	g.enterDialogNode(p, def, entry)
 }
 
 // pickNPCEntryNode chooses which dialog node to enter based on the
-// player's progress against the NPC's quest. The function is total —
-// it always returns a node that exists in def.Nodes, falling back to
-// "start" when no specialised entry applies. Caller MUST hold g.mu so
+// player's progress against any quest this NPC hands out. Two paths
+// are honored:
+//
+//  1. Legacy: NPCDef.Quest names a single bound quest. Drives the
+//     original elder-style flow.
+//  2. New: any QuestDef whose Giver is this NPC's id participates.
+//     The routing prefers a turn-in (return_done) for a satisfied
+//     active quest, then "still working" (return_in_progress) for
+//     any active-but-not-satisfied quest, and finally "start".
+//
+// The function is total — it always returns a node that exists in
+// def.Nodes, falling back to "start". Caller MUST hold g.mu so
 // p.Quests is observed consistently.
 func pickNPCEntryNode(def *NPCDef, p *Player, scripts *ScriptEngine) string {
-	if def == nil || def.Quest == "" {
+	if def == nil {
 		return "start"
 	}
-	qs, taken := p.Quests[def.Quest]
 	hasNode := func(id string) bool { _, ok := def.Nodes[id]; return ok }
-	if !taken {
-		return "start"
+	// Build the set of quest ids relevant to this NPC.
+	candidates := map[string]bool{}
+	if def.Quest != "" {
+		candidates[def.Quest] = true
 	}
-	if qs.Done {
-		// Quest already finished — fall back to "start" so designers
-		// can author a "thanks again" greeting without colliding
-		// with the turn-in path.
-		return "start"
-	}
-	// Active but unfinished: figure out whether the objective is
-	// satisfied. If yes, route to the turn-in node; otherwise the
-	// "still working on it" beat.
 	if scripts != nil {
-		if qdef, ok := scripts.Quest(def.Quest); ok {
-			if questObjectiveSatisfied(qdef, qs, p) && hasNode("return_done") {
-				return "return_done"
+		for qid, qd := range scripts.Quests() {
+			if qd.Giver == def.ID {
+				candidates[qid] = true
 			}
 		}
 	}
-	if hasNode("return_in_progress") {
+	if len(candidates) == 0 {
+		return "start"
+	}
+	var (
+		seenSatisfied bool
+		seenActive    bool
+	)
+	for qid := range candidates {
+		qs, taken := p.Quests[qid]
+		if !taken || qs.Done {
+			continue
+		}
+		if scripts == nil {
+			seenActive = true
+			continue
+		}
+		qdef, ok := scripts.Quest(qid)
+		if !ok {
+			continue
+		}
+		if questObjectiveSatisfied(qdef, qs, p) {
+			seenSatisfied = true
+		} else {
+			seenActive = true
+		}
+	}
+	if seenSatisfied && hasNode("return_done") {
+		return "return_done"
+	}
+	if seenActive && hasNode("return_in_progress") {
 		return "return_in_progress"
 	}
 	return "start"
 }
 
-// questObjectiveSatisfied reports whether the player has met the
-// kill / item targets, the same checks completeQuest will repeat.
-// Splitting the predicate keeps the handleTalk routing in sync with
-// the actual completion gate.
+// questObjectiveSatisfied reports whether the player has met every
+// objective on the quest. The check is structural — Progress[i] must
+// be at least Objectives[i].Count, plus collect-objective items must
+// still be in the inventory at turn-in (to gate against drop-and-claim).
+// Splits the predicate from completeQuest so handleTalk's routing
+// stays in sync with the actual gate.
 func questObjectiveSatisfied(qdef *QuestDef, qs *QuestState, p *Player) bool {
-	if qdef.KillCount > 0 && qs.KillCount < qdef.KillCount {
+	if qdef == nil || qs == nil {
 		return false
 	}
-	if qdef.ItemTarget != "" && qdef.ItemCount > 0 {
-		have := 0
-		if p.Entity != nil && p.Entity.Inventory != nil {
+	for i, o := range qdef.Objectives {
+		need := o.Count
+		if need <= 0 {
+			need = 1
+		}
+		switch o.Type {
+		case "kill", "talk", "visit":
+			if i >= len(qs.Progress) || qs.Progress[i] < need {
+				return false
+			}
+		case "level":
+			if p.Stats == nil || p.Stats.Level < need {
+				return false
+			}
+		case "collect":
+			if p.Entity == nil || p.Entity.Inventory == nil {
+				return false
+			}
+			have := 0
 			for _, it := range p.Entity.Inventory.Items {
-				if it.ID == qdef.ItemTarget {
+				if it.ID == o.Target {
 					have += it.Qty
 				}
 			}
-		}
-		if have < qdef.ItemCount {
-			return false
+			if have < need {
+				return false
+			}
 		}
 	}
 	return true
+}
+
+// questProgressLine emits the wire frame the client uses to render a
+// quest's progress in the journal. Format:
+//
+//	QUEST_STATE <id> <stage> <killCount> <done> <progress comma list>
+//
+// `killCount` is kept first for backward compat with older clients;
+// `progress` carries the full multi-objective vector. A quest with
+// no Progress emits "-" so the client knows to fall back to the
+// legacy one-objective rendering.
+func questProgressLine(qs *QuestState) string {
+	prog := "-"
+	if len(qs.Progress) > 0 {
+		parts := make([]string, len(qs.Progress))
+		for i, v := range qs.Progress {
+			parts[i] = strconv.Itoa(v)
+		}
+		prog = strings.Join(parts, ",")
+	}
+	return fmt.Sprintf("QUEST_STATE %s %s %d %s %s\n",
+		qs.ID, qs.Stage, qs.KillCount, boolToFlag(qs.Done), prog)
 }
 
 // handleDialogPick walks one option of the active node. Index is
@@ -235,29 +317,80 @@ func (g *Game) takeItem(p *Player, itemID string, qty int) bool {
 	return true
 }
 
+// startQuest opens a new active QuestState for the player, after
+// checking prerequisites. Returns the wire frame to send if anything
+// changed; the caller dispatches it. Idempotent for non-repeatable
+// quests (re-entering once Done is a no-op); repeatable quests reset
+// progress and re-arm.
 func (g *Game) startQuest(p *Player, questID string) {
 	if g.scripts == nil {
 		return
 	}
-	if _, ok := g.scripts.Quest(questID); !ok {
+	qdef, ok := g.scripts.Quest(questID)
+	if !ok {
 		return
 	}
 	g.mu.Lock()
-	if _, exists := p.Quests[questID]; exists {
+	// Prereq gate: level / preceding quest. Class is reserved for
+	// when the engine grows class identity; today it never blocks.
+	if qdef.Prerequisites.Level > 0 &&
+		(p.Stats == nil || p.Stats.Level < qdef.Prerequisites.Level) {
+		out := p.Out
 		g.mu.Unlock()
+		sendNow(out, fmt.Sprintf("SYS Você precisa do nível %d para essa quest.\n",
+			qdef.Prerequisites.Level))
 		return
 	}
-	qs := &QuestState{ID: questID, Stage: "active"}
-	p.Quests[questID] = qs
+	if pre := qdef.Prerequisites.Quest; pre != "" {
+		s, has := p.Quests[pre]
+		if !has || !s.Done {
+			out := p.Out
+			g.mu.Unlock()
+			sendNow(out, fmt.Sprintf("SYS Termine '%s' antes de aceitar essa quest.\n", pre))
+			return
+		}
+	}
+	existing, exists := p.Quests[questID]
+	if exists {
+		if !qdef.Repeatable {
+			g.mu.Unlock()
+			return
+		}
+		// Repeatable: clear and re-arm.
+		existing.Done = false
+		existing.Stage = "active"
+		existing.KillCount = 0
+		existing.Progress = make([]int, len(qdef.Objectives))
+	} else {
+		existing = &QuestState{
+			ID:       questID,
+			Stage:    "active",
+			Progress: make([]int, len(qdef.Objectives)),
+		}
+		p.Quests[questID] = existing
+	}
 	out := p.Out
 	character := p.Name
-	wire := fmt.Sprintf("QUEST_STATE %s %s %d %s\n",
-		qs.ID, qs.Stage, qs.KillCount, boolToFlag(qs.Done))
+	wire := questProgressLine(existing)
+	intro := qdef.IntroMessage
 	g.mu.Unlock()
 	if g.db != nil && character != "" {
-		g.db.SaveQuest(character, qs)
+		g.db.SaveQuest(character, existing)
+	}
+	if intro != "" {
+		sendNow(out, "SYS "+intro+"\n")
 	}
 	sendNow(out, wire)
+	// Fire the optional Lua hook outside g.mu — see roadmap §🔒.
+	go g.scripts.FireHook("quest_start", map[string]interface{}{
+		"quest":  questID,
+		"player": p.ID,
+	})
+	if qdef.OnStartHook != "" {
+		go g.scripts.FireHook(qdef.OnStartHook, map[string]interface{}{
+			"quest": questID, "player": p.ID,
+		})
+	}
 }
 
 func (g *Game) advanceQuest(p *Player, questID, stage string) {
@@ -268,8 +401,7 @@ func (g *Game) advanceQuest(p *Player, questID, stage string) {
 		return
 	}
 	qs.Stage = stage
-	wire := fmt.Sprintf("QUEST_STATE %s %s %d %s\n",
-		qs.ID, qs.Stage, qs.KillCount, boolToFlag(qs.Done))
+	wire := questProgressLine(qs)
 	out := p.Out
 	character := p.Name
 	g.mu.Unlock()
@@ -279,10 +411,9 @@ func (g *Game) advanceQuest(p *Player, questID, stage string) {
 	sendNow(out, wire)
 }
 
-// completeQuest grants the quest reward (xp/gold/item) once the
-// objective threshold is satisfied. Quests that haven't met the kill /
-// item objectives are rejected so the dialog branch cannot be used to
-// skip combat.
+// completeQuest grants the quest reward bundle once every objective is
+// satisfied. Collect-objectives consume their items as part of the
+// turn-in (gates against drop-and-claim).
 func (g *Game) completeQuest(p *Player, questID string) {
 	if g.scripts == nil {
 		return
@@ -297,57 +428,81 @@ func (g *Game) completeQuest(p *Player, questID string) {
 		g.mu.Unlock()
 		return
 	}
-	if qdef.KillCount > 0 && qs.KillCount < qdef.KillCount {
+	if !questObjectiveSatisfied(qdef, qs, p) {
 		g.mu.Unlock()
 		return
 	}
-	if qdef.ItemTarget != "" && qdef.ItemCount > 0 {
-		// Verify the player still has the items, then remove them as
-		// part of the turn-in.
-		have := 0
-		if p.Entity != nil && p.Entity.Inventory != nil {
-			for _, it := range p.Entity.Inventory.Items {
-				if it.ID == qdef.ItemTarget {
-					have += it.Qty
-				}
+	// Consume any collect-objective items at turn-in.
+	for _, o := range qdef.Objectives {
+		if o.Type == "collect" && o.Target != "" {
+			need := o.Count
+			if need <= 0 {
+				need = 1
 			}
+			g.removeItem(p, o.Target, need)
 		}
-		if have < qdef.ItemCount {
-			g.mu.Unlock()
-			return
-		}
-		g.removeItem(p, qdef.ItemTarget, qdef.ItemCount)
 	}
 	qs.Stage = "complete"
 	qs.Done = true
-	rewardXP := qdef.RewardXP
-	rewardGold := qdef.RewardGold
-	rewardItem := qdef.RewardItem
-	rewardQty := qdef.RewardQty
+	reward := qdef.Reward
+	completeMsg := qdef.CompleteMessage
 	pid := p.ID
 	out := p.Out
 	character := p.Name
-	wire := fmt.Sprintf("QUEST_STATE %s %s %d %s\n",
-		qs.ID, qs.Stage, qs.KillCount, boolToFlag(qs.Done))
+	wire := questProgressLine(qs)
 	g.mu.Unlock()
 	if g.db != nil && character != "" {
 		g.db.SaveQuest(character, qs)
 	}
-	if rewardXP > 0 {
-		g.GiveXP(pid, rewardXP)
+	if reward.XP > 0 {
+		g.GiveXP(pid, reward.XP)
 	}
-	if rewardGold > 0 {
-		g.GiveGold(pid, rewardGold)
+	if reward.Gold > 0 {
+		g.GiveGold(pid, reward.Gold)
 	}
-	if rewardItem != "" && rewardQty > 0 {
-		g.GiveItem(pid, rewardItem, rewardQty)
+	for _, it := range reward.Items {
+		if it.ID != "" && it.Qty > 0 {
+			g.GiveItem(pid, it.ID, it.Qty)
+		}
+	}
+	if reward.SkillPoints > 0 {
+		g.mu.Lock()
+		if pp, ok := g.players[pid]; ok {
+			pp.SkillPoints += reward.SkillPoints
+			sendNow(pp.Out,
+				fmt.Sprintf("SKILL_POINTS %d\n", pp.SkillPoints))
+		}
+		g.mu.Unlock()
+	}
+	if reward.LearnSkill != "" {
+		g.mu.Lock()
+		if pp, ok := g.players[pid]; ok {
+			pp.Learned[reward.LearnSkill] = true
+			sendNow(pp.Out,
+				fmt.Sprintf("SKILL_LEARNED %s\n", reward.LearnSkill))
+		}
+		g.mu.Unlock()
+	}
+	if completeMsg != "" {
+		sendNow(out, "SYS "+completeMsg+"\n")
 	}
 	sendNow(out, wire)
 	sendNow(out, fmt.Sprintf("QUEST_COMPLETE %s\n", questID))
+	// Hooks fire outside any lock (see roadmap §🔒).
+	go g.scripts.FireHook("quest_complete", map[string]interface{}{
+		"quest":  questID,
+		"player": pid,
+	})
+	if qdef.OnCompleteHook != "" {
+		go g.scripts.FireHook(qdef.OnCompleteHook, map[string]interface{}{
+			"quest": questID, "player": pid,
+		})
+	}
 }
 
-// trackKillForQuests bumps every active quest whose kill target matches
-// the slain enemy. Caller must hold g.mu.
+// trackKillForQuests bumps every active quest's kill objectives that
+// match the slain enemy kind. Caller must hold g.mu. Returns the wire
+// frames to broadcast after releasing the lock.
 func (g *Game) trackKillForQuests(p *Player, kind string) []string {
 	if g.scripts == nil {
 		return nil
@@ -361,17 +516,170 @@ func (g *Game) trackKillForQuests(p *Player, kind string) []string {
 		if !ok {
 			continue
 		}
-		if def.KillTarget != kind || def.KillCount <= 0 {
+		changed := false
+		ensureProgressLen(qs, len(def.Objectives))
+		for i, o := range def.Objectives {
+			if o.Type != "kill" || o.Target != kind {
+				continue
+			}
+			need := o.Count
+			if need <= 0 {
+				need = 1
+			}
+			if qs.Progress[i] >= need {
+				continue
+			}
+			qs.Progress[i]++
+			changed = true
+		}
+		if !changed {
 			continue
 		}
-		if qs.KillCount >= def.KillCount {
-			continue
+		// Mirror first-kill progress into legacy KillCount for DB.
+		if i := def.FirstKillObjectiveIdx(); i >= 0 && i < len(qs.Progress) {
+			qs.KillCount = qs.Progress[i]
 		}
-		qs.KillCount++
-		updates = append(updates, fmt.Sprintf("QUEST_STATE %s %s %d %s\n",
-			qs.ID, qs.Stage, qs.KillCount, boolToFlag(qs.Done)))
+		updates = append(updates, questProgressLine(qs))
 	}
 	return updates
+}
+
+// trackTalkForQuests bumps "talk" objectives when the player opens a
+// dialog with the named NPC. Caller must hold g.mu. Returns wire
+// frames the caller should dispatch after dropping the lock.
+func (g *Game) trackTalkForQuests(p *Player, npcID string) []string {
+	if g.scripts == nil {
+		return nil
+	}
+	var updates []string
+	for _, qs := range p.Quests {
+		if qs.Done {
+			continue
+		}
+		def, ok := g.scripts.Quest(qs.ID)
+		if !ok {
+			continue
+		}
+		changed := false
+		ensureProgressLen(qs, len(def.Objectives))
+		for i, o := range def.Objectives {
+			if o.Type != "talk" || o.Target != npcID {
+				continue
+			}
+			need := o.Count
+			if need <= 0 {
+				need = 1
+			}
+			if qs.Progress[i] >= need {
+				continue
+			}
+			qs.Progress[i]++
+			changed = true
+		}
+		if changed {
+			updates = append(updates, questProgressLine(qs))
+		}
+	}
+	return updates
+}
+
+// trackVisitForQuests bumps "visit" objectives when the player steps
+// near (X, Y). Range can override the default "exact tile" check.
+// Caller must hold g.mu.
+func (g *Game) trackVisitForQuests(p *Player, x, y int) []string {
+	if g.scripts == nil {
+		return nil
+	}
+	var updates []string
+	for _, qs := range p.Quests {
+		if qs.Done {
+			continue
+		}
+		def, ok := g.scripts.Quest(qs.ID)
+		if !ok {
+			continue
+		}
+		changed := false
+		ensureProgressLen(qs, len(def.Objectives))
+		for i, o := range def.Objectives {
+			if o.Type != "visit" {
+				continue
+			}
+			r := o.Range
+			if r < 0 {
+				r = 0
+			}
+			if absInt(x-o.X) > r || absInt(y-o.Y) > r {
+				continue
+			}
+			need := o.Count
+			if need <= 0 {
+				need = 1
+			}
+			if qs.Progress[i] >= need {
+				continue
+			}
+			qs.Progress[i]++
+			changed = true
+		}
+		if changed {
+			updates = append(updates, questProgressLine(qs))
+		}
+	}
+	return updates
+}
+
+// trackLevelForQuests is a snapshot of "did the level objectives just
+// flip to satisfied?". Caller must hold g.mu. We do not increment a
+// counter — the predicate is checked at completion time directly via
+// p.Stats.Level. The wire frame still needs to refresh so the
+// journal UI reflects the new state.
+func (g *Game) trackLevelForQuests(p *Player) []string {
+	if g.scripts == nil {
+		return nil
+	}
+	var updates []string
+	for _, qs := range p.Quests {
+		if qs.Done {
+			continue
+		}
+		def, ok := g.scripts.Quest(qs.ID)
+		if !ok {
+			continue
+		}
+		changed := false
+		ensureProgressLen(qs, len(def.Objectives))
+		for i, o := range def.Objectives {
+			if o.Type != "level" {
+				continue
+			}
+			need := o.Count
+			if need <= 0 {
+				need = 1
+			}
+			if p.Stats != nil && p.Stats.Level >= need {
+				if qs.Progress[i] != 1 {
+					qs.Progress[i] = 1
+					changed = true
+				}
+			}
+		}
+		if changed {
+			updates = append(updates, questProgressLine(qs))
+		}
+	}
+	return updates
+}
+
+// ensureProgressLen pads qs.Progress so direct indexing is safe even
+// when the def gained new objectives after the save was persisted.
+func ensureProgressLen(qs *QuestState, n int) {
+	if len(qs.Progress) >= n {
+		return
+	}
+	pad := make([]int, n)
+	copy(pad, qs.Progress)
+	qs.Progress = pad
 }
 
 // npcInRange returns true if there is an NPC entity with name == id

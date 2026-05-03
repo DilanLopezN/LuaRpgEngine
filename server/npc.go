@@ -342,21 +342,90 @@ func parseHook(m map[string]interface{}) NPCHook {
 	return h
 }
 
-// QuestDef describes a quest authored in data/scripts/quests/<id>.lua.
-// Stages are walked in order; "complete" is the implicit final stage.
-// Objectives live as kill counts / item counts checked by the host.
+// QuestDef describes a quest. Loaded from either:
+//   - data/scripts/quests/<id>.lua (canonical, designer-authored), or
+//   - data/scripts/quests_user/<id>.json (in-game editor authored).
+//
+// The schema is multi-objective so a single quest can chain a kill
+// list with item collection, a map visit, a level milestone, and a
+// "talk to NPC" beat. Each objective tracks its own progress; the
+// quest only completes when every objective is satisfied.
+//
+// Backward compatibility: the legacy single-objective shape
+// (`objective = { kill = …, count = …, item = …, item_count = … }`,
+// `reward = { xp, gold, item, qty }`) is still accepted by the
+// parser and folded into the new Objectives / Reward fields so old
+// Lua content keeps loading unchanged.
 type QuestDef struct {
-	ID         string
-	Name       string
-	Stages     []string
-	KillTarget string
-	KillCount  int
-	ItemTarget string
-	ItemCount  int
-	RewardXP   int
-	RewardGold int
-	RewardItem string
-	RewardQty  int
+	ID          string
+	Name        string
+	Description string
+
+	// Giver is the optional NPC id that hands out the quest. The
+	// editor uses it to mark the NPC with a yellow "!" exclamation
+	// in the world; runtime uses it to gate where the quest can be
+	// accepted (when set).
+	Giver string
+
+	// Repeatable lets a player re-take the quest after completing it.
+	// One-shot quests (the default) lock once Done is set.
+	Repeatable bool
+
+	Prerequisites QuestPrereqs
+
+	Objectives []QuestObjective
+
+	Reward QuestReward
+
+	// Messages shown in the chat / UI at lifecycle events. Each is
+	// optional; falls back to a generic system line when blank.
+	IntroMessage    string
+	ProgressMessage string
+	CompleteMessage string
+
+	// Hooks fire FireHook events ("quest_<id>_start" / "_complete")
+	// so designers can attach custom Lua glue without touching Go.
+	OnStartHook    string
+	OnCompleteHook string
+}
+
+// QuestPrereqs decide whether a player is allowed to start a quest.
+// Empty values disable the corresponding gate.
+type QuestPrereqs struct {
+	Level int    // minimum character level
+	Quest string // id of a quest that must be Done first
+	Class string // optional class id (free-form; engine ignores until classes ship)
+}
+
+// QuestObjective is one row in the objective list. Type drives which
+// fields matter; the rest are zero values to keep the JSON tidy.
+//
+// Supported types:
+//
+//	"kill"    → enemy kind == Target, Count enemies slain
+//	"collect" → item id == Target, Count items in inventory at turn-in
+//	"visit"   → walk onto tile (X, Y) on map MapName (within Range tiles)
+//	"level"   → reach character level Count
+//	"talk"    → talk to NPC id == Target
+type QuestObjective struct {
+	Type    string `json:"type"`
+	Target  string `json:"target,omitempty"`
+	Count   int    `json:"count,omitempty"`
+	MapName string `json:"map,omitempty"`
+	X       int    `json:"x,omitempty"`
+	Y       int    `json:"y,omitempty"`
+	Range   int    `json:"range,omitempty"`
+	Note    string `json:"note,omitempty"`
+}
+
+// QuestReward bundles every kind of payout. Items can be a list so
+// the editor can hand out multiple stacks in one turn-in.
+type QuestReward struct {
+	XP          int       `json:"xp,omitempty"`
+	Gold        int       `json:"gold,omitempty"`
+	SkillPoints int       `json:"skill_points,omitempty"`
+	LearnSkill  string    `json:"learn_skill,omitempty"`
+	Items       []ItemRef `json:"items,omitempty"`
 }
 
 func parseQuestDef(raw interface{}, fallbackID string) (*QuestDef, error) {
@@ -369,36 +438,156 @@ func parseQuestDef(raw interface{}, fallbackID string) (*QuestDef, error) {
 		id = fallbackID
 	}
 	q := &QuestDef{
-		ID:   id,
-		Name: asString(m["name"]),
+		ID:              id,
+		Name:            asString(m["name"]),
+		Description:     asString(m["description"]),
+		Giver:           asString(m["giver"]),
+		Repeatable:      asBool(m["repeatable"]),
+		IntroMessage:    asString(m["intro"]),
+		ProgressMessage: asString(m["in_progress"]),
+		CompleteMessage: asString(m["complete"]),
+		OnStartHook:     asString(m["on_start_hook"]),
+		OnCompleteHook:  asString(m["on_complete_hook"]),
 	}
 	if q.Name == "" {
 		q.Name = id
 	}
-	for _, s := range asSlice(m["stages"]) {
-		q.Stages = append(q.Stages, asString(s))
+	if pre := asMap(m["prerequisites"]); pre != nil {
+		q.Prerequisites = QuestPrereqs{
+			Level: asInt(pre["level"]),
+			Quest: asString(pre["quest"]),
+			Class: asString(pre["class"]),
+		}
 	}
+	// Multi-objective: prefer `objectives = [...]` if present.
+	for _, raw := range asSlice(m["objectives"]) {
+		om := asMap(raw)
+		if om == nil {
+			continue
+		}
+		obj := QuestObjective{
+			Type:    asString(om["type"]),
+			Target:  asString(om["target"]),
+			Count:   asInt(om["count"]),
+			MapName: asString(om["map"]),
+			X:       asInt(om["x"]),
+			Y:       asInt(om["y"]),
+			Range:   asInt(om["range"]),
+			Note:    asString(om["note"]),
+		}
+		if obj.Count <= 0 && (obj.Type == "kill" || obj.Type == "collect" || obj.Type == "level" || obj.Type == "talk") {
+			obj.Count = 1
+		}
+		if obj.Type == "" {
+			continue
+		}
+		q.Objectives = append(q.Objectives, obj)
+	}
+	// Legacy single-objective shape — kept to avoid breaking
+	// data/scripts/quests/orc_hunt.lua and similar files.
 	if obj := asMap(m["objective"]); obj != nil {
-		q.KillTarget = asString(obj["kill"])
-		q.KillCount = asInt(obj["count"])
-		q.ItemTarget = asString(obj["item"])
-		q.ItemCount = asInt(obj["item_count"])
+		if kill := asString(obj["kill"]); kill != "" {
+			q.Objectives = append(q.Objectives, QuestObjective{
+				Type: "kill", Target: kill, Count: asInt(obj["count"]),
+			})
+		}
+		if item := asString(obj["item"]); item != "" {
+			q.Objectives = append(q.Objectives, QuestObjective{
+				Type: "collect", Target: item, Count: asInt(obj["item_count"]),
+			})
+		}
 	}
+	// Multi-reward.
 	if rew := asMap(m["reward"]); rew != nil {
-		q.RewardXP = asInt(rew["xp"])
-		q.RewardGold = asInt(rew["gold"])
-		q.RewardItem = asString(rew["item"])
-		q.RewardQty = asInt(rew["qty"])
+		q.Reward.XP = asInt(rew["xp"])
+		q.Reward.Gold = asInt(rew["gold"])
+		q.Reward.SkillPoints = asInt(rew["skill_points"])
+		q.Reward.LearnSkill = asString(rew["learn_skill"])
+		// Legacy single-item reward.
+		if it := asString(rew["item"]); it != "" {
+			qty := asInt(rew["qty"])
+			if qty <= 0 {
+				qty = 1
+			}
+			q.Reward.Items = append(q.Reward.Items,
+				ItemRef{ID: it, Qty: qty})
+		}
+		for _, raw := range asSlice(rew["items"]) {
+			im := asMap(raw)
+			if im == nil {
+				continue
+			}
+			it := asString(im["id"])
+			if it == "" {
+				continue
+			}
+			qty := asInt(im["qty"])
+			if qty <= 0 {
+				qty = 1
+			}
+			q.Reward.Items = append(q.Reward.Items,
+				ItemRef{ID: it, Qty: qty})
+		}
+	}
+	// Default an objective when nothing was authored — the editor
+	// flow lets the user save a half-filled draft.
+	if len(q.Objectives) == 0 {
+		q.Objectives = []QuestObjective{{Type: "talk", Count: 1}}
 	}
 	return q, nil
 }
 
-// QuestState is the per-player progress on a quest.
+// QuestState is the per-player progress on a quest. Progress[i] tracks
+// objective i's current count (kills made / items collected / level
+// reached / talks done / visits done). The legacy KillCount field is
+// kept for DB backward compat — it mirrors Progress[firstKill].
 type QuestState struct {
 	ID        string
-	Stage     string // "active" | "complete" | custom stage from def
-	KillCount int
+	Stage     string // "active" | "complete" | custom
+	KillCount int   // legacy; kept in sync with first kill objective
+	Progress  []int // per-objective progress
 	Done      bool
+}
+
+// FirstKillObjectiveIdx returns the index of the first kill objective,
+// or -1. Used to keep the DB-level KillCount in sync with the new
+// per-objective progress slice without forcing a schema migration.
+func (q *QuestDef) FirstKillObjectiveIdx() int {
+	for i, o := range q.Objectives {
+		if o.Type == "kill" {
+			return i
+		}
+	}
+	return -1
+}
+
+// FirstCollectObjectiveIdx returns the index of the first collect
+// objective, or -1.
+func (q *QuestDef) FirstCollectObjectiveIdx() int {
+	for i, o := range q.Objectives {
+		if o.Type == "collect" {
+			return i
+		}
+	}
+	return -1
+}
+
+// asBool tolerates lua/json bool, "true"/"false" strings, and
+// non-zero numbers (so `repeatable = 1` works).
+func asBool(v interface{}) bool {
+	switch t := v.(type) {
+	case bool:
+		return t
+	case string:
+		return t == "true" || t == "yes" || t == "1"
+	case int:
+		return t != 0
+	case int64:
+		return t != 0
+	case float64:
+		return t != 0
+	}
+	return false
 }
 
 // formatNPCDef ships an NPC to the client. The wire shape is now a
@@ -437,13 +626,40 @@ func formatNPCDef(def *NPCDef) string {
 	return "NPC_DEF " + string(b) + "\n"
 }
 
+// formatQuestDef serialises the full QuestDef to a JSON wire frame.
+// The richer schema (multi-objective + bundle reward + prereqs) does
+// not fit the legacy whitespace-separated layout, so the wire moves
+// to JSON the same way NPC_DEF did. The client parses it as a Lua
+// table and uses it to render the journal / editor catalog.
 func formatQuestDef(q *QuestDef) string {
-	return fmt.Sprintf("QUEST_DEF %s %s %s %d %s %d %d %d\n",
-		q.ID,
-		strings.ReplaceAll(q.Name, " ", "_"),
-		emptyDash(q.KillTarget), q.KillCount,
-		emptyDash(q.ItemTarget), q.ItemCount,
-		q.RewardXP, q.RewardGold)
+	wire := struct {
+		ID              string           `json:"id"`
+		Name            string           `json:"name"`
+		Description     string           `json:"description,omitempty"`
+		Giver           string           `json:"giver,omitempty"`
+		Repeatable      bool             `json:"repeatable,omitempty"`
+		Prerequisites   QuestPrereqs     `json:"prerequisites,omitempty"`
+		Objectives      []QuestObjective `json:"objectives,omitempty"`
+		Reward          QuestReward      `json:"reward,omitempty"`
+		Intro           string           `json:"intro,omitempty"`
+		InProgress      string           `json:"in_progress,omitempty"`
+		Complete        string           `json:"complete,omitempty"`
+	}{
+		ID: q.ID, Name: q.Name, Description: q.Description,
+		Giver: q.Giver, Repeatable: q.Repeatable,
+		Prerequisites: q.Prerequisites,
+		Objectives:    q.Objectives,
+		Reward:        q.Reward,
+		Intro:         q.IntroMessage,
+		InProgress:    q.ProgressMessage,
+		Complete:      q.CompleteMessage,
+	}
+	b, err := json.Marshal(wire)
+	if err != nil {
+		return fmt.Sprintf("QUEST_DEF {\"id\":\"%s\",\"name\":\"%s\"}\n",
+			q.ID, q.Name)
+	}
+	return "QUEST_DEF " + string(b) + "\n"
 }
 
 func emptyDash(s string) string {
@@ -451,6 +667,184 @@ func emptyDash(s string) string {
 		return "-"
 	}
 	return s
+}
+
+// --- Quest user authoring (data/scripts/quests_user/) ---------------------
+
+func userQuestDir(root string) string {
+	return filepath.Join(root, "quests_user")
+}
+
+// LoadUserQuestJSON parses a quest JSON file (editor-authored).
+func LoadUserQuestJSON(path string) (*QuestDef, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var raw interface{}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, fmt.Errorf("parse quest %s: %w", path, err)
+	}
+	base := strings.TrimSuffix(filepath.Base(path), ".json")
+	return parseQuestDef(raw, base)
+}
+
+func listUserQuestFiles(root string) ([]string, error) {
+	dir := userQuestDir(root)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var out []string
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
+			continue
+		}
+		out = append(out, filepath.Join(dir, e.Name()))
+	}
+	sort.Strings(out)
+	return out, nil
+}
+
+// SaveUserQuestDef serialises the def back to disk. The document is
+// the parser's input shape so a round-trip preserves the design.
+func SaveUserQuestDef(root string, q *QuestDef) error {
+	if q == nil || q.ID == "" {
+		return errors.New("quest def: missing id")
+	}
+	clean := sanitizeNPCID(q.ID) // same sanitiser; alnum + _-
+	if clean == "" {
+		return errors.New("quest def: invalid id")
+	}
+	dir := userQuestDir(root)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	doc := questDefToDoc(q)
+	data, err := json.MarshalIndent(doc, "", "  ")
+	if err != nil {
+		return err
+	}
+	p := filepath.Join(dir, clean+".json")
+	tmp := p + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, p)
+}
+
+func DeleteUserQuestDef(root, id string) error {
+	clean := sanitizeNPCID(id)
+	if clean == "" {
+		return errors.New("invalid id")
+	}
+	p := filepath.Join(userQuestDir(root), clean+".json")
+	if err := os.Remove(p); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
+}
+
+func questDefToDoc(q *QuestDef) map[string]interface{} {
+	doc := map[string]interface{}{
+		"id":   q.ID,
+		"name": q.Name,
+	}
+	if q.Description != "" {
+		doc["description"] = q.Description
+	}
+	if q.Giver != "" {
+		doc["giver"] = q.Giver
+	}
+	if q.Repeatable {
+		doc["repeatable"] = true
+	}
+	if q.Prerequisites != (QuestPrereqs{}) {
+		pre := map[string]interface{}{}
+		if q.Prerequisites.Level > 0 {
+			pre["level"] = q.Prerequisites.Level
+		}
+		if q.Prerequisites.Quest != "" {
+			pre["quest"] = q.Prerequisites.Quest
+		}
+		if q.Prerequisites.Class != "" {
+			pre["class"] = q.Prerequisites.Class
+		}
+		doc["prerequisites"] = pre
+	}
+	if len(q.Objectives) > 0 {
+		objs := make([]interface{}, 0, len(q.Objectives))
+		for _, o := range q.Objectives {
+			om := map[string]interface{}{"type": o.Type}
+			if o.Target != "" {
+				om["target"] = o.Target
+			}
+			if o.Count > 0 {
+				om["count"] = o.Count
+			}
+			if o.MapName != "" {
+				om["map"] = o.MapName
+			}
+			if o.X != 0 {
+				om["x"] = o.X
+			}
+			if o.Y != 0 {
+				om["y"] = o.Y
+			}
+			if o.Range > 0 {
+				om["range"] = o.Range
+			}
+			if o.Note != "" {
+				om["note"] = o.Note
+			}
+			objs = append(objs, om)
+		}
+		doc["objectives"] = objs
+	}
+	rew := map[string]interface{}{}
+	if q.Reward.XP > 0 {
+		rew["xp"] = q.Reward.XP
+	}
+	if q.Reward.Gold > 0 {
+		rew["gold"] = q.Reward.Gold
+	}
+	if q.Reward.SkillPoints > 0 {
+		rew["skill_points"] = q.Reward.SkillPoints
+	}
+	if q.Reward.LearnSkill != "" {
+		rew["learn_skill"] = q.Reward.LearnSkill
+	}
+	if len(q.Reward.Items) > 0 {
+		items := make([]interface{}, 0, len(q.Reward.Items))
+		for _, it := range q.Reward.Items {
+			items = append(items, map[string]interface{}{
+				"id": it.ID, "qty": it.Qty,
+			})
+		}
+		rew["items"] = items
+	}
+	if len(rew) > 0 {
+		doc["reward"] = rew
+	}
+	if q.IntroMessage != "" {
+		doc["intro"] = q.IntroMessage
+	}
+	if q.ProgressMessage != "" {
+		doc["in_progress"] = q.ProgressMessage
+	}
+	if q.CompleteMessage != "" {
+		doc["complete"] = q.CompleteMessage
+	}
+	if q.OnStartHook != "" {
+		doc["on_start_hook"] = q.OnStartHook
+	}
+	if q.OnCompleteHook != "" {
+		doc["on_complete_hook"] = q.OnCompleteHook
+	}
+	return doc
 }
 
 // --- JSON-on-disk surface (npcs_user/) -------------------------------------
