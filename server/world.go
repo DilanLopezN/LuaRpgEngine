@@ -45,11 +45,14 @@ type Tileset struct {
 // in the "Criar NPCs" editor tab — older maps without the field fall back
 // to the engine's default NPC sprite.
 type MapEntity struct {
-	Type   string `json:"type"`
-	Kind   string `json:"kind,omitempty"`
-	Sprite string `json:"sprite,omitempty"`
-	X      int    `json:"x"`
-	Y      int    `json:"y"`
+	Type      string `json:"type"`
+	Kind      string `json:"kind,omitempty"`
+	Sprite    string `json:"sprite,omitempty"`
+	TargetMap string `json:"target_map,omitempty"`
+	TargetX   int    `json:"target_x,omitempty"`
+	TargetY   int    `json:"target_y,omitempty"`
+	X         int    `json:"x"`
+	Y         int    `json:"y"`
 }
 
 // Map is the in-memory representation of a single tilemap. All access goes
