@@ -189,6 +189,40 @@ handlers.MAP = function(rest)
     end
 end
 
+-- Phase 2 — server reply to a warp trigger. Format:
+--   MAP_CHANGE <name> <w> <h> <tx> <ty>
+-- The MAP frame with the full destination layers arrived just before
+-- this one. We use this hook to forget every entity that lived on the
+-- old map (the snapshot pipeline's diff path won't emit "X" drops for
+-- them because the LastSeen set was reset server-side) and to recentre
+-- the camera on the new tile so the player doesn't see a one-frame
+-- jump.
+handlers.MAP_CHANGE = function(rest)
+    local name, w, h, tx, ty = rest:match(
+        "^(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)$")
+    if not name then return end
+    State.currentMapName = name
+    State.mapWidth  = tonumber(w) or State.mapWidth
+    State.mapHeight = tonumber(h) or State.mapHeight
+    State.mapSize   = math.max(State.mapWidth, State.mapHeight)
+    -- Drop every other player / enemy / npc — they belonged to the
+    -- previous world. Keep ourselves so the renderer has something
+    -- to show until the next snapshot arrives.
+    local me = State.players[State.myId]
+    State.players = {}
+    if me then
+        local nx, ny = tonumber(tx), tonumber(ty)
+        if nx and ny then
+            me.x, me.y = nx, ny
+        end
+        State.players[State.myId] = me
+    end
+    State.enemies = {}
+    State.npcs = {}
+    State.activeSpells = {}
+    pushToast(string.format("Mapa: %s", name), { 0.65, 0.85, 1.0 })
+end
+
 -- STATS carries up to 12 numeric fields. Older clients only knew the
 -- first four; we now consume the full character sheet.
 

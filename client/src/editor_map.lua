@@ -279,18 +279,24 @@ function M.worldClick(sx, sy, button)
                 end
             end
         else
-            local e = {
+            local ent = {
                 type = me.entityType,
                 kind = me.entityKind,
                 x    = tx - 1,
                 y    = ty - 1,
             }
+            -- Warp triggers carry their destination so the server knows
+            -- where to teleport the player. We only write the fields
+            -- when they are non-empty so a regular trigger placement
+            -- still round-trips byte-for-byte.
             if me.entityType == "trigger" and me.entityKind == "warp" then
-                e.target_map = me.warpTargetMap or "world"
-                e.target_x = tonumber(me.warpTargetX) or 0
-                e.target_y = tonumber(me.warpTargetY) or 0
+                local target = (me.warpTargetMap and me.warpTargetMap ~= "")
+                                and me.warpTargetMap or "world"
+                ent.target_map = target
+                ent.target_x   = me.warpTargetX or 0
+                ent.target_y   = me.warpTargetY or 0
             end
-            Map.current.entities[#Map.current.entities + 1] = e
+            Map.current.entities[#Map.current.entities + 1] = ent
         end
         return
     end
@@ -499,10 +505,50 @@ local function drawToolbar()
     if me.tool == "entity" then
         row("Entidade", ENTITY_TYPES, me.entityType, ENTITY_TYPE_LABELS)
         row("Tipo",     ENTITY_KINDS, me.entityKind, ENTITY_KIND_LABELS)
+        -- Phase 2 — warp destination form (only relevant for trigger+warp).
         if me.entityType == "trigger" and me.entityKind == "warp" then
-            love.graphics.setColor(0.72, 0.80, 0.95)
-            love.graphics.print(string.format("Warp -> %s (%d,%d)", me.warpTargetMap or "world", me.warpTargetX or 0, me.warpTargetY or 0), fx + 12, y + 6)
-            y = y + 28
+            love.graphics.setColor(0.7, 0.75, 0.85)
+            love.graphics.print("Destino", fx + 12, y + 6)
+            local lx = fx + 110
+            -- map-name text input
+            local mapW = 180
+            local focused = State.editorFocus == "warp_target_map"
+            love.graphics.setColor(focused and 0.20 or 0.13,
+                                   focused and 0.27 or 0.16,
+                                   focused and 0.36 or 0.22)
+            love.graphics.rectangle("fill", lx, y, mapW, 24, 4, 4)
+            love.graphics.setColor(focused and 0.65 or 0.36, 0.55, 0.78)
+            love.graphics.rectangle("line", lx, y, mapW, 24, 4, 4)
+            love.graphics.setColor(1, 1, 1)
+            local txt = me.warpTargetMap or ""
+            if focused and (math.floor(love.timer.getTime() * 2) % 2) == 0 then
+                txt = txt .. "_"
+            end
+            love.graphics.print(txt, lx + 6, y + 5)
+            -- x stepper
+            local sx = lx + mapW + 10
+            love.graphics.setColor(0.13, 0.16, 0.22)
+            love.graphics.rectangle("fill", sx, y, 80, 24, 4, 4)
+            love.graphics.setColor(0.4, 0.5, 0.6)
+            love.graphics.rectangle("line", sx, y, 80, 24, 4, 4)
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.printf("x=" .. (me.warpTargetX or 0),
+                sx, y + 5, 80, "center")
+            -- y stepper
+            local syy = sx + 88
+            love.graphics.setColor(0.13, 0.16, 0.22)
+            love.graphics.rectangle("fill", syy, y, 80, 24, 4, 4)
+            love.graphics.setColor(0.4, 0.5, 0.6)
+            love.graphics.rectangle("line", syy, y, 80, 24, 4, 4)
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.printf("y=" .. (me.warpTargetY or 0),
+                syy, y + 5, 80, "center")
+            love.graphics.setColor(0.6, 0.7, 0.85)
+            love.graphics.printf(
+                "Clique nos campos x/y para incrementar (botão direito decrementa). "
+                .. "O campo 'mapa' aceita texto — clique para focar.",
+                fx + 12, y + 30, fw - 24, "left")
+            y = y + 56
         end
     end
 
@@ -670,6 +716,28 @@ local function toolbarClick(x, y, button)
             return true
         end
         yy = yy + 32
+        if me.entityType == "trigger" and me.entityKind == "warp" then
+            -- Hit-test the warp destination row: text field + two
+            -- steppers. Layout has to match drawToolbar above.
+            local lx = fx + 110
+            if pointIn(x, y, lx, yy, 180, 24) then
+                State.editorFocus = "warp_target_map"
+                return true
+            end
+            local sx = lx + 190
+            if pointIn(x, y, sx, yy, 80, 24) then
+                local delta = (button == 2) and -1 or 1
+                me.warpTargetX = math.max(0, (me.warpTargetX or 0) + delta)
+                return true
+            end
+            local syy = sx + 88
+            if pointIn(x, y, syy, yy, 80, 24) then
+                local delta = (button == 2) and -1 or 1
+                me.warpTargetY = math.max(0, (me.warpTargetY or 0) + delta)
+                return true
+            end
+            yy = yy + 56
+        end
     end
 
     -- Hit-test usa o MESMO layout fluido do desenho, então os botões nunca
@@ -715,12 +783,37 @@ function M.keypressed(key)
         pasteAt(tx, ty)
         return true
     end
+    -- Phase 2 — typing into the warp destination field. Backspace
+    -- trims, return/escape unfocus, every other key bubbles up.
+    if State.editorFocus == "warp_target_map" then
+        if key == "backspace" then
+            me.warpTargetMap = (me.warpTargetMap or ""):sub(1, -2)
+            return true
+        elseif key == "return" or key == "kpenter" or key == "escape" then
+            State.editorFocus = nil
+            return true
+        end
+        return true
+    end
     if key == "g" then me.showGrid = not me.showGrid; return true end
     if key == "1" then me.layer = "ground"; return true end
     if key == "2" then me.layer = "decoration"; return true end
     if key == "3" then me.layer = "collision"; return true end
     if key == "4" then me.layer = "logic"; return true end
     return false
+end
+
+-- textinput is plumbed through editor.lua's dispatch so the warp
+-- destination field can accept text. Returns true when the key was
+-- consumed; falsy lets other tabs / global handlers take a turn.
+function M.textinput(t)
+    if State.editorFocus ~= "warp_target_map" then return false end
+    local me = State.mapEditor
+    if #(me.warpTargetMap or "") >= 32 then return true end
+    if t:match("[%w_%-]") then
+        me.warpTargetMap = (me.warpTargetMap or "") .. t
+    end
+    return true
 end
 
 return M

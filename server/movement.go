@@ -29,10 +29,25 @@ import (
 // Enemies do not move yet — Phase 4 (AI) wires that path through the
 // AISystem.
 func (g *Game) runMovement(now time.Time) {
+	// pendingWarps collects (player, warp) pairs that should fire AFTER
+	// the step has fully settled. We never trigger a warp inside the
+	// step that lands a player on the tile because the snapshot pipeline
+	// would observe the player teleport mid-interpolation, breaking the
+	// visual. Phase 2 §"Trigger warp dispara após settle do step".
+	type pendingWarp struct {
+		p    *Player
+		warp MapEntity
+	}
+	var warps []pendingWarp
+
 	for _, p := range g.players {
 		if p.Stepping && now.Sub(p.StepStart) >= p.StepDur {
 			p.FromX, p.FromY = p.TileX, p.TileY
 			p.Stepping = false
+			// Step just settled — check for a warp on the new tile.
+			if w, ok := g.warpAt(p.MapName, p.TileX, p.TileY); ok {
+				warps = append(warps, pendingWarp{p: p, warp: w})
+			}
 		}
 	}
 
@@ -55,15 +70,16 @@ func (g *Game) runMovement(now time.Time) {
 		p.FaceX, p.FaceY = dx, dy
 
 		nx, ny := p.TileX+dx, p.TileY+dy
-		if !g.world.InBounds(nx, ny) {
+		pm := g.playerMap(p)
+		if !pm.InBounds(nx, ny) {
 			fmt.Printf(">>> blocked: out of bounds nx=%d ny=%d\n", nx, ny)
 			continue
 		}
-		if !g.world.IsWalkable(nx, ny) {
+		if !pm.IsWalkable(nx, ny) {
 			fmt.Printf(">>> blocked: not walkable nx=%d ny=%d\n", nx, ny)
 			continue
 		}
-		if g.tileOccupied(nx, ny, p.ID) {
+		if g.tileOccupiedOn(pm.Name, nx, ny, p.ID) {
 			fmt.Printf(">>> blocked: tile occupied nx=%d ny=%d\n", nx, ny)
 			continue
 		}
@@ -99,6 +115,13 @@ func (g *Game) runMovement(now time.Time) {
 				}
 			}
 		}
+	}
+
+	// Fire any warps queued from settled steps. transitionPlayerLocked
+	// rewrites MapName / position and queues a MAP_CHANGE wire frame
+	// onto aiOutbox so the host flushes it after dropping g.mu.
+	for _, pw := range warps {
+		g.transitionPlayerLocked(pw.p, pw.warp.TargetMap, pw.warp.TargetX, pw.warp.TargetY)
 	}
 }
 

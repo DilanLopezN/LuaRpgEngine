@@ -90,11 +90,12 @@ type NPCLootEntry struct {
 }
 
 // IsHostile reports whether spawnNPCsFromMap should treat this NPC as
-// a combatant (HP, AI chase, drop on kill). Both role-based and
-// HP-based answers are accepted so a designer can tag an NPC as
-// "enemy" without spelling out HP and the engine still gives it a
-// fight; or grant HP without committing to a role and the system
-// still treats it as a guardian.
+// a combatant (HP, AI chase, drop on kill). Roles are honoured first:
+// an explicit non-hostile role (friendly / merchant / quest_giver)
+// always loses any HP carried over from a previous edit so the NPC
+// keeps spawning as a peaceful villager. Only when the role field is
+// blank does the legacy HP > 0 fallback decide — that path lets a
+// designer tag an enemy without spelling out the role.
 func (d *NPCDef) IsHostile() bool {
 	if d == nil {
 		return false
@@ -102,6 +103,8 @@ func (d *NPCDef) IsHostile() bool {
 	switch d.Role {
 	case NPCRoleEnemy, NPCRoleGuardian:
 		return true
+	case NPCRoleFriendly, NPCRoleMerchant, NPCRoleQuestGiver:
+		return false
 	}
 	return d.HP > 0
 }
