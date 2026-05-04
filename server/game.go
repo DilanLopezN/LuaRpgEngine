@@ -147,6 +147,10 @@ type Player struct {
 	NPCDialog string // active npc id; empty when no dialog is open
 	NPCNode   string // current dialog node within that npc
 
+	// Phase 3 — id of the shop the player currently has open. Empty
+	// when no shop UI is up. Server-side gate on SHOP_BUY/SHOP_SELL.
+	OpenShop string
+
 	NextShout time.Time
 
 	// Phase 5 — per-connection input throttle. nil for tests that
@@ -238,6 +242,10 @@ type Game struct {
 	// while g.mu is held; the host flushes it after releasing the
 	// lock. Owned by Game.tick — never read/written outside that path.
 	aiOutbox []string
+
+	// Phase 3 — live shop stock + restock timers, keyed by shop id.
+	// Lazily populated on first openShop / handleShopBuy.
+	shopStocks map[string]*shopRuntime
 }
 
 func NewGame(db *DB, cache *Cache) *Game {
@@ -793,6 +801,7 @@ func (g *Game) handleLine(p *Player, line string) {
 		return
 	}
 	if strings.HasPrefix(line, "SHOP_CLOSE") {
+		g.handleShopClose(p)
 		return
 	}
 	if strings.HasPrefix(line, "SAVE_SHOP_DEF ") {

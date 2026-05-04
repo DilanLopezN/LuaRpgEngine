@@ -235,6 +235,17 @@ handlers.SHOP_OPEN = function(rest)
     State.shop.def = d
 end
 
+-- Phase 3 — server pushes SHOP_UPDATE after every successful SHOP_BUY /
+-- SHOP_SELL so the modal reflects post-transaction stock without a
+-- round-trip. Same payload shape as SHOP_OPEN.
+handlers.SHOP_UPDATE = function(rest)
+    local id, payload = rest:match("^(%S+)%s+(.+)$")
+    if not id then return end
+    if not State.shop or State.shop.id ~= id then return end
+    local d = JSON.decode(payload)
+    if d then State.shop.def = d end
+end
+
 handlers.SHOP_CLOSE = function()
     State.shop.open = false
     State.shop.id = nil
