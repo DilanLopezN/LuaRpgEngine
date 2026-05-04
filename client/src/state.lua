@@ -29,6 +29,12 @@ M.editorTab      = "map"   -- "map" | "spells" | "npcs" | "quests"
 M.editorSelected = nil
 M.editorFocus    = nil
 
+-- Phase 1 — Pickers de Conteúdo. Quando setado, editor_pickers.lua
+-- renderiza um overlay modal com o catálogo correspondente e captura
+-- mouse/teclado até o usuário escolher um id ou apertar Esc.
+-- Estrutura: { kind, entries, currentId, onPick, search, scroll, ... }
+M.activePicker = nil
+
 -- Movable panel geometry. Initialized lazily by editor_layout.ensureInit().
 M.editorPanel = {
     x = 0, y = 0, w = 0, h = 0,

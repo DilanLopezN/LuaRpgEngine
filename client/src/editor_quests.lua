@@ -18,6 +18,8 @@ local Network = require("src.network")
 local JSON    = require("src.json")
 local Layout  = require("src.editor_layout")
 local Tooltip = require("src.tooltip")
+local Pickers = require("src.editor_pickers")
+local Items   = require("src.items")
 
 local M = {}
 
@@ -207,11 +209,42 @@ local function defToWire(d)
     return out
 end
 
+-- Phase 1 — verifica se cada id referenciado pelo draft existe no
+-- catálogo correspondente. Reportar antes de mandar para o servidor
+-- evita "quebra silenciosa" descrita no roadmap.
+local function validateDraftRefs(d)
+    if d.giver and d.giver ~= "" and not (State.npcDefs or {})[d.giver] then
+        return false, "giver '" .. d.giver .. "' não existe no catálogo de NPCs"
+    end
+    for i, o in ipairs(d.objectives or {}) do
+        if (o.type == "kill" or o.type == "talk") and o.target and o.target ~= "" then
+            if not (State.npcDefs or {})[o.target] then
+                return false, "obj " .. i .. ": npc '" .. o.target .. "' não existe"
+            end
+        elseif o.type == "collect" and o.target and o.target ~= "" then
+            if not (State.itemDefs or {})[o.target] then
+                return false, "obj " .. i .. ": item '" .. o.target .. "' não existe"
+            end
+        end
+    end
+    for i, it in ipairs(d.reward.items or {}) do
+        if it.id and it.id ~= "" and not (State.itemDefs or {})[it.id] then
+            return false, "reward " .. i .. ": item '" .. it.id .. "' não existe"
+        end
+    end
+    return true
+end
+
 local function saveDraft()
     ensureEditorState()
     local d = State.questEditor.draft
     if not d.id or d.id == "" then
         State.questEditor.saveStatus = "id obrigatório"
+        return
+    end
+    local ok, err = validateDraftRefs(d)
+    if not ok then
+        State.questEditor.saveStatus = err
         return
     end
     if Network.connected and not Network.connected() then
@@ -345,9 +378,10 @@ local function buildRows(d, fx, fy, fw)
     row{ kind = "text", field = "description", label = "Descrição",
          value = d.description, h = 44,
          tip = "Texto curto exibido no diário do jogador." }
-    row{ kind = "text", field = "giver", label = "NPC giver",
-         value = d.giver,
-         tip = "ID do NPC que entrega a quest. Ele recebe um marcador '!'." }
+    row{ kind = "id_picker", field = "giver", pickerKind = "npc",
+         pickerFilter = "quest_giver",
+         label = "NPC giver", value = d.giver,
+         tip = "Clique para escolher o NPC quest_giver. Ele recebe um marcador '!' no mapa." }
     row{ kind = "checkbox", field = "repeatable", label = "Repetível",
          value = d.repeatable,
          tip = "Permite ao jogador refazer a quest após completar." }
@@ -367,11 +401,23 @@ local function buildRows(d, fx, fy, fw)
         row{ kind = "obj_type", index = i, value = o.type,
              label = "Tipo " .. i }
         if o.type == "kill" or o.type == "collect" or o.type == "talk" then
+            -- Phase 1 — substitui text input por picker, escolhendo o
+            -- catálogo certo conforme o tipo do objetivo.
+            local pickerKind, pickerFilter
+            if o.type == "kill" then
+                pickerKind = "npc"
+                pickerFilter = { "enemy", "guardian" }
+            elseif o.type == "collect" then
+                pickerKind = "item"
+            elseif o.type == "talk" then
+                pickerKind = "npc"
+            end
             row{ kind = "obj_target", index = i, value = o.target,
-                 label = "Alvo (id)",
-                 tip = o.type == "kill" and "ID do enemy/npc para matar." or
-                       o.type == "collect" and "ID do item a coletar." or
-                       "ID do NPC para conversar." }
+                 pickerKind = pickerKind, pickerFilter = pickerFilter,
+                 label = "Alvo",
+                 tip = o.type == "kill" and "Clique para escolher o enemy/guardian alvo." or
+                       o.type == "collect" and "Clique para escolher o item a coletar." or
+                       "Clique para escolher o NPC para conversar." }
             row{ kind = "obj_count", index = i, value = o.count,
                  label = "Quantidade", step = 1, min = 1, max = 999 }
         elseif o.type == "level" then
@@ -453,6 +499,71 @@ local function drawHeader(row)
     love.graphics.setFont(State.fonts.ui)
     love.graphics.setColor(0.85, 0.95, 1.0)
     love.graphics.print(row.label, row.x, row.y + 4)
+end
+
+-- Phase 1 — desenho do row "id_picker": label + área clicável que abre
+-- o picker correspondente. Borda fica vermelha quando o id atual não
+-- existe mais no catálogo (o usuário renomeou ou apagou o referenciado).
+local function catalogFor(kind)
+    if kind == "quest" then return State.questDefs end
+    if kind == "item"  then return State.itemDefs end
+    if kind == "npc"   then return State.npcDefs end
+end
+
+local function drawIdPickerRow(row)
+    love.graphics.setFont(State.fonts.name)
+    love.graphics.setColor(0.7, 0.78, 0.92)
+    love.graphics.print(row.label, row.x, row.y + 5)
+    local tx = row.x + LABEL_W
+    local tw = row.w - LABEL_W
+    local mx, my = State.mouse.x or 0, State.mouse.y or 0
+    local hover = pointIn(mx, my, tx, row.y, tw, row.h)
+
+    local catalog = catalogFor(row.pickerKind)
+    local missing = row.value and row.value ~= ""
+        and catalog and not catalog[row.value]
+
+    love.graphics.setColor(hover and 0.18 or 0.13,
+                           hover and 0.22 or 0.16,
+                           hover and 0.30 or 0.22)
+    love.graphics.rectangle("fill", tx, row.y, tw, row.h, 4, 4)
+    if missing then
+        love.graphics.setColor(0.95, 0.40, 0.40)
+    else
+        love.graphics.setColor(0.4, 0.55, 0.78)
+    end
+    love.graphics.rectangle("line", tx, row.y, tw, row.h, 4, 4)
+
+    love.graphics.setColor(1, 1, 1)
+    if row.value and row.value ~= "" then
+        local def = catalog and catalog[row.value]
+        local label = (def and def.name) or row.value
+        -- Para item, desenha o ícone à esquerda como preview.
+        if row.pickerKind == "item" and def then
+            Items.draw(Items.iconForItem(def), tx + 2, row.y + 1, row.h - 2,
+                { rarity = def.rarity })
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.print(label, tx + row.h + 4, row.y + 5)
+        else
+            love.graphics.print(label, tx + 6, row.y + 5)
+        end
+        if def and def.name then
+            love.graphics.setColor(0.55, 0.70, 0.92)
+            love.graphics.printf("[" .. row.value .. "]",
+                tx + 6, row.y + 5, tw - 12, "right")
+        end
+    else
+        love.graphics.setColor(0.65, 0.78, 0.92, 0.7)
+        love.graphics.print("Clique para escolher...", tx + 6, row.y + 5)
+    end
+
+    if hover then
+        local kindLbl = row.pickerKind == "quest" and "quest" or
+                        row.pickerKind == "item"  and "item"  or "NPC"
+        local tip = "Clique para abrir o picker de " .. kindLbl .. "."
+        if missing then tip = tip .. "\n⚠ id atual não existe mais." end
+        Tooltip.hover(tip)
+    end
 end
 
 local function drawTextRow(row, focused)
@@ -585,21 +696,39 @@ local function drawRewardItem(row)
     love.graphics.print(row.label, row.x, row.y + 5)
     local tx = row.x + LABEL_W
     local fw = row.w - LABEL_W
-    -- Item id text + qty stepper + remove button.
+    -- Phase 1 — id agora é uma área clicável que abre o picker de itens.
     local idW = fw - 130
-    local focused = State.editorFocus == ("reward_item_" .. row.index)
-    love.graphics.setColor(focused and 0.20 or 0.13,
-                           focused and 0.27 or 0.16,
-                           focused and 0.36 or 0.22)
+    local mx, my = State.mouse.x or 0, State.mouse.y or 0
+    local hover = pointIn(mx, my, tx, row.y, idW, row.h)
+    local def = (State.itemDefs or {})[row.value.id or ""]
+    local missing = row.value.id and row.value.id ~= "" and not def
+    love.graphics.setColor(hover and 0.18 or 0.13,
+                           hover and 0.22 or 0.16,
+                           hover and 0.30 or 0.22)
     love.graphics.rectangle("fill", tx, row.y, idW, row.h, 4, 4)
-    love.graphics.setColor(focused and 0.65 or 0.36, 0.55, 0.78)
+    if missing then
+        love.graphics.setColor(0.95, 0.40, 0.40)
+    else
+        love.graphics.setColor(0.4, 0.55, 0.78)
+    end
     love.graphics.rectangle("line", tx, row.y, idW, row.h, 4, 4)
     love.graphics.setColor(1, 1, 1)
-    local txt = row.value.id or ""
-    if focused and (math.floor(love.timer.getTime() * 2) % 2) == 0 then
-        txt = txt .. "_"
+    if row.value.id and row.value.id ~= "" then
+        if def then
+            Items.draw(Items.iconForItem(def), tx + 2, row.y + 1, row.h - 2,
+                { rarity = def.rarity })
+            love.graphics.print(def.name or row.value.id,
+                tx + row.h + 4, row.y + 5)
+        else
+            love.graphics.print(row.value.id, tx + 6, row.y + 5)
+        end
+    else
+        love.graphics.setColor(0.65, 0.78, 0.92, 0.7)
+        love.graphics.print("Clique para escolher item...", tx + 6, row.y + 5)
     end
-    love.graphics.print(txt, tx + 6, row.y + 5)
+    if hover then
+        Tooltip.hover("Clique para abrir o picker de itens.")
+    end
 
     love.graphics.setColor(0.10, 0.13, 0.18)
     love.graphics.rectangle("fill", tx + idW + 2, row.y, 80, row.h, 4, 4)
@@ -670,7 +799,11 @@ local function drawForm()
         elseif r.kind == "obj_type" then
             drawObjType(r)
         elseif r.kind == "obj_target" then
-            drawTextRow(r, State.editorFocus == ("obj_target_" .. r.index))
+            -- Phase 1 — obj_target vira id_picker (kind/filter
+            -- vêm preenchidos pelo buildRows).
+            drawIdPickerRow(r)
+        elseif r.kind == "id_picker" then
+            drawIdPickerRow(r)
         elseif r.kind == "obj_count" then
             drawStepperRow(r)
         elseif r.kind == "obj_xy" then
@@ -782,7 +915,12 @@ local function handleRewardItemClick(d, row, x)
     local fw = row.w - LABEL_W
     local idW = fw - 130
     if x >= tx and x < tx + idW then
-        State.editorFocus = "reward_item_" .. row.index
+        -- Phase 1 — abre o picker em vez de focar text input.
+        local rewIdx = row.index
+        Pickers.openItem(d.reward.items[rewIdx].id, function(id)
+            d.reward.items[rewIdx].id = id or ""
+        end)
+        State.editorFocus = nil
         return
     end
     if x >= tx + idW + 2 and x < tx + idW + 82 then
@@ -796,6 +934,28 @@ local function handleRewardItemClick(d, row, x)
         table.remove(d.reward.items, row.index)
         return
     end
+end
+
+-- Phase 1 — handler genérico para qualquer row id_picker (giver no topo
+-- e obj_target nos objetivos). Resolve o catálogo certo via row.pickerKind
+-- e empurra o id escolhido de volta no campo correspondente do draft.
+local function handleIdPickerClick(d, row)
+    local cb
+    if row.kind == "obj_target" then
+        local idx = row.index
+        cb = function(id) d.objectives[idx].target = id or "" end
+    else
+        local field = row.field
+        cb = function(id) d[field] = id or "" end
+    end
+    if row.pickerKind == "quest" then
+        Pickers.openQuest(row.value, cb)
+    elseif row.pickerKind == "item" then
+        Pickers.openItem(row.value, cb)
+    elseif row.pickerKind == "npc" then
+        Pickers.openNPC(row.pickerFilter, row.value, cb)
+    end
+    State.editorFocus = nil
 end
 
 local function formClick(x, y, button)
@@ -820,7 +980,10 @@ local function formClick(x, y, button)
                 handleObjTypeClick(d, r, x)
                 return true
             elseif r.kind == "obj_target" then
-                State.editorFocus = "obj_target_" .. r.index
+                handleIdPickerClick(d, r)
+                return true
+            elseif r.kind == "id_picker" then
+                handleIdPickerClick(d, r)
                 return true
             elseif r.kind == "obj_count" or r.kind == "obj_range" then
                 handleStepperClick(d, r, x)
@@ -913,9 +1076,9 @@ function M.textinput(t)
     ensureEditorState()
     local d = State.questEditor.draft
     local f = State.editorFocus
-    -- Top-level text fields.
+    -- Top-level text fields. (giver virou id_picker — ver Phase 1.)
     local topFields = { id = true, name = true, description = true,
-        giver = true, intro = true, in_progress = true, complete = true }
+        intro = true, in_progress = true, complete = true }
     if topFields[f] then
         if #(d[f] or "") >= (f == "description" and 256 or 64) then return true end
         if t:match("[%w%s_%-%.,!%?%(%)%/]") then
@@ -939,33 +1102,16 @@ function M.textinput(t)
         end
         return true
     end
-    -- Per-objective fields.
+    -- Per-objective text fields (target virou id_picker — ver Phase 1).
     local objField, objIdx = f:match("^obj_(%a+)_(%d+)$")
     if objField and objIdx then
         objIdx = tonumber(objIdx)
         local obj = d.objectives[objIdx]
-        if obj then
-            local key = objField == "target" and "target" or
-                        objField == "note"   and "note"   or nil
-            if key then
-                local cur = obj[key] or ""
-                if #cur >= 64 then return true end
-                if t:match("[%w%s_%-%.,!%?]") then
-                    obj[key] = cur .. t
-                end
-                return true
-            end
-        end
-    end
-    local rewIdx = f:match("^reward_item_(%d+)$")
-    if rewIdx then
-        rewIdx = tonumber(rewIdx)
-        local it = d.reward.items[rewIdx]
-        if it then
-            local cur = it.id or ""
-            if #cur >= 32 then return true end
-            if t:match("[%w_%-]") then
-                it.id = cur .. t
+        if obj and objField == "note" then
+            local cur = obj.note or ""
+            if #cur >= 64 then return true end
+            if t:match("[%w%s_%-%.,!%?]") then
+                obj.note = cur .. t
             end
             return true
         end
@@ -983,7 +1129,7 @@ function M.keypressed(key)
 
     local function doBackspace()
         local topFields = { id = true, name = true, description = true,
-            giver = true, intro = true, in_progress = true, complete = true }
+            intro = true, in_progress = true, complete = true }
         if topFields[f] then
             d[f] = (d[f] or ""):sub(1, -2)
             return true
@@ -1001,19 +1147,8 @@ function M.keypressed(key)
         if objField and objIdx then
             objIdx = tonumber(objIdx)
             local obj = d.objectives[objIdx]
-            local key = objField == "target" and "target" or
-                        objField == "note"   and "note"   or nil
-            if obj and key then
-                obj[key] = (obj[key] or ""):sub(1, -2)
-                return true
-            end
-        end
-        local rewIdx = f:match("^reward_item_(%d+)$")
-        if rewIdx then
-            rewIdx = tonumber(rewIdx)
-            local it = d.reward.items[rewIdx]
-            if it then
-                it.id = (it.id or ""):sub(1, -2)
+            if obj and objField == "note" then
+                obj.note = (obj.note or ""):sub(1, -2)
                 return true
             end
         end

@@ -182,6 +182,12 @@ function M.mousepressed(x, y, button)
     if Dialog.mousepressed(x, y, button) then return end
     if ShopUI.mousepressed(x, y, button) then return end
     if Char.mousepressed(x, y, button) then return end
+    -- Phase 1 — quando o picker do editor está aberto ele cobre quase
+    -- toda a tela; o editor (e portanto o picker) precisa ver o clique
+    -- antes da skillbar para não ativar uma spell por engano.
+    if State.activePicker then
+        if Editor.mousepressed(x, y, button) then return end
+    end
     if button == 1 and Skillbar.mousepressed(x, y) then return end
     if Editor.mousepressed(x, y, button) then return end
 
