@@ -1,0 +1,16 @@
+{
+  "attrs": {
+    "dex": 1
+  },
+  "defense": 1,
+  "description": "Calçado leve e silencioso. Bom para longas jornadas.",
+  "id": "leather_boots",
+  "level_req": 1,
+  "name": "Botas de Couro",
+  "rarity": "common",
+  "slot": "boots",
+  "sprite": "icon_boots_leather",
+  "stack": 1,
+  "type": "boots",
+  "value": 6
+}

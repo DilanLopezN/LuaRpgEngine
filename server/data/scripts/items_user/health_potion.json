@@ -1,0 +1,13 @@
+{
+  "description": "Recupera 25 de HP ao beber.",
+  "id": "health_potion",
+  "name": "Poção de Vida",
+  "on_use": {
+    "heal_hp": 25
+  },
+  "rarity": "common",
+  "sprite": "icon_potion_red",
+  "stack": 99,
+  "type": "consumable",
+  "value": 5
+}
