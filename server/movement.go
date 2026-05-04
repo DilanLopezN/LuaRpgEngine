@@ -78,6 +78,14 @@ func (g *Game) runMovement(now time.Time) {
 			p.StepDur = stepDuration
 		}
 		fmt.Printf(">>> step OK player=%d to=(%d,%d) dur=%v\n", p.ID, nx, ny, p.StepDur)
+		if w := g.warpAt("", nx, ny); w != nil {
+			tm := w.TargetMap
+			if tm == "" {
+				tm = g.world.Name
+			}
+			g.transitionPlayer(p, tm, w.TargetX, w.TargetY)
+			continue
+		}
 		// Visit-objective hook fires on every successful step. The
 		// quest tracker only does work for players carrying a visit
 		// quest, so the cost stays near zero in the common case.
@@ -93,6 +101,7 @@ func (g *Game) runMovement(now time.Time) {
 		}
 	}
 }
+
 // runManaRegen ticks the per-player mana regeneration. Lives next to
 // movement because both belong to the "passive per-tick player update"
 // bucket and share the same iteration shape. Caller must hold g.mu.

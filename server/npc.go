@@ -62,11 +62,11 @@ type NPCDef struct {
 	Sprite string
 
 	// Combat profile. Only consulted for guardian / enemy NPCs.
-	HP       int
-	Damage   int
-	Speed    float64
-	Aggro    int // tile radius — guardians wake up at this distance
-	XP       int
+	HP     int
+	Damage int
+	Speed  float64
+	Aggro  int // tile radius — guardians wake up at this distance
+	XP     int
 	// Loot fires on death (guardian/enemy only). Each entry is rolled
 	// independently with `Chance` in basis points (1000 = 100%).
 	Loot []NPCLootEntry
@@ -76,6 +76,7 @@ type NPCDef struct {
 	// progress / turn-in). The engine will also synthesize a default
 	// dialog tree if the author left Nodes empty.
 	Quest string
+	Shop  string
 
 	Nodes map[string]*NPCNode
 }
@@ -161,6 +162,7 @@ func parseNPCDef(raw interface{}, fallbackID string) (*NPCDef, error) {
 		Faction: asString(m["faction"]),
 		Sprite:  asString(m["sprite"]),
 		Quest:   asString(m["quest"]),
+		Shop:    asString(m["shop"]),
 		HP:      asInt(m["hp"]),
 		Damage:  asInt(m["damage"]),
 		Speed:   asFloat(m["speed"]),
@@ -544,8 +546,8 @@ func parseQuestDef(raw interface{}, fallbackID string) (*QuestDef, error) {
 type QuestState struct {
 	ID        string
 	Stage     string // "active" | "complete" | custom
-	KillCount int   // legacy; kept in sync with first kill objective
-	Progress  []int // per-objective progress
+	KillCount int    // legacy; kept in sync with first kill objective
+	Progress  []int  // per-objective progress
 	Done      bool
 }
 
@@ -598,23 +600,24 @@ func asBool(v interface{}) bool {
 // editor + renderer in this repo are the only consumers.
 func formatNPCDef(def *NPCDef) string {
 	wire := struct {
-		ID      string `json:"id"`
-		Name    string `json:"name"`
-		Title   string `json:"title,omitempty"`
-		Role    string `json:"role,omitempty"`
-		Faction string `json:"faction,omitempty"`
-		Sprite  string `json:"sprite,omitempty"`
-		HP      int    `json:"hp,omitempty"`
-		Damage  int    `json:"damage,omitempty"`
+		ID      string  `json:"id"`
+		Name    string  `json:"name"`
+		Title   string  `json:"title,omitempty"`
+		Role    string  `json:"role,omitempty"`
+		Faction string  `json:"faction,omitempty"`
+		Sprite  string  `json:"sprite,omitempty"`
+		HP      int     `json:"hp,omitempty"`
+		Damage  int     `json:"damage,omitempty"`
 		Speed   float64 `json:"speed,omitempty"`
-		Aggro   int    `json:"aggro,omitempty"`
-		XP      int    `json:"xp,omitempty"`
-		Quest   string `json:"quest,omitempty"`
+		Aggro   int     `json:"aggro,omitempty"`
+		XP      int     `json:"xp,omitempty"`
+		Quest   string  `json:"quest,omitempty"`
+		Shop    string  `json:"shop,omitempty"`
 	}{
 		ID: def.ID, Name: def.Name, Title: def.Title,
 		Role: def.Role, Faction: def.Faction, Sprite: def.Sprite,
 		HP: def.HP, Damage: def.Damage, Speed: def.Speed,
-		Aggro: def.Aggro, XP: def.XP, Quest: def.Quest,
+		Aggro: def.Aggro, XP: def.XP, Quest: def.Quest, Shop: def.Shop,
 	}
 	b, err := json.Marshal(wire)
 	if err != nil {
@@ -633,17 +636,17 @@ func formatNPCDef(def *NPCDef) string {
 // table and uses it to render the journal / editor catalog.
 func formatQuestDef(q *QuestDef) string {
 	wire := struct {
-		ID              string           `json:"id"`
-		Name            string           `json:"name"`
-		Description     string           `json:"description,omitempty"`
-		Giver           string           `json:"giver,omitempty"`
-		Repeatable      bool             `json:"repeatable,omitempty"`
-		Prerequisites   QuestPrereqs     `json:"prerequisites,omitempty"`
-		Objectives      []QuestObjective `json:"objectives,omitempty"`
-		Reward          QuestReward      `json:"reward,omitempty"`
-		Intro           string           `json:"intro,omitempty"`
-		InProgress      string           `json:"in_progress,omitempty"`
-		Complete        string           `json:"complete,omitempty"`
+		ID            string           `json:"id"`
+		Name          string           `json:"name"`
+		Description   string           `json:"description,omitempty"`
+		Giver         string           `json:"giver,omitempty"`
+		Repeatable    bool             `json:"repeatable,omitempty"`
+		Prerequisites QuestPrereqs     `json:"prerequisites,omitempty"`
+		Objectives    []QuestObjective `json:"objectives,omitempty"`
+		Reward        QuestReward      `json:"reward,omitempty"`
+		Intro         string           `json:"intro,omitempty"`
+		InProgress    string           `json:"in_progress,omitempty"`
+		Complete      string           `json:"complete,omitempty"`
 	}{
 		ID: q.ID, Name: q.Name, Description: q.Description,
 		Giver: q.Giver, Repeatable: q.Repeatable,
@@ -984,6 +987,9 @@ func npcDefToDoc(def *NPCDef) map[string]interface{} {
 	}
 	if def.Quest != "" {
 		doc["quest"] = def.Quest
+	}
+	if def.Shop != "" {
+		doc["shop"] = def.Shop
 	}
 	if len(def.Loot) > 0 {
 		loot := make([]interface{}, 0, len(def.Loot))
