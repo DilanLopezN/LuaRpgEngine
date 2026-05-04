@@ -26,6 +26,7 @@ local Chat     = require("src.chatui")
 local Dialog   = require("src.dialogui")
 local Char     = require("src.charpanel")
 local Keybinds = require("src.keybinds")
+local ShopUI   = require("src.shopui")
 
 local M = {}
 
@@ -45,6 +46,7 @@ local lastAttackSent = -1
 local function inputBlocked()
     return State.editorOpen or State.editorFocus
         or Chat.isOpen() or Dialog.isOpen() or Char.isOpen()
+        or (State.shop and State.shop.open)
         or (State.keybindCapture ~= nil)
 end
 
@@ -97,6 +99,7 @@ function M.keypressed(key)
     -- UI overlays steal events first.
     if Chat.keypressed(key)   then return end
     if Dialog.keypressed(key) then return end
+    if ShopUI.keypressed(key) then return end
 
     if Keybinds.is("fullscreen", key) then
         local fs = love.window.getFullscreen()
@@ -177,6 +180,7 @@ function M.mousepressed(x, y, button)
     if State.scene ~= State.SCENE_PLAYING then return end
 
     if Dialog.mousepressed(x, y, button) then return end
+    if ShopUI.mousepressed(x, y, button) then return end
     if Char.mousepressed(x, y, button) then return end
     -- Phase 1 — quando o picker do editor está aberto ele cobre quase
     -- toda a tela; o editor (e portanto o picker) precisa ver o clique

@@ -58,6 +58,9 @@ M.mapEditor = {
     clipboard     = nil,         -- { w, h, layers = { name -> grid } }
     entityType    = "spawn",
     entityKind    = "orc",
+    warpTargetMap = "world",
+    warpTargetX   = 0,
+    warpTargetY   = 0,
     pendingSave   = false,
     saveStatus    = "",
     paletteScroll = 0,
@@ -128,6 +131,7 @@ M.learned   = {}            -- id -> true
 M.npcDefs   = {}            -- id -> { name, title }
 M.questDefs = {}            -- id -> { name, killTarget, killCount, ... }
 M.quests    = {}            -- id -> { stage, killCount, done }
+M.shop      = { open=false, id=nil, def=nil }
 
 -- Phase 4 — chat and toast feeds.
 M.chat = {

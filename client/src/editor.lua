@@ -14,6 +14,7 @@ local EditorMap    = require("src.editor_map")
 local EditorNPCs   = require("src.editor_npcs")
 local EditorQuests = require("src.editor_quests")
 local EditorItems  = require("src.editor_items")
+local EditorShops  = require("src.editor_shops")
 local Pickers      = require("src.editor_pickers")
 local Map          = require("src.map")
 local Layout       = require("src.editor_layout")
@@ -30,6 +31,8 @@ local TABS = {
       tip = "Crie missões com objetivos, recompensas e diálogos. (Tab para alternar abas)" },
     { id = "items",  label = "Criar Itens", icon = "I",
       tip = "Crie itens (armas, armaduras, escudos, cajados, poções, etc.) com sprite e stats. (Tab para alternar abas)" },
+    { id = "shops",  label = "Lojas", icon = "L",
+      tip = "Editor de lojas e vínculo com NPC merchant." },
     { id = "spells", label = "Criador de Spells", icon = "S",
       tip = "Crie e edite spells dinamicamente: tipo, efeito, dano, cooldown, cor. (Tab para alternar abas)" },
 }
@@ -51,6 +54,7 @@ local function activeTab()
     if State.editorTab == "npcs"   then return EditorNPCs   end
     if State.editorTab == "quests" then return EditorQuests end
     if State.editorTab == "items"  then return EditorItems  end
+    if State.editorTab == "shops"  then return EditorShops  end
     return EditorMap
 end
 
@@ -136,6 +140,7 @@ local function drawHeader()
     if State.editorTab == "npcs"   then subtitle = "Criar NPCs — escolha o sprite e clique no mapa para posicionar" end
     if State.editorTab == "quests" then subtitle = "Criar Quests — multi-objetivo, recompensas e pré-requisitos" end
     if State.editorTab == "items"  then subtitle = "Criar Itens — armas, armaduras, escudos, poções e mais" end
+    if State.editorTab == "shops" then subtitle = "Editor de Lojas — catálogo de shops para NPCs mercadores" end
     if State.editorTab == "spells" then subtitle = "Criador de Spells — crie spells dinamicamente e arraste à skillbar" end
     love.graphics.setFont(State.fonts.name)
     love.graphics.setColor(0.65, 0.78, 0.95, 0.95)
