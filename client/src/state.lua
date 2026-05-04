@@ -90,6 +90,19 @@ M.questEditor = {
     draft         = nil,
 }
 
+-- Item editor (Criar Itens tab). Mesmo padrão dos editores acima:
+--   catálogo  → State.itemDefs (alimentado por ITEM_DEF JSON)
+--   draft     → cópia local do item sendo editado
+--   selected  → id do item selecionado no catálogo
+-- Persistência via SAVE_ITEM_DEF / DELETE_ITEM_DEF.
+M.itemEditor = {
+    saveStatus    = "",
+    formScroll    = 0,
+    catalogScroll = 0,
+    selectedId    = nil,
+    draft         = nil,
+}
+
 -- Phase 4 — character sheet. Populated by STATS / SKILL_POINTS frames.
 M.character = {
     level = 1,

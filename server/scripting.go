@@ -435,10 +435,51 @@ func (e *ScriptEngine) loadItems() error {
 		}
 		items[def.ID] = def
 	}
+	// User-authored JSON items, mirroring the npcs_user/quests_user
+	// flow. The editor writes here; reload picks them up. Same id
+	// from both surfaces: the user file wins so the editor can
+	// override a stock item without touching the canonical Lua.
+	jsonFiles, err := listUserItemFiles(e.rootDir)
+	if err != nil {
+		log.Printf("scripts: items_user: %v", err)
+	}
+	for _, f := range jsonFiles {
+		def, err := LoadUserItemJSON(f)
+		if err != nil {
+			log.Printf("scripts: user item %s: %v", filepath.Base(f), err)
+			continue
+		}
+		items[def.ID] = def
+	}
 	e.mu.Lock()
 	e.items = items
 	e.mu.Unlock()
-	log.Printf("scripts: loaded %d items", len(items))
+	log.Printf("scripts: loaded %d items (%d user)", len(items), len(jsonFiles))
+	return nil
+}
+
+// SaveUserItem persists def to data/scripts/items_user/<id>.json AND
+// updates the in-memory registry so the next snapshot reflects the new
+// definition without forcing a /reload.
+func (e *ScriptEngine) SaveUserItem(def *ItemDef) error {
+	if err := SaveUserItemDef(e.rootDir, def); err != nil {
+		return err
+	}
+	e.mu.Lock()
+	e.items[def.ID] = def
+	e.mu.Unlock()
+	return nil
+}
+
+// DeleteUserItem removes the JSON file AND drops the def from the live
+// registry.
+func (e *ScriptEngine) DeleteUserItem(id string) error {
+	if err := DeleteUserItemDef(e.rootDir, id); err != nil {
+		return err
+	}
+	e.mu.Lock()
+	delete(e.items, id)
+	e.mu.Unlock()
 	return nil
 }
 

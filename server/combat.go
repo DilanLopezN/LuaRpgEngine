@@ -197,6 +197,27 @@ func (g *Game) creditKills(killerID int, out combatOutcome) {
 		}
 
 		if g.scripts != nil {
+			// Editor-authored NPC.Loot fires automatically before the
+			// generic Lua hook. Each entry is rolled independently
+			// against rollDrop's chance-in-1000 contract — designers
+			// don't have to write enemy_killed branches by hand to
+			// make a guardian drop something.
+			if def, ok := g.scripts.NPC(e.Kind); ok && def != nil {
+				for _, l := range def.Loot {
+					if l.Item == "" {
+						continue
+					}
+					qty := l.Qty
+					if qty <= 0 {
+						qty = 1
+					}
+					chance := l.Chance
+					if chance <= 0 {
+						chance = 1000
+					}
+					g.rollDrop(killerID, l.Item, qty, chance)
+				}
+			}
 			payload := map[string]interface{}{
 				"kind":   e.Kind,
 				"x":      e.X,
