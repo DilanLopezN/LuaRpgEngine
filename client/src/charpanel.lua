@@ -8,6 +8,8 @@
 local State    = require("src.state")
 local Network  = require("src.network")
 local Keybinds = require("src.keybinds")
+local Items    = require("src.items")
+local Tooltip  = require("src.tooltip")
 
 local M = {}
 
@@ -61,15 +63,98 @@ local function drawStats(x, y, w)
         lines[#lines + 1] = string.format("  HP: %d / %d", me.hp or 0, me.maxHp or 0)
         lines[#lines + 1] = string.format("  MP: %d / %d", me.mp or 0, me.maxMp or 0)
     end
-    for _, slot in ipairs({ "weapon", "armor", "helmet", "trinket" }) do
+    for _, slot in ipairs({ "weapon", "offhand", "armor", "helmet", "boots", "ring", "trinket" }) do
         local id = State.equipped[slot]
         local def = id and State.itemDefs[id] or nil
         local label = def and def.name or (id or "-")
-        lines[#lines + 1] = string.format("  %-7s : %s", slot, label)
+        lines[#lines + 1] = string.format("  %-8s: %s", slot, label)
     end
     for i, line in ipairs(lines) do
         love.graphics.print(line, x + 12, y + (i - 1) * 18)
     end
+end
+
+local INV_ROW_H = 38
+
+local function isConsumableDef(def)
+    if not def then return false end
+    if def.type == "consumable" then return true end
+    if def.on_use and ((def.on_use.heal_hp or 0) > 0 or
+                       (def.on_use.heal_mp or 0) > 0) then
+        return true
+    end
+    return false
+end
+
+local function isEquippableDef(def)
+    if not def then return false end
+    if def.slot and def.slot ~= "" and def.slot ~= "none" then return true end
+    return false
+end
+
+local function rarityColor(rarity)
+    return ({
+        common    = { 0.85, 0.85, 0.85 },
+        uncommon  = { 0.55, 0.95, 0.55 },
+        rare      = { 0.55, 0.65, 1.0 },
+        epic      = { 0.85, 0.55, 1.0 },
+        legendary = { 1.0,  0.65, 0.30 },
+    })[rarity] or { 1, 1, 1 }
+end
+
+-- Tooltip text for an item — shown when hovering its inventory row.
+local function itemTooltipText(def, qty)
+    if not def then return nil end
+    local lines = { def.name or def.id }
+    if def.rarity then
+        lines[#lines + 1] = "Raridade: " .. def.rarity
+    end
+    if def.type and def.type ~= "" then
+        lines[#lines + 1] = "Tipo: " .. def.type
+    end
+    if (def.damage or 0) > 0 then
+        lines[#lines + 1] = "Dano: " .. def.damage
+    end
+    if (def.defense or 0) > 0 then
+        lines[#lines + 1] = "Defesa: " .. def.defense
+    end
+    if def.attrs then
+        for _, k in ipairs({ "str", "dex", "intel", "vit", "atk", "def" }) do
+            local v = def.attrs[k]
+            if v and v ~= 0 then
+                lines[#lines + 1] = string.format("%s: %+d", k, v)
+            end
+        end
+    end
+    if def.on_use then
+        if (def.on_use.heal_hp or 0) > 0 then
+            lines[#lines + 1] = "Cura HP: " .. def.on_use.heal_hp
+        end
+        if (def.on_use.heal_mp or 0) > 0 then
+            lines[#lines + 1] = "Cura MP: " .. def.on_use.heal_mp
+        end
+    end
+    if (def.level_req or 0) > 0 then
+        lines[#lines + 1] = "Requer nível " .. def.level_req
+    end
+    if def.two_handed then
+        lines[#lines + 1] = "Duas mãos"
+    end
+    if (def.value or 0) > 0 then
+        lines[#lines + 1] = "Valor: " .. def.value .. "g"
+    end
+    if def.bound then
+        lines[#lines + 1] = "Ligado ao personagem"
+    end
+    if def.description and def.description ~= "" then
+        lines[#lines + 1] = ""
+        lines[#lines + 1] = def.description
+    end
+    if qty and qty > 1 then
+        lines[#lines + 1] = ""
+        lines[#lines + 1] = "x" .. qty .. " no estoque"
+    end
+    return table.concat(lines, "\n")
 end
 
 local function drawInventory(x, y, w, h)
@@ -79,28 +164,62 @@ local function drawInventory(x, y, w, h)
         love.graphics.print("(empty)", x + 12, y + 12)
         return
     end
+    local mx, my = State.mouse.x or 0, State.mouse.y or 0
     for i, item in ipairs(State.inventory) do
-        local row = y + (i - 1) * 22
-        if row > y + h - 24 then break end
-        local def = State.itemDefs[item.id] or {}
-        local label = def.name or item.id
+        local row = y + (i - 1) * INV_ROW_H
+        if row > y + h - INV_ROW_H then break end
+        local def    = State.itemDefs[item.id] or {}
+        local label  = def.name or item.id
         local rarity = def.rarity or "common"
-        local rcol = ({
-            common    = { 0.85, 0.85, 0.85 },
-            uncommon  = { 0.55, 0.95, 0.55 },
-            rare      = { 0.55, 0.65, 1.0 },
-            epic      = { 0.85, 0.55, 1.0 },
-            legendary = { 1.0,  0.65, 0.30 },
-        })[rarity] or { 1, 1, 1 }
-        love.graphics.setColor(0.08, 0.08, 0.10, 0.6)
-        love.graphics.rectangle("fill", x + 8, row, w - 16, 20, 3, 3)
+        local rcol   = rarityColor(rarity)
+        local rw     = w - 16
+        local hover  = rectContains(x + 8, row, rw, INV_ROW_H - 2, mx, my)
+
+        love.graphics.setColor(hover and 0.13 or 0.08, hover and 0.14 or 0.08,
+                               hover and 0.18 or 0.10, 0.7)
+        love.graphics.rectangle("fill", x + 8, row, rw, INV_ROW_H - 2, 3, 3)
+        love.graphics.setColor(0.30, 0.42, 0.66, 0.4)
+        love.graphics.rectangle("line", x + 8, row, rw, INV_ROW_H - 2, 3, 3)
+
+        Items.draw(Items.iconForItem(def), x + 12, row + 2, INV_ROW_H - 6,
+            { rarity = rarity, qty = item.qty })
+
+        love.graphics.setFont(State.fonts.ui)
         love.graphics.setColor(rcol[1], rcol[2], rcol[3])
-        love.graphics.print(string.format("%-22s ×%d", label, item.qty), x + 14, row + 2)
+        love.graphics.print(label, x + 12 + INV_ROW_H, row + 4)
+        love.graphics.setFont(State.fonts.name)
+        love.graphics.setColor(1, 1, 1, 0.65)
+        local meta = ""
+        if (def.damage or 0) > 0 then meta = "DMG " .. def.damage end
+        if (def.defense or 0) > 0 then
+            if meta ~= "" then meta = meta .. " · " end
+            meta = meta .. "DEF " .. def.defense
+        end
+        if def.on_use and (def.on_use.heal_hp or 0) > 0 then
+            if meta ~= "" then meta = meta .. " · " end
+            meta = meta .. "HP+" .. def.on_use.heal_hp
+        end
+        if def.on_use and (def.on_use.heal_mp or 0) > 0 then
+            if meta ~= "" then meta = meta .. " · " end
+            meta = meta .. "MP+" .. def.on_use.heal_mp
+        end
+        love.graphics.print(meta, x + 12 + INV_ROW_H, row + 22)
+
         love.graphics.setColor(1, 1, 1, 0.55)
-        local hint = (def.slot and def.slot ~= "" and def.slot ~= "none")
-            and "L: equip   R: drop"
-            or  "R: drop"
-        love.graphics.printf(hint, x + 8, row + 2, w - 24, "right")
+        local hint
+        if isConsumableDef(def) then
+            hint = "L: usar   R: dropar"
+        elseif isEquippableDef(def) then
+            hint = "L: equipar  R: dropar"
+        else
+            hint = "R: dropar"
+        end
+        love.graphics.printf(hint, x + 8, row + 14, rw - 8, "right")
+
+        if hover then
+            local tip = itemTooltipText(def, item.qty)
+            if tip then Tooltip.hover(tip) end
+        end
     end
 end
 
@@ -317,11 +436,15 @@ function M.mousepressed(mx, my, button)
     if State.charPanelTab == "inventory" and #State.inventory > 0 then
         local bodyY = y + 84
         for i, item in ipairs(State.inventory) do
-            local row = bodyY + (i - 1) * 22
-            if rectContains(x + 8, row, w - 16, 20, mx, my) then
+            local row = bodyY + (i - 1) * INV_ROW_H
+            if rectContains(x + 8, row, w - 16, INV_ROW_H - 2, mx, my) then
                 local def = State.itemDefs[item.id]
-                if button == 1 and def and def.slot and def.slot ~= "" and def.slot ~= "none" then
-                    Network.send("EQUIP " .. item.id)
+                if button == 1 then
+                    if isConsumableDef(def) then
+                        Network.send("USE " .. item.id)
+                    elseif isEquippableDef(def) then
+                        Network.send("EQUIP " .. item.id)
+                    end
                 elseif button == 2 then
                     Network.send("DROP " .. item.id .. " 1")
                 end

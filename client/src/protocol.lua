@@ -324,7 +324,21 @@ handlers.SPELL = function(rest)
 end
 
 -- Phase 4 — inventory / items.
+-- The wire moved to JSON when the editor needed to ship sprite, type,
+-- damage, description, level_req and on_use without endless token
+-- surgery. The legacy whitespace-separated format is still parsed so
+-- a stale server build can still hand out items.
 handlers.ITEM_DEF = function(rest)
+    -- Try JSON first (current shape).
+    local first = rest:sub(1, 1)
+    if first == "{" then
+        local ok, def = pcall(JSON.decode, rest)
+        if ok and type(def) == "table" and def.id then
+            State.itemDefs[def.id] = def
+            return
+        end
+    end
+    -- Legacy: id slot rarity stack bound attrs name
     local id, slot, rarity, stack, bound, _, name = rest:match(
         "^(%S+)%s+(%S+)%s+(%S+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(.+)$")
     if id then
@@ -337,6 +351,11 @@ handlers.ITEM_DEF = function(rest)
             bound  = (bound == "1"),
         }
     end
+end
+
+handlers.ITEM_DEF_DELETE = function(rest)
+    local id = rest:match("^(%S+)")
+    if id then State.itemDefs[id] = nil end
 end
 
 handlers.INV_SET = function(rest)

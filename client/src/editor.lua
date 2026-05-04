@@ -13,6 +13,7 @@ local EditorSpells = require("src.editor_spells")
 local EditorMap    = require("src.editor_map")
 local EditorNPCs   = require("src.editor_npcs")
 local EditorQuests = require("src.editor_quests")
+local EditorItems  = require("src.editor_items")
 local Map          = require("src.map")
 local Layout       = require("src.editor_layout")
 local Tooltip      = require("src.tooltip")
@@ -26,6 +27,8 @@ local TABS = {
       tip = "Posicione NPCs no mapa e escolha seu sprite. (Tab para alternar abas)" },
     { id = "quests", label = "Criar Quests", icon = "Q",
       tip = "Crie missões com objetivos, recompensas e diálogos. (Tab para alternar abas)" },
+    { id = "items",  label = "Criar Itens", icon = "I",
+      tip = "Crie itens (armas, armaduras, escudos, cajados, poções, etc.) com sprite e stats. (Tab para alternar abas)" },
     { id = "spells", label = "Criador de Spells", icon = "S",
       tip = "Crie e edite spells dinamicamente: tipo, efeito, dano, cooldown, cor. (Tab para alternar abas)" },
 }
@@ -46,6 +49,7 @@ local function activeTab()
     if State.editorTab == "spells" then return EditorSpells end
     if State.editorTab == "npcs"   then return EditorNPCs   end
     if State.editorTab == "quests" then return EditorQuests end
+    if State.editorTab == "items"  then return EditorItems  end
     return EditorMap
 end
 
@@ -130,6 +134,7 @@ local function drawHeader()
     if State.editorTab == "map"    then subtitle = "Editor de Mapa — pinte tiles, defina colisão, posicione entidades" end
     if State.editorTab == "npcs"   then subtitle = "Criar NPCs — escolha o sprite e clique no mapa para posicionar" end
     if State.editorTab == "quests" then subtitle = "Criar Quests — multi-objetivo, recompensas e pré-requisitos" end
+    if State.editorTab == "items"  then subtitle = "Criar Itens — armas, armaduras, escudos, poções e mais" end
     if State.editorTab == "spells" then subtitle = "Criador de Spells — crie spells dinamicamente e arraste à skillbar" end
     love.graphics.setFont(State.fonts.name)
     love.graphics.setColor(0.65, 0.78, 0.95, 0.95)

@@ -664,6 +664,18 @@ func (g *Game) handleLine(p *Player, line string) {
 		g.handleDeleteQuestDef(p, strings.TrimSpace(strings.TrimPrefix(line, "DELETE_QUEST_DEF ")))
 		return
 	}
+	// Item authoring (Phase 4 — editor in-game). Same shape as the
+	// quest / NPC paths: full ItemDef as JSON, persisted to
+	// items_user/<id>.json, broadcast as ITEM_DEF so every connected
+	// client's catalog updates in real time.
+	if strings.HasPrefix(line, "SAVE_ITEM_DEF ") {
+		g.handleSaveItemDef(p, strings.TrimPrefix(line, "SAVE_ITEM_DEF "))
+		return
+	}
+	if strings.HasPrefix(line, "DELETE_ITEM_DEF ") {
+		g.handleDeleteItemDef(p, strings.TrimSpace(strings.TrimPrefix(line, "DELETE_ITEM_DEF ")))
+		return
+	}
 	// Chat commands carry free-form text after the verb; tokenise the
 	// first word and pass the rest through verbatim.
 	if strings.HasPrefix(line, "SAY ") {
@@ -765,6 +777,11 @@ case "MOVE", "WSAD":
 			}
 		}
 		g.handleDropItem(p, parts[1], qty)
+	case "USE":
+		if len(parts) < 2 {
+			return
+		}
+		g.handleUseItem(p, parts[1])
 	case "TALK":
 		if len(parts) < 2 {
 			return
@@ -1548,6 +1565,74 @@ func (g *Game) handleDeleteQuestDef(p *Player, id string) {
 	g.mu.Unlock()
 	log.Printf("quest def %q deleted by player %d", clean, p.ID)
 	g.broadcast(outs, "QUEST_DEF_DELETE "+clean+"\n")
+}
+
+// handleSaveItemDef accepts a full ItemDef as JSON, persists it under
+// data/scripts/items_user/, refreshes the live registry, and
+// rebroadcasts ITEM_DEF so every connected client's catalog updates
+// without needing a /reload.
+func (g *Game) handleSaveItemDef(p *Player, payload string) {
+	if g.scripts == nil {
+		return
+	}
+	if len(payload) > 256*1024 {
+		log.Printf("save_item_def from %d rejected: payload too large", p.ID)
+		return
+	}
+	var raw interface{}
+	if err := json.Unmarshal([]byte(payload), &raw); err != nil {
+		log.Printf("save_item_def from %d: parse: %v", p.ID, err)
+		return
+	}
+	def, err := parseItemDef(raw, "")
+	if err != nil {
+		log.Printf("save_item_def from %d: invalid: %v", p.ID, err)
+		return
+	}
+	clean := sanitizeNPCID(def.ID)
+	if clean == "" {
+		log.Printf("save_item_def from %d: invalid id", p.ID)
+		return
+	}
+	def.ID = clean
+	if err := g.scripts.SaveUserItem(def); err != nil {
+		log.Printf("save_item_def persist: %v", err)
+		return
+	}
+	g.mu.Lock()
+	outs := make([]chan<- string, 0, len(g.players))
+	for _, op := range g.players {
+		outs = append(outs, op.Out)
+	}
+	g.mu.Unlock()
+	log.Printf("item def %q saved by player %d", def.ID, p.ID)
+	g.broadcast(outs, formatItemDef(def))
+}
+
+// handleDeleteItemDef drops a user-authored item. Players still
+// carrying it keep their stack; lookups in the catalog miss but the
+// inventory line stays intact (the wire renders "<id>" so the player
+// can still drop it).
+func (g *Game) handleDeleteItemDef(p *Player, id string) {
+	if g.scripts == nil {
+		return
+	}
+	clean := sanitizeNPCID(id)
+	if clean == "" {
+		return
+	}
+	if err := g.scripts.DeleteUserItem(clean); err != nil {
+		log.Printf("delete_item_def: %v", err)
+		return
+	}
+	g.mu.Lock()
+	outs := make([]chan<- string, 0, len(g.players))
+	for _, op := range g.players {
+		outs = append(outs, op.Out)
+	}
+	g.mu.Unlock()
+	log.Printf("item def %q deleted by player %d", clean, p.ID)
+	g.broadcast(outs, "ITEM_DEF_DELETE "+clean+"\n")
 }
 
 // handleDeleteNPCDef drops a user-authored NPC. The on-disk JSON is

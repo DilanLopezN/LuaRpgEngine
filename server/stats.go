@@ -177,6 +177,11 @@ func (g *Game) derivedDefense(p *Player) int {
 
 // equippedAttr sums an attribute across every equipped slot. Lookups
 // hit the script registry so live-edited items update on reload.
+//
+// `atk` and `def` are special-cased to also fold in the dedicated
+// Damage / Defense fields the editor surfaces — the legacy
+// attrs.atk / attrs.def keys are still honoured so old stock items
+// (rusty_sword, leather_armor) keep contributing without modification.
 func equippedAttr(p *Player, key string) int {
 	if p.Equipped == nil {
 		return 0
@@ -189,6 +194,12 @@ func equippedAttr(p *Player, key string) int {
 		}
 		if v, ok := def.Attrs[key]; ok {
 			total += v
+		}
+		switch key {
+		case "atk":
+			total += def.Damage
+		case "def":
+			total += def.Defense
 		}
 	}
 	return total
