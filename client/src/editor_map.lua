@@ -42,6 +42,13 @@ local ENTITY_TYPE_LABELS = {
     npc     = "NPC",
     trigger = "Gatilho",
 }
+
+local REFERENCE_TILESETS = {
+    "reference_engine/Client/data tilesets/tileset1.png",
+    "reference_engine/Client/data tilesets/tileset2.png",
+    "reference_engine/Client/data tilesets/tileset3.png",
+}
+
 local ENTITY_KIND_LABELS = {
     orc      = "Orc",
     guard    = "Guarda",
@@ -272,12 +279,18 @@ function M.worldClick(sx, sy, button)
                 end
             end
         else
-            Map.current.entities[#Map.current.entities + 1] = {
+            local e = {
                 type = me.entityType,
                 kind = me.entityKind,
                 x    = tx - 1,
                 y    = ty - 1,
             }
+            if me.entityType == "trigger" and me.entityKind == "warp" then
+                e.target_map = me.warpTargetMap or "world"
+                e.target_x = tonumber(me.warpTargetX) or 0
+                e.target_y = tonumber(me.warpTargetY) or 0
+            end
+            Map.current.entities[#Map.current.entities + 1] = e
         end
         return
     end
@@ -486,6 +499,11 @@ local function drawToolbar()
     if me.tool == "entity" then
         row("Entidade", ENTITY_TYPES, me.entityType, ENTITY_TYPE_LABELS)
         row("Tipo",     ENTITY_KINDS, me.entityKind, ENTITY_KIND_LABELS)
+        if me.entityType == "trigger" and me.entityKind == "warp" then
+            love.graphics.setColor(0.72, 0.80, 0.95)
+            love.graphics.print(string.format("Warp -> %s (%d,%d)", me.warpTargetMap or "world", me.warpTargetX or 0, me.warpTargetY or 0), fx + 12, y + 6)
+            y = y + 28
+        end
     end
 
     -- Linha de ações (com wrap)
