@@ -14,6 +14,7 @@ local EditorMap    = require("src.editor_map")
 local EditorNPCs   = require("src.editor_npcs")
 local EditorQuests = require("src.editor_quests")
 local EditorItems  = require("src.editor_items")
+local Pickers      = require("src.editor_pickers")
 local Map          = require("src.map")
 local Layout       = require("src.editor_layout")
 local Tooltip      = require("src.tooltip")
@@ -236,6 +237,9 @@ function M.draw()
 
     local tab = activeTab()
     if tab and tab.drawContent then tab.drawContent() end
+
+    -- Phase 1 — overlay de picker fica por cima do conteúdo da aba.
+    Pickers.draw()
 end
 
 -- ---------------------------------------------------------------------------
@@ -268,6 +272,12 @@ function M.mousepressed(x, y, button)
     if not State.editorOpen then return false end
     if State.scene ~= State.SCENE_PLAYING then return false end
     button = button or 1
+
+    -- Phase 1 — picker overlay tem prioridade absoluta sobre o resto
+    -- da UI do editor enquanto estiver aberto.
+    if Pickers.isOpen() then
+        return Pickers.mousepressed(x, y, button)
+    end
 
     if button == 1 then
         local cx, cy, cw, ch = closeBtnRect()
@@ -332,6 +342,9 @@ end
 
 function M.wheelmoved(dx, dy)
     if not State.editorOpen then return false end
+    if Pickers.isOpen() then
+        return Pickers.wheelmoved(dx, dy)
+    end
     local tab = activeTab()
     if tab and tab.wheelmoved then
         tab.wheelmoved(dx, dy)
@@ -342,6 +355,9 @@ end
 
 function M.textinput(t)
     if not State.editorOpen then return false end
+    if Pickers.isOpen() then
+        return Pickers.textinput(t)
+    end
     local tab = activeTab()
     if tab and tab.textinput then return tab.textinput(t) end
     return false
@@ -349,6 +365,9 @@ end
 
 function M.keypressed(key)
     if not State.editorOpen then return false end
+    if Pickers.isOpen() then
+        return Pickers.keypressed(key)
+    end
     if key == "escape" then
         if State.editorFocus then
             State.editorFocus = nil
