@@ -93,11 +93,15 @@ func (g *Game) aiStepLocked(self *Entity, tx, ty int) {
 		return
 	}
 	nx, ny := self.Position.X+dx, self.Position.Y+dy
+	mp := g.mapByName(self.MapName)
+	if mp == nil {
+		mp = g.world
+	}
 	step := func(x, y int) bool {
-		if !g.world.InBounds(x, y) || !g.world.IsWalkable(x, y) {
+		if !mp.InBounds(x, y) || !mp.IsWalkable(x, y) {
 			return false
 		}
-		if g.tileOccupied(x, y, 0) {
+		if g.tileOccupiedOn(mp.Name, x, y, 0) {
 			return false
 		}
 		self.Position.X, self.Position.Y = x, y

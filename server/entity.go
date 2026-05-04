@@ -95,6 +95,12 @@ type Entity struct {
 	Name   string
 	Sprite string
 
+	// Phase 2 — which map this entity lives on. Empty string is read
+	// as the default ("world") map. Players carry MapName on the
+	// Player struct; the snapshot path mirrors it here so AoI filters
+	// can stay component-only without crossing back through the Game.
+	MapName string
+
 	Position  *CPosition
 	Health    *CHealth
 	Combat    *CCombat

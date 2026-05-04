@@ -86,6 +86,7 @@ func (g *Game) buildPlayerSnapshot(viewer *Player, now time.Time) string {
 	}
 
 	cx, cy := viewer.Entity.Position.X, viewer.Entity.Position.Y
+	viewerMap := playerMapName(viewer.MapName)
 	var b strings.Builder
 	seenThisTick := make(map[snapKey]struct{}, len(viewer.LastSeen))
 
@@ -101,6 +102,12 @@ func (g *Game) buildPlayerSnapshot(viewer *Player, now time.Time) string {
 
 	for _, p := range g.players {
 		if p.Name == "" || p.Entity == nil || p.Entity.Position == nil || p.Entity.Health == nil {
+			continue
+		}
+		// Phase 2 — players on different maps never see each other.
+		// The viewer always sees themselves, but no further AoI work
+		// happens when the other player has stepped through a warp.
+		if playerMapName(p.MapName) != viewerMap && p.ID != viewer.ID {
 			continue
 		}
 		pos := p.Entity.Position
@@ -135,6 +142,9 @@ func (g *Game) buildPlayerSnapshot(viewer *Player, now time.Time) string {
 		if e.Entity == nil || e.Entity.Position == nil || e.Entity.Health == nil {
 			continue
 		}
+		if playerMapName(e.MapName) != viewerMap {
+			continue
+		}
 		pos := e.Entity.Position
 		if !inAoI(cx, cy, pos.X, pos.Y) {
 			continue
@@ -162,6 +172,9 @@ func (g *Game) buildPlayerSnapshot(viewer *Player, now time.Time) string {
 	if g.ecs != nil {
 		g.ecs.Each(func(en *Entity) {
 			if en.Kind != KindNPC || en.Position == nil {
+				return
+			}
+			if playerMapName(en.MapName) != viewerMap {
 				return
 			}
 			if !inAoI(cx, cy, en.Position.X, en.Position.Y) {

@@ -44,12 +44,29 @@ type Tileset struct {
 // NPC entities so the client renders the placement with the artwork chosen
 // in the "Criar NPCs" editor tab — older maps without the field fall back
 // to the engine's default NPC sprite.
+//
+// Phase 2 — warp triggers. When Type == "trigger" and Kind == "warp",
+// TargetMap/TargetX/TargetY describe where to teleport a player who
+// steps on this tile. Older maps without these fields keep loading
+// because the JSON tags carry omitempty.
 type MapEntity struct {
-	Type   string `json:"type"`
-	Kind   string `json:"kind,omitempty"`
-	Sprite string `json:"sprite,omitempty"`
-	X      int    `json:"x"`
-	Y      int    `json:"y"`
+	Type      string `json:"type"`
+	Kind      string `json:"kind,omitempty"`
+	Sprite    string `json:"sprite,omitempty"`
+	X         int    `json:"x"`
+	Y         int    `json:"y"`
+	TargetMap string `json:"target_map,omitempty"`
+	TargetX   int    `json:"target_x,omitempty"`
+	TargetY   int    `json:"target_y,omitempty"`
+}
+
+// IsWarp reports whether this entity is a warp trigger that should
+// teleport players who step on it. The check is conservative — we
+// require an explicit destination so a half-authored placement never
+// silently swallows the player.
+func (e *MapEntity) IsWarp() bool {
+	return e != nil && e.Type == "trigger" && e.Kind == "warp" &&
+		e.TargetMap != ""
 }
 
 // Map is the in-memory representation of a single tilemap. All access goes

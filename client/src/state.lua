@@ -12,6 +12,9 @@ M.serverPort  = 7777
 M.mapSize     = 20
 M.mapWidth    = 20
 M.mapHeight   = 20
+-- Phase 2 — name of the map the player is currently on. Updated by
+-- WELCOME (defaults to "world") and re-set by MAP_CHANGE on warp.
+M.currentMapName = "world"
 M.myId        = nil
 M.myName      = nil
 M.players     = {}
@@ -52,6 +55,12 @@ M.mapEditor = {
     clipboard     = nil,         -- { w, h, layers = { name -> grid } }
     entityType    = "spawn",
     entityKind    = "orc",
+    -- Phase 2 — when entityType=trigger and entityKind=warp, these
+    -- fields are written into the placed entity so the server knows
+    -- where to teleport the player.
+    warpTargetMap = "world",
+    warpTargetX   = 0,
+    warpTargetY   = 0,
     pendingSave   = false,
     saveStatus    = "",
     paletteScroll = 0,

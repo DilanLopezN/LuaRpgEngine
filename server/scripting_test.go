@@ -229,9 +229,14 @@ func TestParseNPCDefSynthesizesQuestDialog(t *testing.T) {
 	}
 }
 
-// Hostile NPCs (role=enemy or role=guardian, or any def with HP > 0)
-// must report IsHostile so the spawner routes them through the enemy
-// AI path.
+// Hostile NPCs (role=enemy / role=guardian) must report IsHostile so
+// the spawner routes them through the enemy AI path. Phase 2 fixed
+// the regression where a quest_giver / friendly / merchant NPC with
+// leftover HP from a previous "enemy" save would silently spawn as a
+// hostile mob instead of as a peaceful villager — explicit
+// non-hostile roles now win regardless of HP. The legacy "no role,
+// HP > 0 => hostile" inference still holds for content files that
+// never set Role at all.
 func TestNPCDefIsHostile(t *testing.T) {
 	cases := []struct {
 		role string
@@ -243,12 +248,18 @@ func TestNPCDefIsHostile(t *testing.T) {
 		{"quest_giver", 0, false},
 		{"guardian", 0, true},
 		{"enemy", 0, true},
-		{"friendly", 50, true}, // HP overrides role
+		// Explicit non-hostile roles override leftover HP.
+		{"friendly", 50, false},
+		{"merchant", 50, false},
+		{"quest_giver", 50, false},
+		// Role-less content uses HP as a hostile signal.
+		{"", 50, true},
+		{"", 0, false},
 	}
 	for _, c := range cases {
 		d := &NPCDef{Role: c.role, HP: c.hp}
 		if got := d.IsHostile(); got != c.want {
-			t.Errorf("role=%s hp=%d: got %v want %v", c.role, c.hp, got, c.want)
+			t.Errorf("role=%q hp=%d: got %v want %v", c.role, c.hp, got, c.want)
 		}
 	}
 }

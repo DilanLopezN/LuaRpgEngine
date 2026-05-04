@@ -102,6 +102,11 @@ type Player struct {
 	ID   int
 	Name string
 
+	// Phase 2 — map identity. Empty string is treated as "world" so
+	// every legacy save-file / test that omits MapName still binds
+	// the player to the default map.
+	MapName string
+
 	TileX, TileY int
 	FromX, FromY int
 	Stepping     bool
@@ -188,6 +193,9 @@ func (p *Player) interpolated(now time.Time) (float64, float64) {
 type Enemy struct {
 	ID        int
 	Kind      string
+	// Phase 2 — every enemy belongs to one map. Cross-map AoI / combat
+	// is forbidden. Empty defaults to the legacy "world" map.
+	MapName   string
 	X, Y      int
 	HP, MaxHP int
 	Statuses  []Status
@@ -209,7 +217,12 @@ type Game struct {
 	nextEnemyID int
 	db          *DB
 	cache       *Cache
+	// world is the default ("world") map and the legacy single-map
+	// pointer used by tests / scripting helpers that never knew about
+	// per-player maps. It is always the same object as worlds[defaultMapName]
+	// after Phase 2 — keep them in sync via setWorld / loadOrFetchMap.
 	world       *Map
+	worlds      map[string]*Map
 	scripts     *ScriptEngine
 	progression *ProgressionDef
 
@@ -234,6 +247,7 @@ func NewGame(db *DB, cache *Cache) *Game {
 		db:      db,
 		cache:   cache,
 		ecs:     NewECSWorld(),
+		worlds:  make(map[string]*Map),
 	}
 	g.pipeline = g.buildPipeline()
 	m, err := LoadMap(defaultMapName)
@@ -244,7 +258,7 @@ func NewGame(db *DB, cache *Cache) *Game {
 		log.Printf("loaded map %q (%dx%d, %d entities)",
 			m.Name, m.Width, m.Height, len(m.Entities))
 	}
-	g.world = m
+	g.setWorldLocked(m)
 
 	g.scripts = NewScriptEngine(scriptsRoot())
 	g.scripts.SetHost(g)
@@ -258,7 +272,65 @@ func NewGame(db *DB, cache *Cache) *Game {
 	return g
 }
 
-// spawnNPCsFromMap walks the active map's entities and turns every
+// setWorldLocked installs m as the default ("world") map and keeps
+// g.worlds in sync. Callers must hold g.mu when invoking this from
+// runtime paths; the NewGame boot path is single-threaded and can
+// call it directly.
+func (g *Game) setWorldLocked(m *Map) {
+	if m == nil {
+		return
+	}
+	if g.worlds == nil {
+		g.worlds = make(map[string]*Map)
+	}
+	g.worlds[m.Name] = m
+	if m.Name == defaultMapName {
+		g.world = m
+	}
+}
+
+// mapByName returns the map with the given name, loading it from disk
+// (and caching) on first request. An empty name is treated as the
+// default map. Caller must hold g.mu.
+//
+// If g.worlds is nil — tests that set up the legacy g.world pointer
+// directly without going through NewGame — we never attempt to load a
+// fresh map from disk and just return g.world. That preserves
+// pre-Phase-2 test scaffolding while NewGame keeps a populated
+// registry for production.
+func (g *Game) mapByName(name string) *Map {
+	if name == "" {
+		name = defaultMapName
+	}
+	if g.worlds == nil {
+		return g.world
+	}
+	if m, ok := g.worlds[name]; ok {
+		return m
+	}
+	m, err := LoadMap(name)
+	if err != nil {
+		log.Printf("map %q load failed: %v", name, err)
+		return g.world
+	}
+	g.worlds[name] = m
+	if m.Name == defaultMapName {
+		g.world = m
+	}
+	g.spawnNPCsForMapLocked(m)
+	return m
+}
+
+// playerMap returns the map the player currently inhabits. Empty
+// MapName is interpreted as the default map.
+func (g *Game) playerMap(p *Player) *Map {
+	if p == nil {
+		return g.world
+	}
+	return g.mapByName(p.MapName)
+}
+
+// spawnNPCsFromMap walks every loaded world's entities and turns every
 // type=npc record into a live entity. Friendly / merchant / quest_giver
 // NPCs go in as static dialog entities; guardian / enemy NPCs are
 // promoted to Enemy and join the AI / combat / loot pipeline so the
@@ -268,10 +340,19 @@ func NewGame(db *DB, cache *Cache) *Game {
 // (single-threaded boot). When called from handleSaveMap, the caller
 // MUST hold g.mu — see reconcileMapNPCsLocked.
 func (g *Game) spawnNPCsFromMap() {
-	if g.world == nil {
+	for _, w := range g.worlds {
+		g.spawnNPCsForMapLocked(w)
+	}
+}
+
+// spawnNPCsForMapLocked spawns the NPCs declared on a single map.
+// Pulled out of spawnNPCsFromMap so a freshly-loaded warp destination
+// can be populated without re-touching the maps already alive.
+func (g *Game) spawnNPCsForMapLocked(w *Map) {
+	if w == nil {
 		return
 	}
-	for _, ent := range g.world.Entities {
+	for _, ent := range w.Entities {
 		if ent.Type != "npc" {
 			continue
 		}
@@ -286,12 +367,19 @@ func (g *Game) spawnNPCsFromMap() {
 			// hook. The synthetic EnemyDef installed by
 			// loadNPCs makes the kind lookup succeed.
 			e := g.spawnEnemy(ent.Kind, ent.X, ent.Y)
-			if e != nil && e.Entity != nil {
-				e.Entity.Sprite = sprite
+			if e != nil {
+				e.MapName = w.Name
+				if e.Entity != nil {
+					e.Entity.Sprite = sprite
+					e.Entity.MapName = w.Name
+				}
 			}
 			continue
 		}
-		g.spawnNPC(ent.Kind, sprite, ent.X, ent.Y)
+		en := g.spawnNPC(ent.Kind, sprite, ent.X, ent.Y)
+		if en != nil {
+			en.MapName = w.Name
+		}
 	}
 }
 
@@ -355,9 +443,10 @@ func (g *Game) spawnNPC(kind, sprite string, x, y int) *Entity {
 		return nil
 	}
 	return g.ecs.Add(&Entity{
-		Kind:   KindNPC,
-		Name:   kind,
-		Sprite: sprite,
+		Kind:    KindNPC,
+		Name:    kind,
+		Sprite:  sprite,
+		MapName: defaultMapName,
 		Position: &CPosition{
 			X: x, Y: y, FromX: x, FromY: y,
 		},
@@ -374,16 +463,33 @@ func scriptsRoot() string {
 	return filepath.Join("data", "scripts")
 }
 
-// mapWidth/mapHeight return the active map dimensions. Caller must hold g.mu
-// when consistency with concurrent SAVE_MAP handlers matters.
+// mapWidth/mapHeight return the default map's dimensions. Phase 2:
+// most callers should pass through the player's map, but legacy code
+// paths (WELCOME, scripting helpers) still want a single answer.
+// Caller must hold g.mu when consistency with concurrent SAVE_MAP
+// handlers matters.
 func (g *Game) mapWidth() int  { return g.world.Width }
 func (g *Game) mapHeight() int { return g.world.Height }
 
-// tileOccupied reports whether tile (x, y) is currently held by another named
-// player or any enemy. The caller must hold g.mu.
-func (g *Game) tileOccupied(x, y, excludeID int) bool {
+// playerMapName normalises an empty MapName to the default. Used so
+// the rest of the code can compare without nil-checks.
+func playerMapName(name string) string {
+	if name == "" {
+		return defaultMapName
+	}
+	return name
+}
+
+// tileOccupiedOn reports whether tile (x, y) on the named map is
+// currently held by another named player or any enemy. The caller
+// must hold g.mu. mapName == "" is interpreted as the default map.
+func (g *Game) tileOccupiedOn(mapName string, x, y, excludeID int) bool {
+	mn := playerMapName(mapName)
 	for _, p := range g.players {
 		if p.ID == excludeID || p.Name == "" || p.HP <= 0 {
+			continue
+		}
+		if playerMapName(p.MapName) != mn {
 			continue
 		}
 		if p.TileX == x && p.TileY == y {
@@ -394,6 +500,9 @@ func (g *Game) tileOccupied(x, y, excludeID int) bool {
 		}
 	}
 	for _, e := range g.enemies {
+		if playerMapName(e.MapName) != mn {
+			continue
+		}
 		if e.X == x && e.Y == y {
 			return true
 		}
@@ -401,10 +510,21 @@ func (g *Game) tileOccupied(x, y, excludeID int) bool {
 	return false
 }
 
-// findSpawn searches outward from the board centre for a free tile. The caller
-// must hold g.mu.
-func (g *Game) findSpawn(excludeID int) (int, int) {
-	w, h := g.mapWidth(), g.mapHeight()
+// tileOccupied is the legacy single-map shorthand kept for tests and
+// the AI/skills paths that have not yet learned about per-player
+// maps. New code should pass through tileOccupiedOn.
+func (g *Game) tileOccupied(x, y, excludeID int) bool {
+	return g.tileOccupiedOn(defaultMapName, x, y, excludeID)
+}
+
+// findSpawnOn searches outward from the board centre of mapName for a
+// free tile. Caller must hold g.mu.
+func (g *Game) findSpawnOn(mapName string, excludeID int) (int, int) {
+	m := g.mapByName(mapName)
+	if m == nil {
+		m = g.world
+	}
+	w, h := m.Width, m.Height
 	cx, cy := w/2, h/2
 	maxR := w
 	if h > maxR {
@@ -417,19 +537,25 @@ func (g *Game) findSpawn(excludeID int) (int, int) {
 					continue
 				}
 				x, y := cx+dx, cy+dy
-				if !g.world.InBounds(x, y) {
+				if !m.InBounds(x, y) {
 					continue
 				}
-				if !g.world.IsWalkable(x, y) {
+				if !m.IsWalkable(x, y) {
 					continue
 				}
-				if !g.tileOccupied(x, y, excludeID) {
+				if !g.tileOccupiedOn(m.Name, x, y, excludeID) {
 					return x, y
 				}
 			}
 		}
 	}
 	return cx, cy
+}
+
+// findSpawn keeps the legacy single-map signature alive. Defaults to
+// the "world" map.
+func (g *Game) findSpawn(excludeID int) (int, int) {
+	return g.findSpawnOn(defaultMapName, excludeID)
 }
 
 func (g *Game) spawnEnemy(kind string, x, y int) *Enemy {
@@ -442,14 +568,16 @@ func (g *Game) spawnEnemy(kind string, x, y int) *Enemy {
 	g.nextEnemyID++
 	e := &Enemy{
 		ID: g.nextEnemyID, Kind: kind,
-		X: x, Y: y,
+		MapName: defaultMapName,
+		X:       x, Y: y,
 		HP: hp, MaxHP: hp,
 	}
 	g.enemies[e.ID] = e
 	if g.ecs != nil {
 		e.Entity = g.ecs.Add(&Entity{
-			Kind: KindEnemy,
-			Name: kind,
+			Kind:    KindEnemy,
+			Name:    kind,
+			MapName: defaultMapName,
 			Position: &CPosition{
 				X: x, Y: y, FromX: x, FromY: y,
 			},
@@ -467,8 +595,9 @@ func (g *Game) addPlayer(out chan<- string) *Player {
 	g.nextID++
 	cx, cy := g.mapWidth()/2, g.mapHeight()/2
 	p := &Player{
-		ID:    g.nextID,
-		TileX: cx, TileY: cy,
+		ID:      g.nextID,
+		MapName: defaultMapName,
+		TileX:   cx, TileY: cy,
 		FromX: cx, FromY: cy,
 		FaceX: 0, FaceY: 1,
 		HP: 100, MaxHP: 100,
@@ -488,7 +617,8 @@ func (g *Game) addPlayer(out chan<- string) *Player {
 	g.players[p.ID] = p
 	if g.ecs != nil {
 		p.Entity = g.ecs.Add(&Entity{
-			Kind: KindPlayer,
+			Kind:    KindPlayer,
+			MapName: p.MapName,
 			Position: &CPosition{
 				X: cx, Y: cy, FromX: cx, FromY: cy, FaceX: 0, FaceY: 1,
 			},
@@ -568,17 +698,19 @@ func (g *Game) bindName(id int, name string) *Player {
 			}
 			p.Quests[qs.ID] = qs
 		}
-		if g.world.InBounds(rec.X, rec.Y) && g.world.IsWalkable(rec.X, rec.Y) &&
-			!g.tileOccupied(rec.X, rec.Y, p.ID) {
+		pm := g.playerMap(p)
+		if pm.InBounds(rec.X, rec.Y) && pm.IsWalkable(rec.X, rec.Y) &&
+			!g.tileOccupiedOn(pm.Name, rec.X, rec.Y, p.ID) {
 			p.TileX, p.TileY = rec.X, rec.Y
 			p.FromX, p.FromY = rec.X, rec.Y
 		} else {
-			sx, sy := g.findSpawn(p.ID)
+			sx, sy := g.findSpawnOn(pm.Name, p.ID)
 			p.TileX, p.TileY = sx, sy
 			p.FromX, p.FromY = sx, sy
 		}
 	} else {
-		sx, sy := g.findSpawn(p.ID)
+		pm := g.playerMap(p)
+		sx, sy := g.findSpawnOn(pm.Name, p.ID)
 		p.TileX, p.TileY = sx, sy
 		p.FromX, p.FromY = sx, sy
 	}
@@ -813,8 +945,9 @@ case "MOVE", "WSAD":
 // first P snapshot lands.
 func (g *Game) sendCharacterState(p *Player) {
 	g.mu.Lock()
+	pm := g.playerMap(p)
 	welcome := fmt.Sprintf("WELCOME %d %d %d %s\n",
-		p.ID, g.mapWidth(), g.mapHeight(), p.Name)
+		p.ID, pm.Width, pm.Height, p.Name)
 	stats := characterStatsLocked(p)
 	defs := make([]string, 0, len(p.Spells))
 	for _, sp := range p.Spells {
@@ -1253,6 +1386,7 @@ func (g *Game) syncECSLocked(_ time.Time) {
 		}
 		alive[p.Entity.ID] = true
 		p.Entity.Name = p.Name
+		p.Entity.MapName = playerMapName(p.MapName)
 		if p.Entity.Position != nil {
 			p.Entity.Position.X = p.TileX
 			p.Entity.Position.Y = p.TileY
@@ -1281,6 +1415,7 @@ func (g *Game) syncECSLocked(_ time.Time) {
 			continue
 		}
 		alive[e.Entity.ID] = true
+		e.Entity.MapName = playerMapName(e.MapName)
 		if e.Entity.Position != nil {
 			e.Entity.Position.X = e.X
 			e.Entity.Position.Y = e.Y
@@ -1362,13 +1497,14 @@ func (g *Game) persistAll() {
 	}
 }
 
-// sendMapTo dumps the active world to a single MAP message so the client
-// can rebuild its renderer cache. Caller must hold g.mu *or* be confident
-// no SAVE_MAP is in flight; the JSON serialisation copies the slice
-// headers, so brief contention is acceptable.
+// sendMapTo dumps the player's current world to a single MAP message
+// so the client can rebuild its renderer cache. Caller must hold g.mu
+// *or* be confident no SAVE_MAP is in flight; the JSON serialisation
+// copies the slice headers, so brief contention is acceptable.
 func (g *Game) sendMapTo(p *Player) {
 	g.mu.Lock()
-	data, err := g.world.Marshal()
+	m := g.playerMap(p)
+	data, err := m.Marshal()
 	g.mu.Unlock()
 	if err != nil {
 		log.Printf("map marshal: %v", err)
@@ -1416,7 +1552,7 @@ func (g *Game) handleSaveMap(p *Player, payload string) {
 		return
 	}
 	g.mu.Lock()
-	g.world = &m
+	g.setWorldLocked(&m)
 	// Reconcile live NPC entities so the editor's placements (or
 	// removals) reflect on every player's screen on the next tick
 	// without needing a server restart. Reseting LastFull on each
@@ -1428,16 +1564,27 @@ func (g *Game) handleSaveMap(p *Player, payload string) {
 		op.LastSeen = nil
 		op.LastFull = time.Time{}
 	}
-	outs := make([]chan<- string, 0, len(g.players))
+	// Only players currently on this map need a fresh MAP frame —
+	// editing the village shouldn't blast the dungeon's tile cache.
+	type mapTarget struct{ out chan<- string }
+	targets := make([]mapTarget, 0, len(g.players))
 	for _, op := range g.players {
-		outs = append(outs, op.Out)
+		if playerMapName(op.MapName) == playerMapName(m.Name) {
+			targets = append(targets, mapTarget{out: op.Out})
+		}
 	}
-	data, _ := g.world.Marshal()
+	data, _ := m.Marshal()
 	g.mu.Unlock()
 
 	log.Printf("map %q saved by player %d (%dx%d, %d entities)",
 		m.Name, p.ID, m.Width, m.Height, len(m.Entities))
-	g.broadcast(outs, "MAP "+string(data)+"\n")
+	frame := "MAP " + string(data) + "\n"
+	for _, t := range targets {
+		select {
+		case t.out <- frame:
+		default:
+		}
+	}
 }
 
 // handleSaveNPCDef accepts a full NPCDef as JSON, persists it under
