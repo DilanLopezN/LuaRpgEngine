@@ -774,6 +774,31 @@ func (g *Game) handleLine(p *Player, line string) {
 		g.handleSaveMap(p, strings.TrimPrefix(line, "SAVE_MAP "))
 		return
 	}
+	if strings.HasPrefix(line, "SHOP_BUY ") {
+		parts := strings.Fields(line)
+		if len(parts) >= 4 {
+			slot, _ := strconv.Atoi(parts[2])
+			qty, _ := strconv.Atoi(parts[3])
+			g.handleShopBuy(p, parts[1], slot, qty)
+		}
+		return
+	}
+	if strings.HasPrefix(line, "SHOP_SELL ") {
+		parts := strings.Fields(line)
+		if len(parts) >= 3 {
+			slot, _ := strconv.Atoi(parts[1])
+			qty, _ := strconv.Atoi(parts[2])
+			g.handleShopSell(p, slot, qty)
+		}
+		return
+	}
+	if strings.HasPrefix(line, "SHOP_CLOSE") {
+		return
+	}
+	if strings.HasPrefix(line, "SAVE_SHOP_DEF ") {
+		g.handleSaveShopDef(p, strings.TrimPrefix(line, "SAVE_SHOP_DEF "))
+		return
+	}
 	// In-game NPC authoring. The editor sends the full NPCDef as a
 	// JSON document; we parse, persist to npcs_user/, and broadcast
 	// the new NPC_DEF so every player's UI updates without a /reload.
@@ -849,19 +874,19 @@ func (g *Game) handleLine(p *Player, line string) {
 			g.sendMapTo(bound)
 			g.sendCharacterState(bound)
 		}
-case "MOVE", "WSAD":
-    fmt.Printf(">>> got %s from player %d (parts=%v)\n", parts[0], p.ID, parts)
-    if len(parts) != 3 {
-        fmt.Printf(">>> rejected: parts != 3 (got %d)\n", len(parts))
-        return
-    }
-    dx, ok1 := parseDirToken(parts[1])
-    dy, ok2 := parseDirToken(parts[2])
-    fmt.Printf(">>> parsed dx=%d dy=%d (ok1=%v ok2=%v)\n", dx, dy, ok1, ok2)
-    if !ok1 || !ok2 {
-        return
-    }
-    g.applyMoveIntent(p, dx, dy)
+	case "MOVE", "WSAD":
+		fmt.Printf(">>> got %s from player %d (parts=%v)\n", parts[0], p.ID, parts)
+		if len(parts) != 3 {
+			fmt.Printf(">>> rejected: parts != 3 (got %d)\n", len(parts))
+			return
+		}
+		dx, ok1 := parseDirToken(parts[1])
+		dy, ok2 := parseDirToken(parts[2])
+		fmt.Printf(">>> parsed dx=%d dy=%d (ok1=%v ok2=%v)\n", dx, dy, ok1, ok2)
+		if !ok1 || !ok2 {
+			return
+		}
+		g.applyMoveIntent(p, dx, dy)
 	case "ATTACK":
 		g.applyAttackIntent(p)
 	case "REGSPELL":
@@ -1810,4 +1835,21 @@ func (g *Game) handleDeleteNPCDef(p *Player, id string) {
 	g.mu.Unlock()
 	log.Printf("npc def %q deleted by player %d", clean, p.ID)
 	g.broadcast(outs, "NPC_DEF_DELETE "+clean+"\n")
+}
+
+func (g *Game) handleSaveShopDef(p *Player, payload string) {
+	var d ShopDef
+	if err := json.Unmarshal([]byte(payload), &d); err != nil {
+		return
+	}
+	if d.ID == "" {
+		return
+	}
+	if err := SaveUserShopDef(scriptsRoot(), &d); err != nil {
+		return
+	}
+	select {
+	case p.Out <- "SYS shop salvo: " + d.ID + "\n":
+	default:
+	}
 }

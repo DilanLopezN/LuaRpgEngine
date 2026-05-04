@@ -169,6 +169,14 @@ handlers.WELCOME = function(rest)
     Spells.clear()
 end
 
+
+handlers.MAP_CHANGE = function(rest)
+    local name = rest:match("^(%S+)")
+    State.status = "Mapa: " .. (name or "world")
+    State.players = {}
+    State.enemies = {}
+    State.npcs = {}
+end
 handlers.MAP = function(rest)
     local m, err = JSON.decode(rest)
     if m then
@@ -217,6 +225,21 @@ end
 
 -- STATS carries up to 12 numeric fields. Older clients only knew the
 -- first four; we now consume the full character sheet.
+
+handlers.SHOP_OPEN = function(rest)
+    local id, payload = rest:match("^(%S+)%s+(.+)$")
+    if not id then return end
+    local d = JSON.decode(payload)
+    State.shop.open = true
+    State.shop.id = id
+    State.shop.def = d
+end
+
+handlers.SHOP_CLOSE = function()
+    State.shop.open = false
+    State.shop.id = nil
+    State.shop.def = nil
+end
 handlers.STATS = function(rest)
     local hp, maxHp, mp, maxMp, level, xp, nextX, str, dex, intel, vit, gold = rest:match(
         "^(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)%s+(%-?%d+)" ..

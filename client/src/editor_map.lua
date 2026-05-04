@@ -42,6 +42,13 @@ local ENTITY_TYPE_LABELS = {
     npc     = "NPC",
     trigger = "Gatilho",
 }
+
+local REFERENCE_TILESETS = {
+    "reference_engine/Client/data tilesets/tileset1.png",
+    "reference_engine/Client/data tilesets/tileset2.png",
+    "reference_engine/Client/data tilesets/tileset3.png",
+}
+
 local ENTITY_KIND_LABELS = {
     orc      = "Orc",
     guard    = "Guarda",

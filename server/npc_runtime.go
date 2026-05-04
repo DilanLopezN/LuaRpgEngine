@@ -43,6 +43,13 @@ func (g *Game) handleTalk(p *Player, npcID string) {
 		g.mu.Unlock()
 		return
 	}
+	if def.Role == NPCRoleMerchant && def.Shop != "" {
+		out := p.Out
+		g.mu.Unlock()
+		g.openShop(p, def.Shop)
+		_ = out
+		return
+	}
 	entry := pickNPCEntryNode(def, p, g.scripts)
 	p.NPCDialog = npcID
 	p.NPCNode = entry

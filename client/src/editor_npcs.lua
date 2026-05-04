@@ -24,6 +24,8 @@ local Network = require("src.network")
 local JSON    = require("src.json")
 local Layout  = require("src.editor_layout")
 local Tooltip = require("src.tooltip")
+local Pickers = require("src.editor_pickers")
+local Items   = require("src.items")
 
 local M = {}
 
@@ -173,11 +175,31 @@ local function defToWire(def)
     return out
 end
 
+-- Phase 1 — verifica se cada id referenciado pelo draft existe no
+-- catálogo correspondente. Reportar antes de mandar para o servidor
+-- evita "quebra silenciosa" descrita no roadmap.
+local function validateDraftRefs(d)
+    if d.quest and d.quest ~= "" and not (State.questDefs or {})[d.quest] then
+        return false, "quest '" .. d.quest .. "' não existe no catálogo"
+    end
+    for i, l in ipairs(d.loot or {}) do
+        if l.item and l.item ~= "" and not (State.itemDefs or {})[l.item] then
+            return false, "loot " .. i .. ": item '" .. l.item .. "' não existe"
+        end
+    end
+    return true
+end
+
 local function saveDraftToServer()
     ensureEditorState()
     local d = State.npcEditor.draft
     if not d.id or d.id == "" then
         State.npcEditor.saveStatus = "id obrigatório"
+        return
+    end
+    local ok, err = validateDraftRefs(d)
+    if not ok then
+        State.npcEditor.saveStatus = err
         return
     end
     if Network.connected and not Network.connected() then
@@ -324,9 +346,9 @@ local function buildRows(d, fx, fy, fw)
     if d.role == "quest_giver" or d.role == "guardian" or d.role == "friendly" then
         pad(4)
         row{ kind = "header", label = "Missão" }
-        row{ kind = "text", field = "quest", label = "ID da missão",
-             value = d.quest,
-             tip = "ID da quest (ex.: orc_hunt). Vazio = sem missão. Diálogo padrão é gerado automaticamente." }
+        row{ kind = "id_picker", field = "quest", pickerKind = "quest",
+             label = "Missão", value = d.quest,
+             tip = "Clique para escolher a quest. Vazio = sem missão; diálogo padrão é gerado automaticamente." }
     end
 
     if isCombatRole(d.role) then
@@ -597,18 +619,36 @@ local function drawLootRow(row)
     love.graphics.print("loot " .. row.index, row.x, row.y + 5)
     local tx = row.x + LABEL_W
     local fw = row.w - LABEL_W
-    -- texto: id do item
-    love.graphics.setColor(0.13, 0.16, 0.22)
-    love.graphics.rectangle("fill", tx, row.y, fw - 130, row.h, 4, 4)
-    love.graphics.setColor(0.4, 0.55, 0.78)
-    love.graphics.rectangle("line", tx, row.y, fw - 130, row.h, 4, 4)
-    love.graphics.setColor(1, 1, 1)
-    local focused = State.editorFocus == ("loot_item_" .. row.index)
-    local txt = l.item or ""
-    if focused and (math.floor(love.timer.getTime() * 2) % 2) == 0 then
-        txt = txt .. "_"
+    -- Item picker: ícone + id (clicável). Ícone à esquerda, label/id à direita.
+    local mx, my = State.mouse.x or 0, State.mouse.y or 0
+    local pickerW = fw - 130
+    local hover = pointIn(mx, my, tx, row.y, pickerW, row.h)
+    local missing = l.item and l.item ~= "" and not (State.itemDefs or {})[l.item]
+    love.graphics.setColor(hover and 0.18 or 0.13,
+                           hover and 0.22 or 0.16,
+                           hover and 0.30 or 0.22)
+    love.graphics.rectangle("fill", tx, row.y, pickerW, row.h, 4, 4)
+    if missing then
+        love.graphics.setColor(0.95, 0.40, 0.40)
+    else
+        love.graphics.setColor(0.4, 0.55, 0.78)
     end
-    love.graphics.print(txt, tx + 6, row.y + 5)
+    love.graphics.rectangle("line", tx, row.y, pickerW, row.h, 4, 4)
+    if l.item and l.item ~= "" then
+        local def = (State.itemDefs or {})[l.item]
+        local iconId = def and Items.iconForItem(def) or Items.defaultFor("material")
+        Items.draw(iconId, tx + 2, row.y + 1, row.h - 2,
+            { rarity = def and def.rarity or nil })
+        love.graphics.setColor(1, 1, 1)
+        local label = (def and def.name) or l.item
+        love.graphics.print(label, tx + row.h + 4, row.y + 5)
+    else
+        love.graphics.setColor(0.65, 0.78, 0.92, 0.7)
+        love.graphics.print("Clique para escolher item...", tx + 6, row.y + 5)
+    end
+    if hover then
+        Tooltip.hover("Clique para abrir o picker de itens.")
+    end
 
     -- qty stepper
     love.graphics.setColor(0.10, 0.13, 0.18)
@@ -653,6 +693,62 @@ local function drawHeader(row)
     love.graphics.print(row.label, row.x, row.y + 4)
 end
 
+-- Phase 1 — desenho do row "id_picker": label à esquerda, área clicável
+-- com o id atual à direita (ou placeholder). Borda fica vermelha quando o
+-- id atual não existe mais no catálogo correspondente, sinalizando que o
+-- usuário precisa abrir o picker e escolher de novo.
+local function drawIdPickerRow(row)
+    love.graphics.setFont(State.fonts.name)
+    love.graphics.setColor(0.7, 0.78, 0.92)
+    love.graphics.print(row.label, row.x, row.y + 5)
+    local tx = row.x + LABEL_W
+    local tw = row.w - LABEL_W
+    local mx, my = State.mouse.x or 0, State.mouse.y or 0
+    local hover = pointIn(mx, my, tx, row.y, tw, row.h)
+
+    local catalog = nil
+    if row.pickerKind == "quest" then catalog = State.questDefs
+    elseif row.pickerKind == "item" then catalog = State.itemDefs
+    elseif row.pickerKind == "npc"  then catalog = State.npcDefs
+    end
+    local missing = row.value and row.value ~= ""
+        and catalog and not catalog[row.value]
+
+    love.graphics.setColor(hover and 0.18 or 0.13,
+                           hover and 0.22 or 0.16,
+                           hover and 0.30 or 0.22)
+    love.graphics.rectangle("fill", tx, row.y, tw, row.h, 4, 4)
+    if missing then
+        love.graphics.setColor(0.95, 0.40, 0.40)
+    else
+        love.graphics.setColor(0.4, 0.55, 0.78)
+    end
+    love.graphics.rectangle("line", tx, row.y, tw, row.h, 4, 4)
+
+    love.graphics.setColor(1, 1, 1)
+    if row.value and row.value ~= "" then
+        local def = catalog and catalog[row.value]
+        local label = (def and def.name) or row.value
+        love.graphics.print(label, tx + 6, row.y + 5)
+        if def and def.name then
+            love.graphics.setColor(0.55, 0.70, 0.92)
+            love.graphics.printf("[" .. row.value .. "]",
+                tx + 6, row.y + 5, tw - 12, "right")
+        end
+    else
+        love.graphics.setColor(0.65, 0.78, 0.92, 0.7)
+        love.graphics.print("Clique para escolher...", tx + 6, row.y + 5)
+    end
+
+    if hover then
+        local kindLbl = row.pickerKind == "quest" and "quest" or
+                        row.pickerKind == "item"  and "item"  or "NPC"
+        local tip = "Clique para abrir o picker de " .. kindLbl .. "."
+        if missing then tip = tip .. "\n⚠ id atual não existe mais." end
+        Tooltip.hover(tip)
+    end
+end
+
 local function drawForm()
     ensureEditorState()
     local d = State.npcEditor.draft
@@ -688,6 +784,8 @@ local function drawForm()
             drawSpriteGrid(r, d.sprite)
         elseif r.kind == "loot_row" then
             drawLootRow(r)
+        elseif r.kind == "id_picker" then
+            drawIdPickerRow(r)
         elseif r.kind == "button" then
             drawButton(r)
         end
@@ -939,7 +1037,12 @@ local function handleLootClick(d, row, x)
     local fw = row.w - LABEL_W
     local l = row.value
     if x < tx + (fw - 130) then
-        State.editorFocus = "loot_item_" .. row.index
+        -- Phase 1 — abre o picker de itens em vez de focar text input.
+        local lootIdx = row.index
+        Pickers.openItem(l.item, function(id)
+            d.loot[lootIdx].item = id or ""
+        end)
+        State.editorFocus = nil
         return
     end
     local qtyX = tx + fw - 122
@@ -954,6 +1057,23 @@ local function handleLootClick(d, row, x)
         if l.chance > 1000 then l.chance = 100 end
         return
     end
+end
+
+-- Phase 1 — abre o picker apropriado pra um id_picker row, e gravar o
+-- id escolhido no campo correspondente do draft.
+local function handleIdPickerClick(d, row)
+    local field = row.field
+    local cb = function(id)
+        d[field] = id or ""
+    end
+    if row.pickerKind == "quest" then
+        Pickers.openQuest(d[field], cb)
+    elseif row.pickerKind == "item" then
+        Pickers.openItem(d[field], cb)
+    elseif row.pickerKind == "npc" then
+        Pickers.openNPC(row.filter, d[field], cb)
+    end
+    State.editorFocus = nil
 end
 
 local function formClick(x, y, button)
@@ -979,6 +1099,9 @@ local function formClick(x, y, button)
                 return true
             elseif r.kind == "loot_row" then
                 handleLootClick(d, r, x)
+                return true
+            elseif r.kind == "id_picker" then
+                handleIdPickerClick(d, r)
                 return true
             elseif r.kind == "button" then
                 if r.action == "save_def" then
@@ -1080,20 +1203,10 @@ function M.textinput(t)
         if #(d.id or "") >= 32 then return true end
         if t:match("[%w_%-]") then d.id = (d.id or "") .. t end
         return true
-    elseif f == "name" or f == "title" or f == "quest" then
+    elseif f == "name" or f == "title" then
         local cur = d[f] or ""
         if #cur >= 64 then return true end
         if t:match("[%w%s_%-]") then d[f] = cur .. t end
-        return true
-    end
-    -- loot_item_<idx>
-    local idx = f and f:match("^loot_item_(%d+)$")
-    if idx then
-        idx = tonumber(idx)
-        local l = d.loot[idx]
-        if l and #(l.item or "") < 32 and t:match("[%w_%-]") then
-            l.item = (l.item or "") .. t
-        end
         return true
     end
     return false
@@ -1111,15 +1224,8 @@ function M.keypressed(key)
         if f == "id" then
             d.id = (d.id or ""):sub(1, -2)
             return true
-        elseif f == "name" or f == "title" or f == "quest" then
+        elseif f == "name" or f == "title" then
             d[f] = (d[f] or ""):sub(1, -2)
-            return true
-        end
-        local idx = f and f:match("^loot_item_(%d+)$")
-        if idx then
-            idx = tonumber(idx)
-            local l = d.loot[idx]
-            if l then l.item = (l.item or ""):sub(1, -2) end
             return true
         end
     elseif key == "return" or key == "kpenter" or key == "escape" then

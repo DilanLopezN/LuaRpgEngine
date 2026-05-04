@@ -14,6 +14,8 @@ local EditorMap    = require("src.editor_map")
 local EditorNPCs   = require("src.editor_npcs")
 local EditorQuests = require("src.editor_quests")
 local EditorItems  = require("src.editor_items")
+local EditorShops  = require("src.editor_shops")
+local Pickers      = require("src.editor_pickers")
 local Map          = require("src.map")
 local Layout       = require("src.editor_layout")
 local Tooltip      = require("src.tooltip")
@@ -29,6 +31,8 @@ local TABS = {
       tip = "Crie missões com objetivos, recompensas e diálogos. (Tab para alternar abas)" },
     { id = "items",  label = "Criar Itens", icon = "I",
       tip = "Crie itens (armas, armaduras, escudos, cajados, poções, etc.) com sprite e stats. (Tab para alternar abas)" },
+    { id = "shops",  label = "Lojas", icon = "L",
+      tip = "Editor de lojas e vínculo com NPC merchant." },
     { id = "spells", label = "Criador de Spells", icon = "S",
       tip = "Crie e edite spells dinamicamente: tipo, efeito, dano, cooldown, cor. (Tab para alternar abas)" },
 }
@@ -50,6 +54,7 @@ local function activeTab()
     if State.editorTab == "npcs"   then return EditorNPCs   end
     if State.editorTab == "quests" then return EditorQuests end
     if State.editorTab == "items"  then return EditorItems  end
+    if State.editorTab == "shops"  then return EditorShops  end
     return EditorMap
 end
 
@@ -135,6 +140,7 @@ local function drawHeader()
     if State.editorTab == "npcs"   then subtitle = "Criar NPCs — escolha o sprite e clique no mapa para posicionar" end
     if State.editorTab == "quests" then subtitle = "Criar Quests — multi-objetivo, recompensas e pré-requisitos" end
     if State.editorTab == "items"  then subtitle = "Criar Itens — armas, armaduras, escudos, poções e mais" end
+    if State.editorTab == "shops" then subtitle = "Editor de Lojas — catálogo de shops para NPCs mercadores" end
     if State.editorTab == "spells" then subtitle = "Criador de Spells — crie spells dinamicamente e arraste à skillbar" end
     love.graphics.setFont(State.fonts.name)
     love.graphics.setColor(0.65, 0.78, 0.95, 0.95)
@@ -236,6 +242,9 @@ function M.draw()
 
     local tab = activeTab()
     if tab and tab.drawContent then tab.drawContent() end
+
+    -- Phase 1 — overlay de picker fica por cima do conteúdo da aba.
+    Pickers.draw()
 end
 
 -- ---------------------------------------------------------------------------
@@ -268,6 +277,12 @@ function M.mousepressed(x, y, button)
     if not State.editorOpen then return false end
     if State.scene ~= State.SCENE_PLAYING then return false end
     button = button or 1
+
+    -- Phase 1 — picker overlay tem prioridade absoluta sobre o resto
+    -- da UI do editor enquanto estiver aberto.
+    if Pickers.isOpen() then
+        return Pickers.mousepressed(x, y, button)
+    end
 
     if button == 1 then
         local cx, cy, cw, ch = closeBtnRect()
@@ -332,6 +347,9 @@ end
 
 function M.wheelmoved(dx, dy)
     if not State.editorOpen then return false end
+    if Pickers.isOpen() then
+        return Pickers.wheelmoved(dx, dy)
+    end
     local tab = activeTab()
     if tab and tab.wheelmoved then
         tab.wheelmoved(dx, dy)
@@ -342,6 +360,9 @@ end
 
 function M.textinput(t)
     if not State.editorOpen then return false end
+    if Pickers.isOpen() then
+        return Pickers.textinput(t)
+    end
     local tab = activeTab()
     if tab and tab.textinput then return tab.textinput(t) end
     return false
@@ -349,6 +370,9 @@ end
 
 function M.keypressed(key)
     if not State.editorOpen then return false end
+    if Pickers.isOpen() then
+        return Pickers.keypressed(key)
+    end
     if key == "escape" then
         if State.editorFocus then
             State.editorFocus = nil
